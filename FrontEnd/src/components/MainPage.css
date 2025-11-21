@@ -1,0 +1,356 @@
+.main-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  background-color: #f0f2f5;
+}
+
+/* header */
+.mp-header {
+  height: 56px;
+  background: #87CEEB;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.2);
+  position: relative;
+  z-index: 5;
+}
+.brand {
+  font-weight: 700;
+}
+
+/* dropdown */
+.dropdown-wrap { margin-left: 8px; position: relative; }
+.dropdown-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+}
+.play-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  cursor: pointer;
+  padding: 0;
+}
+.play-btn.playing { background: rgba(255,255,255,0.18); }
+.caret { margin-left: 6px; }
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 260px;
+  background: #fff;
+  color: #111;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  z-index: 50;
+}
+.dropdown-title { font-weight: 700; margin-bottom: 8px; }
+.dropdown-body { font-size: 13px; }
+
+/* header right: battery + fullscreen */
+.header-right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+.battery {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent; /* ensure no square/box background */
+  padding: 0;
+}
+.battery-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+.battery-percent { color: #fff; font-weight: 700; min-width: 36px; text-align: right; }
+.fullscreen-btn {
+  margin-left: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255,255,255,0.06);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #fff;
+}
+
+/* battery color variants - apply color to icon only (no background box) */
+.battery-red .battery-icon { color: #ff4d4d; }
+.battery-yellow .battery-icon { color: #f59e0b; }
+.battery-green .battery-icon { color: #10b981; }
+.battery-orange .battery-icon { color: #f97316; }
+
+/* content & map */
+.content-wrap { display: flex; flex: 1; }
+.map-area {
+  flex: 1;
+  background: #dcdcdc;
+  position: relative;
+  min-height: calc(100vh - 56px);
+  overflow: hidden;
+  margin-left: 72px;
+}
+.map-ref {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: #e6eef2;
+  /* transform moved to .map-content so only the map content is scaled */
+  cursor: default;
+}
+
+/* inner content that actually scales (click only on this) */
+.map-content {
+  position: absolute;
+  inset: 0; /* fill the map-ref area */
+  transition: transform 280ms ease; /* smooth zoom */
+  transform-origin: center center;
+  cursor: zoom-in;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.map-content.map-zoomed {
+  transform: scale(1.6);
+  cursor: zoom-out;
+}
+
+/* ensure parent clips the scaled content so header/sidebar are unaffected */
+.map-area { overflow: hidden; }
+
+/* keep emergency overlay above scaled content */
+.emergency-overlay { z-index: 30; pointer-events: auto; }
+
+/* centered emergency overlay inside map */
+.emergency-overlay {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 30;
+  pointer-events: auto;
+}
+.emergency-btn {
+  background: #f1c40f;
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+  color: #111;
+}
+.emergency-btn .emergency-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 22px;
+  background: #d92b2b;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.15) inset;
+}
+.emergency-btn .emergency-dot-inner {
+  width: 10px;
+  height: 10px;
+  border-radius: 10px;
+  background: #fff;
+}
+.emergency-btn.clicked { background: linear-gradient(180deg,#d92b2b,#a10f0f); color: #fff; }
+.emergency-btn.clicked .emergency-dot { background: #7a0f0f; }
+
+/* header-centered emergency */
+.header-center-emergency {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  pointer-events: auto;
+}
+.header-emergency-btn {
+  background: #f1c40f;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  color: #111;
+  font-size: 13px;
+}
+.header-emergency-btn .header-emergency-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 14px;
+  background: #d92b2b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.header-emergency-btn .header-emergency-dot-inner {
+  width: 6px;
+  height: 6px;
+  border-radius: 6px;
+  background: #fff;
+}
+.header-emergency-btn.clicked {
+  background: linear-gradient(180deg,#d92b2b,#a10f0f);
+  color: #fff;
+}
+.header-emergency-btn.clicked .header-emergency-dot {
+  background: #7a0f0f;
+}
+
+/* right floating controls */
+.right-controls {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 20;
+}
+.control-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Create trigger and floating panel */
+.create-wrap { position: relative; }
+.create-trigger {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* Right pane (shows selected page content) */
+.right-pane {
+  position: fixed;
+  right: 0;
+  top: 56px;             /* below header */
+  width: 50%;
+  height: calc(100vh - 56px);
+  background: #ffffff;
+  box-shadow: -8px 0 24px rgba(2,12,22,0.08);
+  z-index: 40;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  color: #052034;
+  border-left: 1px solid rgba(2,12,22,0.04);
+}
+
+.right-pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(2,12,22,0.04);
+  background: linear-gradient(180deg, rgba(135,206,235,0.06), rgba(135,206,235,0.02));
+}
+.right-pane-close {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 6px;
+}
+.right-pane-body {
+  padding: 16px;
+  flex: 1;
+  overflow: auto;
+  background: #fff;
+}
+
+/* When a right-side page is open, make the map area use the left half of the screen */
+.has-right-pane .map-area {
+  width: calc(50% - 72px); /* account for the fixed 72px sidebar on the left */
+  flex: none;
+  overflow: hidden;
+}
+
+/* Ensure map-ref and map-content remain positioned inside the smaller map-area */
+.has-right-pane .map-ref {
+  left: 0;
+  right: 0;
+}
+
+/* When a right-side page is open, place the joystick inside the left map-area.
+   Use !important to override any fixed positioning inside the JoyStick component. */
+.has-right-pane .joystick-fixed {
+  position: absolute !important;
+  right: 12px;   /* distance from the right edge of the map-area */
+  bottom: 12px;  /* distance from the bottom edge of the map-area */
+  z-index: 50;
+}
+
+/* ensure the joystick remains on top of scaled map content */
+.has-right-pane .joystick-fixed * {
+  pointer-events: auto;
+}
+
+/* On narrow viewports stack the right pane full width and make map full width under it */
+@media (max-width: 1000px) {
+  .has-right-pane .map-area {
+    width: 100%;
+    margin-left: 72px; /* keep sidebar offset */
+  }
+  .right-pane {
+    position: fixed;
+    left: 0;
+    top: 56px;
+    width: 100%;
+    height: calc(100vh - 56px);
+  }
+}
+@media (max-width: 800px) {
+  .right-pane { position: fixed; left: 0; top: 56px; width: 100%; height: calc(100vh - 56px); border-radius: 0; }
+}
+
+
+
