@@ -2,12 +2,31 @@ import React from "react";
 import { useState } from "react";
 import "./SideBar.css";
 // added monitor-related icons
-import { FaPlus, FaEye, FaCog, FaChartBar, FaChevronLeft, FaComments, FaMapMarkedAlt, FaLayerGroup, FaMapMarkerAlt, FaFlag, FaUsers, FaFileAlt, FaClipboardList, FaArchive, FaUserCog, FaUser, FaPalette, FaShieldAlt, FaPlug } from "react-icons/fa"; // Using react-icons
-
+import {
+  FaPlus,
+  FaEye,
+  FaCog,
+  FaChartBar,
+  FaChevronLeft,
+  FaComments,
+  FaMapMarkedAlt,
+  FaLayerGroup,
+  FaMapMarkerAlt,
+  FaFlag,
+  FaUsers,
+  FaFileAlt,
+  FaClipboardList,
+  FaArchive,
+  FaUserCog,
+  FaUser,
+  FaPalette,
+  FaShieldAlt,
+  FaPlug,
+} from "react-icons/fa"; // Using react-icons
 
 const items = [
   { id: "create", label: "Create", icon: FaPlus },
-  { id: "monitor", label: "Monitor", icon: FaEye},
+  { id: "monitor", label: "Monitor", icon: FaEye },
   { id: "stats", label: "Stats", icon: FaChartBar },
   { id: "chat", label: "Chat", icon: FaComments },
   { id: "settings", label: "Settings", icon: FaCog },
@@ -37,7 +56,10 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
       // compute position adjacent to the clicked list item
       if (e && e.currentTarget && e.currentTarget.getBoundingClientRect) {
         const rect = e.currentTarget.getBoundingClientRect();
-        setCreatePos({ left: Math.round(rect.right + 8), top: Math.round(rect.top + window.scrollY) });
+        setCreatePos({
+          left: Math.round(rect.right + 8),
+          top: Math.round(rect.top + window.scrollY),
+        });
       } else {
         setCreatePos(null);
       }
@@ -48,7 +70,10 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
       setShowSettingsSub(false);
       if (e && e.currentTarget && e.currentTarget.getBoundingClientRect) {
         const rect = e.currentTarget.getBoundingClientRect();
-        setMonitorPos({ left: Math.round(rect.right + 8), top: Math.round(rect.top + window.scrollY) });
+        setMonitorPos({
+          left: Math.round(rect.right + 8),
+          top: Math.round(rect.top + window.scrollY),
+        });
       } else {
         setMonitorPos(null);
       }
@@ -59,7 +84,10 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
       setShowMonitorSub(false);
       if (e && e.currentTarget && e.currentTarget.getBoundingClientRect) {
         const rect = e.currentTarget.getBoundingClientRect();
-        setSettingsPos({ left: Math.round(rect.right + 8), top: Math.round(rect.top + window.scrollY) });
+        setSettingsPos({
+          left: Math.round(rect.right + 8),
+          top: Math.round(rect.top + window.scrollY),
+        });
       } else {
         setSettingsPos(null);
       }
@@ -88,119 +116,156 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
   return (
     <>
       <aside className={`sidebar`} aria-label="Main sidebar">
-
         {/* center the menu vertically */}
         <div className="menu-center">
           {/* emergency button placed in the middle */}
-          
+
           <ul className="sidebar-menu" role="menu">
-           {items.map(({ id, label, icon: Icon, badge }) => (
-            <React.Fragment key={id}>
-              <li
-                role="menuitem"
-                tabIndex={0}
-                className={`sidebar-item column ${active === id ? "active" : ""}`}
-                onClick={(e) => handleActivate(id, e)}
-                onKeyDown={(e) => handleKey(e, id)}
-                aria-pressed={active === id}
-                aria-label={label}
-                title={label}
-              >
-                <div className={`icon-bg ${active === id ? "visible" : ""}`} aria-hidden="true">
-                  <Icon className="icon-inner" />
-                </div>
-                {/* label below icon (visible when expanded) */}
-                <span className="label" aria-hidden="true">{label}</span>
+            {items.map(({ id, label, icon: Icon, badge }) => (
+              <React.Fragment key={id}>
+                <li
+                  role="menuitem"
+                  tabIndex={0}
+                  className={`sidebar-item column ${active === id ? "active" : ""}`}
+                  onClick={(e) => handleActivate(id, e)}
+                  onKeyDown={(e) => handleKey(e, id)}
+                  aria-label={label}
+                  title={label}
+                >
+                  <div
+                    className={`icon-bg ${active === id ? "visible" : ""}`}
+                    aria-hidden="true"
+                  >
+                    <Icon className="icon-inner" />
+                  </div>
+                  {/* label below icon (visible when expanded) */}
+                  <span className="label" aria-hidden="true">
+                    {label}
+                  </span>
 
-                {/* badge (placed at top-right of icon) */}
-                {badge ? <span className="badge" aria-hidden="true">{badge}</span> : null}
+                  {/* badge (placed at top-right of icon) */}
+                  {badge ? (
+                    <span className="badge" aria-hidden="true">
+                      {badge}
+                    </span>
+                  ) : null}
 
-                {/* floating tooltip visible when collapsed */}
-                <span className="label-tooltip" aria-hidden="true">{label}</span>
+                  {/* floating tooltip visible when collapsed */}
+                  <span className="label-tooltip" aria-hidden="true">
+                    {label}
+                  </span>
 
-                <span className="active-indicator" aria-hidden="true" />
-              </li>
-            </React.Fragment>
-           ))}
+                  <span className="active-indicator" aria-hidden="true" />
+                </li>
+              </React.Fragment>
+            ))}
           </ul>
 
           {/* bottom chevron */}
           <div className="sidebar-bottom" aria-hidden="true">
-             <button
-               className="chev-btn"
-               aria-label={(showCreateSub || showMonitorSub || showSettingsSub) ? "back" : "back"}
-               onClick={() => {
-                 // back behavior: close any open anchored panel first, else notify parent
-                 if (showCreateSub) {
-                   setShowCreateSub(false);
-                   setCreatePos(null);
-                   return;
-                 }
-                 if (showMonitorSub) {
-                   setShowMonitorSub(false);
-                   setMonitorPos(null);
-                   return;
-                 }
-                 if (showSettingsSub) {
-                   setShowSettingsSub(false);
-                   setSettingsPos(null);
-                   return;
-                 }
-                 // nothing open in-sidebar: delegate to parent
-                 if (typeof onBack === "function") onBack();
-               }}
-             >
-               <FaChevronLeft />
-             </button>
-           </div>
-         </div>
-       </aside>
+            <button
+              className="chev-btn"
+              aria-label={
+                showCreateSub || showMonitorSub || showSettingsSub
+                  ? "back"
+                  : "back"
+              }
+              onClick={() => {
+                // back behavior: close any open anchored panel first, else notify parent
+                if (showCreateSub) {
+                  setShowCreateSub(false);
+                  setCreatePos(null);
+                  return;
+                }
+                if (showMonitorSub) {
+                  setShowMonitorSub(false);
+                  setMonitorPos(null);
+                  return;
+                }
+                if (showSettingsSub) {
+                  setShowSettingsSub(false);
+                  setSettingsPos(null);
+                  return;
+                }
+                // nothing open in-sidebar: delegate to parent
+                if (typeof onBack === "function") onBack();
+              }}
+            >
+              <FaChevronLeft />
+            </button>
+          </div>
+        </div>
+      </aside>
 
-       {/* Right-side panel that appears when Create is active (sky-blue background, anchored near Create icon) */}
-       {showCreateSub && (
-         <div
-           className="sidebar-right-panel"
-           role="region"
-           aria-label="Create options"
-           style={createPos ? { left: `${createPos.left}px`, top: `${createPos.top}px` } : {}}
-         >
-           <button
-             className="right-create-item"
-             onClick={() => { setActive("maps"); setShowCreateSub(false); setCreatePos(null); if (onSelect) onSelect("maps"); }}
-           >
-             <FaMapMarkedAlt className="right-sub-icon" />
-             <span>Maps</span>
-           </button>
-           <button
-             className="right-create-item"
-             onClick={() => { setActive("zones"); setShowCreateSub(false); setCreatePos(null); if (onSelect) onSelect("zones"); }}
-           >
-             <FaLayerGroup className="right-sub-icon" />
-             <span>Zones</span>
-           </button>
-           <button
-             className="right-create-item"
-             onClick={() => { setActive("waypoints"); setShowCreateSub(false); setCreatePos(null); if (onSelect) onSelect("waypoints"); }}
-           >
-             <FaMapMarkerAlt className="right-sub-icon" />
-             <span>Waypoints</span>
-           </button>
-           <button
-             className="right-create-item"
-             onClick={() => { setActive("missions"); setShowCreateSub(false); setCreatePos(null); if (onSelect) onSelect("missions"); }}
-           >
-             <FaFlag className="right-sub-icon" />
-             <span>Missions</span>
-           </button>
-           <button
-             className="right-create-item"
-             onClick={() => { setActive("users"); setShowCreateSub(false); setCreatePos(null); if (onSelect) onSelect("users"); }}
-           >
-             <FaUsers className="right-sub-icon" />
-             <span>Users</span>
-           </button>
-         </div>
-       )}
+      {/* Right-side panel that appears when Create is active (sky-blue background, anchored near Create icon) */}
+      {showCreateSub && (
+        <div
+          className="sidebar-right-panel"
+          role="region"
+          aria-label="Create options"
+          style={
+            createPos
+              ? { left: `${createPos.left}px`, top: `${createPos.top}px` }
+              : {}
+          }
+        >
+          <button
+            className="right-create-item"
+            onClick={() => {
+              setShowCreateSub(false);
+              setCreatePos(null);
+              if (onSelect) onSelect("maps");
+            }}
+          >
+            <FaMapMarkedAlt className="right-sub-icon" />
+            <span>Maps</span>
+          </button>
+          <button
+            className="right-create-item"
+            onClick={() => {
+              setShowCreateSub(false);
+              setCreatePos(null);
+              if (onSelect) onSelect("zones");
+            }}
+          >
+            <FaLayerGroup className="right-sub-icon" />
+            <span>Zones</span>
+          </button>
+          <button
+            className="right-create-item"
+            onClick={() => {
+              setShowCreateSub(false);
+              setCreatePos(null);
+              if (onSelect) onSelect("waypoints");
+            }}
+          >
+            <FaMapMarkerAlt className="right-sub-icon" />
+            <span>Waypoints</span>
+          </button>
+          <button
+            className="right-create-item"
+            onClick={() => {
+              setShowCreateSub(false);
+              setCreatePos(null);
+              if (onSelect) onSelect("missions");
+            }}
+          >
+            <FaFlag className="right-sub-icon" />
+            <span>Missions</span>
+          </button>
+          <button
+            className="right-create-item"
+            onClick={() => {
+              setShowCreateSub(false);
+              setCreatePos(null);
+              if (onSelect) onSelect("users");
+            }}
+          >
+            <FaUsers className="right-sub-icon" />
+            <span>Users</span>
+          </button>
+        </div>
+      )}
 
       {/* Monitor panel (new) — anchored near Monitor icon */}
       {showMonitorSub && (
@@ -208,39 +273,63 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
           className="sidebar-right-panel"
           role="region"
           aria-label="Monitor options"
-          style={monitorPos ? { left: `${monitorPos.left}px`, top: `${monitorPos.top}px` } : {}}
+          style={
+            monitorPos
+              ? { left: `${monitorPos.left}px`, top: `${monitorPos.top}px` }
+              : {}
+          }
         >
           <button
             className="right-create-item"
-            onClick={() => { setActive("analytics"); setShowMonitorSub(false); setMonitorPos(null); if (onSelect) onSelect("analytics"); }}
+            onClick={() => {
+              setShowMonitorSub(false);
+              setMonitorPos(null);
+              if (onSelect) onSelect("analytics");
+            }}
           >
             <FaChartBar className="right-sub-icon" />
             <span>Analytics</span>
           </button>
           <button
             className="right-create-item"
-            onClick={() => { setActive("diagnostics"); setShowMonitorSub(false); setMonitorPos(null); if (onSelect) onSelect("diagnostics"); }}
+            onClick={() => {
+              setShowMonitorSub(false);
+              setMonitorPos(null);
+              if (onSelect) onSelect("diagnostics");
+            }}
           >
             <FaComments className="right-sub-icon" />
             <span>Diagnostics</span>
           </button>
           <button
             className="right-create-item"
-            onClick={() => { setActive("logs"); setShowMonitorSub(false); setMonitorPos(null); if (onSelect) onSelect("logs"); }}
+            onClick={() => {
+              setShowMonitorSub(false);
+              setMonitorPos(null);
+              if (onSelect) onSelect("logs");
+            }}
           >
             <FaFileAlt className="right-sub-icon" />
             <span>Logs</span>
           </button>
           <button
             className="right-create-item"
-            onClick={() => { setActive("mission-logs"); setShowMonitorSub(false); setMonitorPos(null); if (onSelect) onSelect("mission-logs"); }}
+            onClick={() => {
+              setShowMonitorSub(false);
+              setMonitorPos(null);
+              if (onSelect) onSelect("mission-logs");
+            }}
           >
             <FaClipboardList className="right-sub-icon" />
             <span>Mission Logs</span>
           </button>
           <button
             className="right-create-item"
-            onClick={() => { setActive("robot-bags"); setShowMonitorSub(false); setMonitorPos(null); if (onSelect) onSelect("robot-bags"); }}
+            onClick={() => {
+              setShowMonitorSub(false);
+              setMonitorPos(null);
+              if (onSelect) onSelect("robot-bags");
+            }}
           >
             <FaArchive className="right-sub-icon" />
             <span>Robot Bags</span>
@@ -254,39 +343,63 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
           className="sidebar-right-panel"
           role="region"
           aria-label="Settings options"
-          style={settingsPos ? { left: `${settingsPos.left}px`, top: `${settingsPos.top}px` } : {}}
+          style={
+            settingsPos
+              ? { left: `${settingsPos.left}px`, top: `${settingsPos.top}px` }
+              : {}
+          }
         >
           <button
             className="right-create-item"
-            onClick={() => { setActive("robot-settings"); setShowSettingsSub(false); setSettingsPos(null); if (onSelect) onSelect("robot-settings"); }}
+            onClick={() => {
+              setShowSettingsSub(false);
+              setSettingsPos(null);
+              if (onSelect) onSelect("robot-settings");
+            }}
           >
             <FaUserCog className="right-sub-icon" />
             <span>Robot</span>
           </button>
           <button
             className="right-create-item"
-            onClick={() => { setActive("account"); setShowSettingsSub(false); setSettingsPos(null); if (onSelect) onSelect("account"); }}
+            onClick={() => {
+              setShowSettingsSub(false);
+              setSettingsPos(null);
+              if (onSelect) onSelect("account");
+            }}
           >
             <FaUser className="right-sub-icon" />
             <span>Account</span>
           </button>
           <button
             className="right-create-item"
-            onClick={() => { setActive("appearance"); setShowSettingsSub(false); setSettingsPos(null); if (onSelect) onSelect("appearance"); }}
+            onClick={() => {
+              setShowSettingsSub(false);
+              setSettingsPos(null);
+              if (onSelect) onSelect("appearance");
+            }}
           >
             <FaPalette className="right-sub-icon" />
             <span>Appearance</span>
           </button>
           <button
             className="right-create-item"
-            onClick={() => { setActive("security"); setShowSettingsSub(false); setSettingsPos(null); if (onSelect) onSelect("security"); }}
+            onClick={() => {
+              setShowSettingsSub(false);
+              setSettingsPos(null);
+              if (onSelect) onSelect("security");
+            }}
           >
             <FaShieldAlt className="right-sub-icon" />
             <span>Security</span>
           </button>
           <button
             className="right-create-item"
-            onClick={() => { setActive("integrations"); setShowSettingsSub(false); setSettingsPos(null); if (onSelect) onSelect("integrations"); }}
+            onClick={() => {
+              setShowSettingsSub(false);
+              setSettingsPos(null);
+              if (onSelect) onSelect("integrations");
+            }}
           >
             <FaPlug className="right-sub-icon" />
             <span>Integrations</span>
@@ -294,7 +407,7 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
         </div>
       )}
     </>
-   );
- };
+  );
+};
 
- export default Sidebar;
+export default Sidebar;

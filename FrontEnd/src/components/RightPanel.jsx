@@ -2,22 +2,22 @@
 // import { useEffect, useRef } from "react";
 import "./RightPanel.css";
 
-import { useEffect, useRef } from 'react';
-import nipplejs from 'nipplejs';
+import { useEffect, useRef } from "react";
+import nipplejs from "nipplejs";
 
 const joystickPanelStyle = {
-  position: 'fixed',
-  top: '50%',
+  position: "fixed",
+  top: "50%",
   right: 20,
-  transform: 'translateY(-50%)',
+  transform: "translateY(-50%)",
   width: 180,
   height: 180,
-  backgroundColor: '#222',
-  borderRadius: '20px',
-  boxShadow: '0 0 15px rgba(0,0,0,0.7)',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
+  backgroundColor: "#222",
+  borderRadius: "20px",
+  boxShadow: "0 0 15px rgba(0,0,0,0.7)",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
   zIndex: 1000,
 };
 
@@ -27,20 +27,20 @@ function Joystick() {
   useEffect(() => {
     const joystick = nipplejs.create({
       zone: joystickRef.current,
-      mode: 'static',
-      position: { top: '50%', left: '50%' },
-      color: '#888',
+      mode: "static",
+      position: { top: "50%", left: "50%" },
+      color: "#888",
       size: 120,
     });
 
-    joystick.on('move', (evt, data) => {
+    joystick.on("move", (evt, data) => {
       // Handle move data
-      console.log('Direction:', data.direction);
-      console.log('Distance:', data.distance);
+      console.log("Direction:", data.direction);
+      console.log("Distance:", data.distance);
     });
 
-    joystick.on('end', () => {
-      console.log('Joystick released');
+    joystick.on("end", () => {
+      console.log("Joystick released");
     });
 
     return () => {
@@ -60,5 +60,3 @@ function Joystick() {
 }
 
 export default Joystick;
-
-

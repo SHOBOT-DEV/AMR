@@ -4,7 +4,7 @@
   top: 0;
   height: 100vh;
   width: 72px;
-  background-color: #87CEEB; /* sky blue rail */
+  background-color: #87ceeb; /* sky blue rail */
   color: #052034;
   display: flex;
   flex-direction: column;
@@ -14,7 +14,14 @@
   transition: width 160ms ease;
   z-index: 60;
   overflow: visible;
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial;
 }
 
 /* overlay adapted for light rail */
@@ -25,11 +32,15 @@
   top: 0;
   width: 168px;
   height: 100%;
-  background: linear-gradient(180deg, rgba(135,206,235,0.95), rgba(200,240,255,0.98));
+  background: linear-gradient(
+    180deg,
+    rgba(135, 206, 235, 0.95),
+    rgba(200, 240, 255, 0.98)
+  );
   opacity: 0;
   pointer-events: none;
   transition: opacity 140ms ease;
-  border-left: 1px solid rgba(5,32,52,0.06);
+  border-left: 1px solid rgba(5, 32, 52, 0.06);
   z-index: 10;
 }
 
@@ -58,19 +69,28 @@
   width: 48px;
   height: 48px;
   border-radius: 10px;
-  background: linear-gradient(180deg,#ff4d4d,#d92b2b);
+  background: linear-gradient(180deg, #ff4d4d, #d92b2b);
   color: #fff;
   border: none;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  box-shadow: 0 6px 18px rgba(217,43,43,0.28);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(217, 43, 43, 0.28);
   cursor: pointer;
 }
-.emergency-btn:hover { transform: translateY(-2px); }
+.emergency-btn:hover {
+  transform: translateY(-2px);
+}
 
 /* center the menu vertically */
-.menu-center { width: 100%; margin-top: auto; margin-bottom: auto; display:flex; flex-direction: column; align-items:center; }
+.menu-center {
+  width: 100%;
+  margin-top: auto;
+  margin-bottom: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 
 /* emergency button container (centered above the menu list) */
 .emergency-center {
@@ -84,61 +104,99 @@
 }
 
 /* center the menu vertically */
-.menu-center { width: 100%; margin-top: auto; margin-bottom: auto; display:flex; justify-content:center; }
+.menu-center {
+  width: 100%;
+  margin-top: auto;
+  margin-bottom: auto;
+  display: flex;
+  justify-content: center;
+}
 
 /* menu items as vertical stack, each item column (icon above label) */
-.sidebar-menu { list-style:none; padding:6px 6px; margin: 0; width:100%; z-index:20; display:flex; flex-direction:column; align-items:center; gap: 6px; }
-
-.sidebar-item {
-  display:flex;
+.sidebar-menu {
+  list-style: none;
+  padding: 6px 6px;
+  margin: 0;
+  width: 100%;
+  z-index: 20;
+  display: flex;
   flex-direction: column;
   align-items: center;
-  gap:6px;
+  gap: 6px;
+}
+
+.sidebar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
   padding: 8px 6px;
   color: #052034;
-  cursor:pointer;
-  border-radius:10px;
+  cursor: pointer;
+  border-radius: 10px;
   margin: 6px 0;
   position: relative;
   min-width: 56px;
   min-height: 72px;
-  transition: transform 120ms ease, background 120ms ease;
+  transition:
+    transform 120ms ease,
+    background 120ms ease;
 }
 
 /* hover */
-.sidebar-item:hover { transform: translateY(-4px); background: rgba(0,0,0,0.04); }
+.sidebar-item:hover {
+  transform: translateY(-4px);
+  background: rgba(0, 0, 0, 0.04);
+}
 
 /* icon background (circle better on sky background) */
 .icon-bg {
-  width:52px;
-  height:52px;
-  border-radius:12px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
-  transition: background 160ms ease, box-shadow 160ms ease, transform 120ms ease;
-  z-index:22;
+  transition:
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 120ms ease;
+  z-index: 22;
 }
-.icon-bg .icon-inner { color:#03627a; font-size:22px; }
+.icon-bg .icon-inner {
+  color: #03627a;
+  font-size: 22px;
+}
 
 /* active icon bg */
-.icon-bg.visible { background: linear-gradient(180deg,#7fc6ff,#1e90ff); box-shadow:0 8px 18px rgba(30,144,255,0.18); }
-.icon-bg.visible .icon-inner { color:#052034; }
+.icon-bg.visible {
+  background: linear-gradient(180deg, #7fc6ff, #1e90ff);
+  box-shadow: 0 8px 18px rgba(30, 144, 255, 0.18);
+}
+.icon-bg.visible .icon-inner {
+  color: #052034;
+}
 
 /* label under icon */
 .label {
-  font-size:13px;
-  font-weight:600;
-  color:#052034;
-  opacity:0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #052034;
+  opacity: 0;
   transform: translateY(6px);
-  transition: opacity 160ms ease, transform 160ms ease;
-  pointer-events:none;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+  pointer-events: none;
 }
 
 /* show labels on expand */
-.sidebar:hover .label { opacity:1; transform: translateY(0); pointer-events:auto; }
+.sidebar:hover .label {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
 
 /* badge position (top-right of icon) */
 .badge {
@@ -147,28 +205,89 @@
   right: 10px;
   background: #ff6b6b;
   color: #fff;
-  font-size:12px;
-  padding:3px 7px;
-  border-radius:12px;
-  z-index:24;
+  font-size: 12px;
+  padding: 3px 7px;
+  border-radius: 12px;
+  z-index: 24;
 }
 
 /* tooltip when collapsed */
-.sidebar:not(:hover) .label { display:none; }
-.sidebar:not(:hover) .sidebar-item .label-tooltip { display:block; position:absolute; left:84px; top:50%; transform:translateY(-50%); pointer-events:none; z-index:120; background:rgba(0,0,0,0.85); color:#fff; padding:6px 10px; font-size:13px; border-radius:6px; box-shadow:0 6px 20px rgba(2,8,23,0.5); opacity:0; transition: opacity 140ms ease, transform 140ms ease; }
-.sidebar:not(:hover) .sidebar-item:hover .label-tooltip { opacity:1; transform:translateY(-50%) translateX(6px); }
-.sidebar:hover .label-tooltip { display:none; }
+.sidebar:not(:hover) .label {
+  display: none;
+}
+.sidebar:not(:hover) .sidebar-item .label-tooltip {
+  display: block;
+  position: absolute;
+  left: 84px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  z-index: 120;
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(2, 8, 23, 0.5);
+  opacity: 0;
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+.sidebar:not(:hover) .sidebar-item:hover .label-tooltip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(6px);
+}
+.sidebar:hover .label-tooltip {
+  display: none;
+}
 
 /* bottom chevron */
-.sidebar-bottom { margin-top:auto; width:100%; padding:12px 8px; display:flex; justify-content:center; z-index:20; }
-.chev-btn { background:transparent; border:none; color:#052034; width:36px; height:36px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:background 120ms ease; }
-.chev-btn:hover { background: rgba(0,0,0,0.04); color:#052034; }
+.sidebar-bottom {
+  margin-top: auto;
+  width: 100%;
+  padding: 12px 8px;
+  display: flex;
+  justify-content: center;
+  z-index: 20;
+}
+.chev-btn {
+  background: transparent;
+  border: none;
+  color: #052034;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+.chev-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: #052034;
+}
 
 /* active left indicator if still used */
-.sidebar-item.active .active-indicator { position:absolute; left:-16px; width:10px; height:40px; background:linear-gradient(180deg,#7fc6ff,#1e90ff); border-radius:8px; box-shadow:0 2px 8px rgba(30,144,255,0.12); }
+.sidebar-item.active .active-indicator {
+  position: absolute;
+  left: -16px;
+  width: 10px;
+  height: 40px;
+  background: linear-gradient(180deg, #7fc6ff, #1e90ff);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(30, 144, 255, 0.12);
+}
 
 /* ensure layering */
-.icon-bg, .badge, .label, .label-tooltip, .active-indicator { will-change: transform, opacity; }
+.icon-bg,
+.badge,
+.label,
+.label-tooltip,
+.active-indicator {
+  will-change: transform, opacity;
+}
 
 /* center icon wrapper placed and centered vertically */
 .center-icon-wrap {
@@ -190,11 +309,15 @@
   width: 56px;
   height: 56px;
   border-radius: 12px;
-  background: linear-gradient(180deg, #0ea5e9, #0369a1); /* visible on dark rail */
+  background: linear-gradient(
+    180deg,
+    #0ea5e9,
+    #0369a1
+  ); /* visible on dark rail */
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 20px rgba(3,48,80,0.45);
+  box-shadow: 0 8px 20px rgba(3, 48, 80, 0.45);
   transform: translateY(2px);
   pointer-events: auto; /* allow clicks */
   cursor: pointer;
@@ -214,34 +337,45 @@
   width: 40px;
   height: 36px;
   border-radius: 8px;
-  background: rgba(255,255,255,0.03);
+  background: rgba(255, 255, 255, 0.03);
   color: #cfeeff;
   border: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 120ms ease, transform 120ms ease;
+  transition:
+    background 120ms ease,
+    transform 120ms ease;
 }
 .small-btn:hover {
-  background: rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.06);
   transform: translateX(4px);
 }
-.small-btn svg { font-size: 16px; }
+.small-btn svg {
+  font-size: 16px;
+}
 
 /* active styles restored for dark rail */
 .icon-bg.visible {
-  background: linear-gradient(180deg,#0ea5e9,#0369a1);
-  box-shadow: 0 6px 14px rgba(3,48,80,0.45);
+  background: linear-gradient(180deg, #0ea5e9, #0369a1);
+  box-shadow: 0 6px 14px rgba(3, 48, 80, 0.45);
 }
-.icon-bg.visible .icon-inner { color: #ffffff; }
+.icon-bg.visible .icon-inner {
+  color: #ffffff;
+}
 .sidebar-item.active .active-indicator {
-  background: linear-gradient(180deg,#0ea5e9,#0369a1);
-  box-shadow: 0 2px 6px rgba(3,48,80,0.6);
+  background: linear-gradient(180deg, #0ea5e9, #0369a1);
+  box-shadow: 0 2px 6px rgba(3, 48, 80, 0.6);
 }
 
 /* ensure center block stays above overlay */
-.center-icon-wrap, .center-icon, .below-icons, .small-btn { z-index: 30; }
+.center-icon-wrap,
+.center-icon,
+.below-icons,
+.small-btn {
+  z-index: 30;
+}
 
 /* show expanded sidebar: wider, reveal labels & below icons */
 .sidebar.expanded {
@@ -259,7 +393,9 @@
   transform: translateY(0);
   pointer-events: auto;
 }
-.sidebar.expanded .label-tooltip { display: none; }
+.sidebar.expanded .label-tooltip {
+  display: none;
+}
 
 /* reveal below icons when expanded */
 .sidebar.expanded .below-icons {
@@ -284,7 +420,9 @@
   height: 44px;
   border-radius: 8px;
 }
-.sidebar.expanded .icon-bg .icon-inner { font-size: 18px; }
+.sidebar.expanded .icon-bg .icon-inner {
+  font-size: 18px;
+}
 
 /* center icon behavior when expanded (optional visual tweak) */
 .sidebar.expanded .center-icon {
@@ -292,7 +430,9 @@
 }
 
 /* ensure badge positions adapt in expanded mode */
-.sidebar.expanded .badge { right: 18px; }
+.sidebar.expanded .badge {
+  right: 18px;
+}
 
 /* Create submenu (shown when Create is active and sidebar expanded) */
 .create-submenu {
@@ -301,7 +441,7 @@
   gap: 8px;
   margin: 12px;
   padding: 8px;
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.04);
   border-radius: 8px;
   width: calc(100% - 24px);
 }
@@ -318,7 +458,7 @@
   cursor: pointer;
 }
 .create-sub-item:hover {
-  background: rgba(3,48,80,0.06);
+  background: rgba(3, 48, 80, 0.06);
   transform: translateX(4px);
 }
 .create-sub-item .sub-icon {
@@ -328,9 +468,11 @@
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  background: rgba(3,48,80,0.06);
+  background: rgba(3, 48, 80, 0.06);
 }
-.create-sub-item .sub-label { font-size: 13px; }
+.create-sub-item .sub-label {
+  font-size: 13px;
+}
 
 /* inline submenu styles */
 .create-submenu-inline {
@@ -356,12 +498,14 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  color: #fff;               /* white text on sky-blue rail */
+  color: #fff; /* white text on sky-blue rail */
   font-weight: 700;
-  transition: background 120ms ease, transform 120ms ease;
+  transition:
+    background 120ms ease,
+    transform 120ms ease;
 }
 .create-sub-item:hover {
-  background: rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.06);
   transform: translateX(6px);
 }
 
@@ -374,7 +518,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  background: rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.06);
   color: #fff;
 }
 
@@ -392,22 +536,24 @@
 /* Right-side create panel (appears near clicked Create icon; position set inline from JS) */
 .sidebar-right-panel {
   position: fixed;
-  top: 56px;                 /* overridden by inline top when anchored */
+  top: 56px; /* overridden by inline top when anchored */
   width: 220px;
-  height: auto; 
+  height: auto;
   padding: 10px;
   display: flex;
   flex-direction: column;
   gap: 10px;
   /* sky-blue vertical gradient matching the left rail (top → bottom) */
-  background: linear-gradient(180deg, #bfefff 0%, #87CEEB 50%, #66c3e4 100%);
+  background: linear-gradient(180deg, #bfefff 0%, #87ceeb 50%, #66c3e4 100%);
   color: #052034; /* same readable text color as left rail */
   border-radius: 0 12px 12px 0;
   box-shadow: 4px 8px 24px rgba(2, 12, 22, 0.18);
   z-index: 90;
-  transition: opacity 120ms ease, transform 120ms ease;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
   /* small left border so it reads as an extension of the rail */
-  border-left: 1px solid rgba(255,255,255,0.03);
+  border-left: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 /* panel item styles matching rail feel */
@@ -422,7 +568,9 @@
   color: #052034; /* text color on sky-blue panel */
   font-weight: 700;
   cursor: pointer;
-  transition: background 140ms ease, transform 140ms ease;
+  transition:
+    background 140ms ease,
+    transform 140ms ease;
 }
 
 /* panel item default icon color to match sidebar icon tone */
@@ -436,42 +584,49 @@
   height: 36px;
   border-radius: 6px;
   font-size: 16px;
-  transition: background 140ms ease, color 140ms ease, box-shadow 140ms ease;
+  transition:
+    background 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
 }
 
 /* --- CHANGES START --- */
 /* on hover: make icon & label white (match sidebar icon appearance) */
 .right-create-item:hover {
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.04);
   transform: translateX(-4px);
   color: #fff; /* label becomes white */
 }
 .right-create-item:hover .right-sub-icon {
-  background: rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.06);
   color: #fff; /* icon becomes white */
 }
 
 /* when an option is active, keep the icon gradient but make icon white */
 .right-create-item.active .right-sub-icon {
-  background: linear-gradient(180deg,#7fc6ff,#1e90ff);
-  box-shadow: 0 6px 14px rgba(30,144,255,0.18);
+  background: linear-gradient(180deg, #7fc6ff, #1e90ff);
+  box-shadow: 0 6px 14px rgba(30, 144, 255, 0.18);
   color: #fff; /* changed to white */
 }
 
 /* active button background and text color */
 .right-create-item.active {
-  background: rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.08);
   color: #fff;
 }
 /* --- CHANGES END --- */
 
 /* ensure hover still works for icon */
 .right-create-item:hover .right-sub-icon {
-  background: rgba(255,255,255,0.12);
+  background: rgba(255, 255, 255, 0.12);
   color: #fff;
 }
 
 /* responsive: keep panel near rail on small screens */
 @media (max-width: 800px) {
-  .sidebar-right-panel { left: 72px; top: 64px; width: 180px; }
+  .sidebar-right-panel {
+    left: 72px;
+    top: 64px;
+    width: 180px;
+  }
 }

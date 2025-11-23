@@ -23,7 +23,7 @@
   justify-content: center;
   background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
   /* light React-style gradient */
-  padding: 40px; 
+  padding: 40px;
   box-sizing: border-box;
 }
 
@@ -32,7 +32,7 @@
   background: #fff;
   border: 1px solid #e0e3e8;
   border-radius: 12px;
-  padding: 40px; 
+  padding: 40px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   display: flex;
   align-items: center;
@@ -109,12 +109,9 @@
   .auth-box {
     width: 100%;
   }
-.auth {
-  border: 3px solid #d0d0d0;
-  border-radius: 10px;
-  margin: 20px;
-}
-
-
-
+  .auth {
+    border: 3px solid #d0d0d0;
+    border-radius: 10px;
+    margin: 20px;
+  }
 }

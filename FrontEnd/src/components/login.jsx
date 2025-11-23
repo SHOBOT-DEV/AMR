@@ -2,6 +2,7 @@ import { useState } from "react";
 import "./login.css";
 import LeftImage from "../assets/Shobot_Img.png";
 import IITLogo from "../assets/IIT_Logo.png";
+import { storeAuthTokens, API_BASE } from "../utils/auth";
 
 const Login = ({ onLogin, onSignUpClick }) => {
   const [username, setUsername] = useState("");
@@ -12,7 +13,7 @@ const Login = ({ onLogin, onSignUpClick }) => {
     e.preventDefault();
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/api/login", {
+      const response = await fetch(`${API_BASE}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -25,14 +26,19 @@ const Login = ({ onLogin, onSignUpClick }) => {
 
       if (response.ok && data.success) {
         setError("");
-        localStorage.setItem("token", data.token);
+        storeAuthTokens({
+          token: data.token,
+          refreshToken: data.refreshToken,
+        });
         onLogin();
       } else {
         setError(data.message || "Login failed. Please try again.");
       }
     } catch (err) {
       console.error(err);
-      setError("Network error. Make sure Flask server is running on port 5000.");
+      setError(
+        "Network error. Make sure Flask server is running on port 5000.",
+      );
     }
   };
 

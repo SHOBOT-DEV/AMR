@@ -1,8 +1,15 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+} from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import Login from "./components/login";
 import Register from "./components/Register";
 import AdminLogin from "./components/AdminLogin";
-import Admin from "./components/Admin";  // Admin dashboard page
+import Admin from "./components/Admin"; // Admin dashboard page
 import MainPage from "./components/MainPage";
 
 function AppRoutes() {
@@ -15,7 +22,7 @@ function AppRoutes() {
         path="/"
         element={
           <Login
-            onLogin={() => navigate("/main")}        // public login -> main page
+            onLogin={() => navigate("/main")} // public login -> main page
             onSignUpClick={() => navigate("/register")}
           />
         }
@@ -24,26 +31,25 @@ function AppRoutes() {
       {/* Register */}
       <Route
         path="/register"
-        element={<Register onRegister={() => navigate("/")} onLoginClick={() => navigate("/")} />}
+        element={
+          <Register
+            onRegister={() => navigate("/")}
+            onLoginClick={() => navigate("/")}
+          />
+        }
       />
 
       {/* Admin login page */}
-      <Route path="/admin"
-      element={<AdminLogin />}
-      />
+      <Route path="/admin" element={<AdminLogin />} />
 
       {/* Admin dashboard (requires correct admin credentials in AdminLogin) */}
-      <Route path="/admin/dashboard"
-      element={<Admin />}
-      />
+      <Route path="/admin/dashboard" element={<Admin />} />
 
       {/* Main (post-login) page */}
-      <Route path="/main" element={<MainPage />}
-      />
+      <Route path="/main" element={<MainPage />} />
 
       {/* Catch-all for unknown routes */}
-      <Route path="*" element={<Navigate to="/" replace />}
-      />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
@@ -52,6 +58,7 @@ export default function App() {
   return (
     <Router>
       <AppRoutes />
+      <Toaster position="top-right" />
     </Router>
   );
 }

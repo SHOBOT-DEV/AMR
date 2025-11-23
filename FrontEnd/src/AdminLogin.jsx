@@ -46,9 +46,21 @@ const AdminLogin = ({ onAdminLogin, onBackClick }) => {
   // };
 
   return (
-    <div className="login-container" style={{ display: "flex", height: "100vh" }}>
+    <div
+      className="login-container"
+      style={{ display: "flex", height: "100vh" }}
+    >
       {/* ...existing code... */}
-      <div className="auth" style={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", paddingRight: "6rem" }}>
+      <div
+        className="auth"
+        style={{
+          flex: 1,
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
+          paddingRight: "6rem",
+        }}
+      >
         <div className="auth-box" style={{ width: "80%", maxWidth: "420px" }}>
           <h1>Admin Login</h1>
           <form onSubmit={handleSubmit}>
@@ -68,7 +80,11 @@ const AdminLogin = ({ onAdminLogin, onBackClick }) => {
             />
             <button type="submit">Login</button>
           </form>
-          <p className="forgot-password" onClick={onBackClick} style={{ cursor: "pointer" }}>
+          <p
+            className="forgot-password"
+            onClick={onBackClick}
+            style={{ cursor: "pointer" }}
+          >
             Back to User Login
           </p>
         </div>

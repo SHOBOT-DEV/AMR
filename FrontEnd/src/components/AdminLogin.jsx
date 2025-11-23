@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Admin.css"; // Reuse your login styling
+import "./login.css"; // Reuse your login styling
 import LeftImage from "../assets/Shobot_WBg.png"; // Same left-side image
 import IITLogo from "../assets/IIT_Logo.png"; // Logo at the top
+import { storeAuthTokens, API_BASE } from "../utils/auth";
 
 const AdminLogin = () => {
   const [username, setUsername] = useState("");
@@ -10,14 +11,43 @@ const AdminLogin = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
-    if (username === "admin" && password === "admin123") {
-      setError(""); 
-      navigate("/admin/dashboard"); // Redirect to admin dashboard
-    } else {
-      setError("Invalid credentials, please try again.");
+    try {
+      const response = await fetch(`${API_BASE}/api/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: username.trim(),
+          password: password.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Check if user is admin
+        if (data.user.role === "admin") {
+          storeAuthTokens({
+            token: data.token,
+            refreshToken: data.refreshToken,
+            isAdmin: true,
+          });
+          setError("");
+          navigate("/admin/dashboard");
+        } else {
+          setError("Admin access required. This account is not an admin.");
+        }
+      } else {
+        setError(data.message || "Invalid credentials, please try again.");
+      }
+    } catch (err) {
+      console.error(err);
+      setError(
+        "Network error. Make sure Flask server is running on port 5000.",
+      );
     }
   };
 

@@ -1,5 +1,3 @@
-
-
 import { useState } from "react";
 import Register from "./components/Register";
 import Login from "./components/login";
@@ -21,13 +19,21 @@ function App() {
 
   return (
     <div className="App">
-      {page === "login" && <Login onLogin={handleLogin} onSignUpClick={() => setPage("register")} />}
-      {page === "register" && <Register onRegister={handleRegister} onLoginClick={() => setPage("login")} />}
+      {page === "login" && (
+        <Login
+          onLogin={handleLogin}
+          onSignUpClick={() => setPage("register")}
+        />
+      )}
+      {page === "register" && (
+        <Register
+          onRegister={handleRegister}
+          onLoginClick={() => setPage("login")}
+        />
+      )}
       {page === "main" && <MainPage />}
     </div>
   );
 }
 
 export default App;
-
-

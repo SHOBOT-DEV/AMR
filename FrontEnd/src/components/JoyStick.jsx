@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect } from "react";
 
 const Joystick = ({ width = 120, height = 120, onMove, className }) => {
   const containerRef = useRef(null);
@@ -21,16 +21,16 @@ const Joystick = ({ width = 120, height = 120, onMove, className }) => {
       {
         width,
         height,
-        internalFillColor: '#111',    // dark body tone (library gradient uses these)
-        internalStrokeColor: '#000',
-        externalStrokeColor: '#000',
+        internalFillColor: "#111", // dark body tone (library gradient uses these)
+        internalStrokeColor: "#000",
+        externalStrokeColor: "#000",
         internalLineWidth: 3,
         externalLineWidth: 4,
         autoReturnToCenter: true,
       },
       (stickData) => {
         onMove && onMove(stickData);
-      }
+      },
     );
 
     // No manual arrow drawing here — library drawExternal/drawInternal render the full appearance.
@@ -52,12 +52,12 @@ const Joystick = ({ width = 120, height = 120, onMove, className }) => {
       ref={containerRef}
       className={className || undefined}
       style={{
-        position: 'fixed',
-        right: '20px',
-        bottom: '20px',
+        position: "fixed",
+        right: "20px",
+        bottom: "20px",
         width: `${width}px`,
         height: `${height}px`,
-        touchAction: 'none',
+        touchAction: "none",
         zIndex: 1000,
       }}
     />
