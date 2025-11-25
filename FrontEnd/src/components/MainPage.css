@@ -16,12 +16,14 @@
   padding: 0 16px;
   gap: 12px;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
-  position: relative;
-  z-index: 5;
+  /* keep header fixed to top so content sits directly beneath it */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
 }
-.brand {
-  font-weight: 700;
-}
+
 
 /* dropdown */
 .dropdown-wrap {
@@ -88,13 +90,25 @@
   gap: 12px;
   align-items: center;
 }
+
+/* remove any visible box around the battery wrapper */
 .battery {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: transparent; /* ensure no square/box background */
+  background: transparent; /* ensure no box */
   padding: 0;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  box-shadow: none; /* remove any lingering shadow */
 }
+.battery:focus {
+  outline: 2px solid rgba(11,116,209,0.18); /* accessible focus ring */
+  border-radius: 8px;
+}
+
+/* keep icon sizing */
 .battery-icon {
   font-size: 18px;
   line-height: 1;
@@ -105,18 +119,32 @@
   min-width: 36px;
   text-align: right;
 }
+
+/* make fullscreen button fully transparent (no box) */
 .fullscreen-btn {
   margin-left: 8px;
   width: 36px;
   height: 36px;
   border-radius: 8px;
   border: none;
-  background: rgba(255, 255, 255, 0.06);
+  background: transparent; /* removed semi-opaque box */
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   color: #fff;
+  padding: 0;
+  box-shadow: none; /* remove box-shadow */
+}
+.fullscreen-btn:focus {
+  outline: 2px solid rgba(11,116,209,0.18);
+  border-radius: 8px;
+}
+
+/* subtle hover feedback without adding a box */
+.fullscreen-btn:hover,
+.battery:hover {
+  background: rgba(255,255,255,0.03);
 }
 
 /* battery color variants - apply color to icon only (no background box) */
@@ -137,6 +165,8 @@
 .content-wrap {
   display: flex;
   flex: 1;
+  /* account for the fixed header so there's no visual gap */
+  margin-top: 56px;
 }
 .map-area {
   flex: 1;
@@ -1227,30 +1257,58 @@
 .right-controls {
   position: absolute;
   right: 12px;
-  top: 12px;
+  top: 72px; /* sit below the fixed header */
   display: flex;
   flex-direction: column;
   gap: 8px;
   z-index: 20;
   pointer-events: auto;
 }
+
+/* refined control button: subtle translucent surface, crisp border, rounded corners, white icon */
 .control-btn {
   width: 40px;
   height: 40px;
-  border-radius: 6px;
-  background: #fff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  display: flex;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  border: 1px solid rgba(5,32,52,0.06); /* subtle darker border for contrast */
+  box-shadow: 0 8px 20px rgba(2, 12, 22, 0.12);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  padding: 0;
+  color: #052034; /* dark icon/text so the symbol is NOT white */
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: none; /* remove white text shadow so dark symbol is crisp */
+  transition: transform 140ms ease, box-shadow 140ms ease, background 120ms ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  outline: none;
+}
+.control-btn:focus {
+  box-shadow: 0 10px 28px rgba(2,12,22,0.18), 0 0 0 4px rgba(11,116,209,0.12);
+  transform: translateY(-2px) scale(1.02);
 }
 
-.joystick-overlay {
-  position: absolute;
-  right: 32px;
-  bottom: 32px;
-  pointer-events: auto;
+/* hover: lift and brighten */
+.control-btn:hover {
+  transform: translateY(-6px) scale(1.04);
+  background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.05));
+  box-shadow: 0 14px 34px rgba(2, 12, 22, 0.18);
+}
+
+/* allow icon SVGs or characters to size nicely */
+.control-btn .icon,
+.control-btn svg {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  fill: currentColor; /* inherits dark color now */
+  line-height: 1;
+  vertical-align: middle;
 }
 
 /* Create trigger and floating panel */
@@ -1272,7 +1330,7 @@
 .right-pane {
   position: fixed;
   right: 0;
-  top: 56px; /* below header */
+  top: 56px; /* remains aligned below fixed header */
   width: 50%;
   height: calc(100vh - 56px);
   background: #ffffff;
@@ -1329,8 +1387,29 @@
   position: absolute;
   right: 32px;
   bottom: 32px;
-  z-index: 40;
   pointer-events: auto;
+}
+
+/* When right pane is open (map area reduced) move overlays toward left side */
+.has-right-pane .right-controls {
+  /* anchor to right inside the reduced map area (stay at map's top-right) */
+  right: 12px;
+  left: auto;
+}
+.has-right-pane .joystick-overlay {
+  /* keep joystick at the right edge of the reduced map area */
+  right: 32px;
+  left: auto;
+}
+
+/* ensure the default (no right-pane) still uses right alignment */
+.right-controls {
+  right: 12px;
+  left: auto;
+}
+.joystick-overlay {
+  right: 32px;
+  left: auto;
 }
 
 /* On narrow viewports stack the right pane full width and make map full width under it */
@@ -1356,4 +1435,47 @@
     height: calc(100vh - 56px);
     border-radius: 0;
   }
+}
+
+/* minimized map (small preview floating at top-left of workspace area) */
+.map-area.minimized {
+  position: fixed;
+  left: 72px;            /* align to the left rail (72px) */
+  top: 64px;             /* just below header (56px) with a small gap) */
+  width: 360px;
+  height: 220px;
+  z-index: 25;
+  box-shadow: 0 8px 30px rgba(2,12,22,0.18);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #e6eef2;
+}
+
+/* when minimized, position joystick inside the small map preview (absolute) */
+.map-area.minimized .joystick-overlay {
+  /* keep the joystick at the right-bottom inside the minimized preview */
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  left: auto;
+  top: auto;
+  z-index: 30;
+}
+
+/* joystick overlay: keep absolute inside the map area so its placement doesn't change */
+.has-right-pane .joystick-overlay,
+.joystick-overlay.lefted {
+  position: absolute;
+  right: 32px;
+  bottom: 32px;
+  left: auto;
+  top: auto;
+}
+
+/* ensure right-controls are anchored inside the map and remain near the top of the map, not under the header */
+.right-controls {
+  position: absolute;
+  top: 12px; /* 12px from top of map area */
+  right: 12px;
+  z-index: 20;
 }

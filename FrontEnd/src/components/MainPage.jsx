@@ -101,8 +101,49 @@ const MainPage = () => {
   }, [chatMessages]);
 
   // new: zoom state for map
-  const [isZoomed, setIsZoomed] = useState(false);
-  const toggleMapZoom = () => setIsZoomed((s) => !s);
+  const [zoomLevel, setZoomLevel] = useState(0); // 0 .. 0.3
+  const toggleMapZoom = useCallback(() => {
+    setZoomLevel((z) => (z === 0 ? 0.3 : 0));
+  }, []);
+  const zoomIn = useCallback(
+    (e) => {
+      e && e.stopPropagation();
+      setZoomLevel((z) => Math.min(0.3, +(z + 0.1).toFixed(2)));
+    },
+    [setZoomLevel],
+  );
+  const zoomOut = useCallback(
+    (e) => {
+      e && e.stopPropagation();
+      setZoomLevel((z) => Math.max(0, +(z - 0.1).toFixed(2)));
+    },
+    [setZoomLevel],
+  );
+  // minimize main center (map) and joystick
+  const [minimizedMain, setMinimizedMain] = useState(false);
+
+  // joystick state (last vector from physical joystick or keyboard WASD)
+  const [joystickState, setJoystickState] = useState({
+    x: 0,
+    y: 0,
+    force: 0,
+    angle: 0,
+    type: null,
+  });
+
+  // handler passed to JoyStick so component receives events (stick or keyboard)
+  const handleJoystickMove = useCallback((data) => {
+    // data shape: { x, y, force, angle, ... }
+    setJoystickState({
+      x: data.x ?? 0,
+      y: data.y ?? 0,
+      force: data.force ?? 0,
+      angle: data.angle ?? 0,
+      type: data.type || "joystick",
+    });
+    // TODO: translate to robot commands / send to backend if needed
+    // console.debug("Joystick move:", data);
+  }, []);
 
   const [batteryLevel, setBatteryLevel] = useState(100);
   useEffect(() => {
@@ -943,7 +984,7 @@ const MainPage = () => {
     >
       <header className="mp-header">
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div className="brand">⨂</div>
+
         </div>
 
         {/* Header-centered Emergency Stop */}
@@ -2513,6 +2554,8 @@ const MainPage = () => {
                               Mission not found.
                             </div>
                           );
+
+
                         return (
                           <div>
                             <div style={{ fontWeight: 800, fontSize: 16 }}>
@@ -3154,7 +3197,7 @@ const MainPage = () => {
           </aside>
         )}
 
-        <main className="map-area">
+        <main className={`map-area ${minimizedMain ? "minimized" : ""}`}>
           {/* Map / Workspace placeholder - this is the element we fullscreen */}
           <div
             ref={mapRef}
@@ -3163,7 +3206,7 @@ const MainPage = () => {
           >
             {/* inner content that will zoom — click handler here so only map-content scales */}
             <div
-              className={`map-content ${isZoomed ? "map-zoomed" : ""}`}
+              className={`map-content`}
               onClick={toggleMapZoom}
               role="button"
               tabIndex={0}
@@ -3176,6 +3219,9 @@ const MainPage = () => {
                 display: "flex",
                 alignItems: "stretch",
                 justifyContent: "stretch",
+                transform: `scale(${1 + zoomLevel})`,
+                transition: "transform 280ms ease",
+                cursor: zoomLevel > 0 ? "zoom-out" : "zoom-in",
               }}
             >
               {selectedMap ? (
@@ -3328,7 +3374,7 @@ const MainPage = () => {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    color: "#9ca3af",
+                    color: "#9ca3b8",
                   }}
                 >
                   No map selected
@@ -3337,24 +3383,28 @@ const MainPage = () => {
             </div>
 
             <div className="map-overlays">
-              <div className="right-controls">
-                <div
-                  style={{ width: 40, height: 40 }}
+              <div className="right-controls" onClick={(e) => e.stopPropagation()}>
+                <button
                   className="control-btn"
-                  title="Layers"
+                  title="Zoom In"
+                  onClick={(e) => { e.stopPropagation(); zoomIn(e); }}
+                  aria-label="Zoom in"
+                  type="button"
                 >
-                  ≡
-                </div>
-                <div
-                  style={{ width: 40, height: 40 }}
+                  ＋
+                </button>
+                <button
                   className="control-btn"
-                  title="Center"
+                  title="Zoom Out"
+                  onClick={(e) => { e.stopPropagation(); zoomOut(e); }}
+                  aria-label="Zoom out"
+                  type="button"
                 >
-                  ⊕
-                </div>
+                  −
+                </button>
               </div>
-              <div className="joystick-overlay">
-                <JoyStick width={140} height={140} />
+              <div className={`joystick-overlay ${minimizedMain ? "minimized" : ""}`}>
+                <JoyStick width={140} height={140} onMove={handleJoystickMove} />
               </div>
             </div>
           </div>

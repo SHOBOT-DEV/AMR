@@ -446,6 +446,69 @@ function JoyStick(container, parameters, callback)
         return getCardinalDirection();
     };
 
+    /**
+     * Programmatically set joystick position (client coordinates - viewport).
+     * This updates visuals and invokes the instance callback, same as a real pointer move.
+     */
+    this.SetPosition = function(clientX, clientY)
+    {
+        try {
+            pressed = 1;
+            // Convert client (viewport) coordinates to canvas-local coordinates using bounding rect
+            var rect = canvas.getBoundingClientRect();
+            // clientX/clientY are viewport coords; movedX/movedY must be canvas-local
+            movedX = clientX - rect.left;
+            movedY = clientY - rect.top;
+
+            // Safety: clamp moved values to canvas bounds
+            if (movedX < 0) movedX = 0;
+            if (movedY < 0) movedY = 0;
+            if (movedX > canvas.width) movedX = canvas.width;
+            if (movedY > canvas.height) movedY = canvas.height;
+
+            // redraw
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            drawExternal();
+            drawInternal();
+
+            // update status and callback
+            StickStatus.xPosition = movedX;
+            StickStatus.yPosition = movedY;
+            StickStatus.x = (100 * ((movedX - centerX) / maxMoveStick)).toFixed();
+            StickStatus.y = ((100 * ((movedY - centerY) / maxMoveStick)) * -1).toFixed();
+            StickStatus.cardinalDirection = getCardinalDirection();
+            callback(StickStatus);
+        } catch (e) {
+            // ignore
+        }
+    };
+
+    /**
+     * Programmatically release the joystick (mouseup equivalent).
+     */
+    this.Release = function()
+    {
+        try {
+            pressed = 0;
+            if(autoReturnToCenter)
+            {
+                movedX = centerX;
+                movedY = centerY;
+            }
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            drawExternal();
+            drawInternal();
+            StickStatus.xPosition = movedX;
+            StickStatus.yPosition = movedY;
+            StickStatus.x = (100 * ((movedX - centerX) / maxMoveStick)).toFixed();
+            StickStatus.y = ((100 * ((movedY - centerY) / maxMoveStick)) * -1).toFixed();
+            StickStatus.cardinalDirection = getCardinalDirection();
+            callback(StickStatus);
+        } catch (e) {
+            // ignore
+        }
+    };
+
     // Simple Destroy method to allow wrapper cleanup
     this.Destroy = function()
     {
