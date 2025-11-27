@@ -32,7 +32,8 @@ const items = [
   { id: "settings", label: "Settings", icon: FaCog },
 ];
 
-const Sidebar = ({ onSelect, onBack } = {}) => {
+const Sidebar = (props) => {
+  const { onSelect, onBack } = props || {};
   const [active, setActive] = useState("settings"); // default active
 
   // create panel state (right-side panel). No left-rail expansion.
@@ -115,7 +116,12 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
   };
   return (
     <>
-      <aside className={`sidebar`} aria-label="Main sidebar">
+      <aside
+        className={`sidebar`}
+        aria-label="Main sidebar"
+        // small visual separator between left rail and main content
+        style={{ borderRight: "1px solid #e6eef2", paddingTop: 12 }}
+      >
         {/* center the menu vertically */}
         <div className="menu-center">
           {/* emergency button placed in the middle */}
@@ -164,6 +170,7 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
           {/* bottom chevron */}
           <div className="sidebar-bottom" aria-hidden="true">
             <button
+              type="button"
               className="chev-btn"
               aria-label={
                 showCreateSub || showMonitorSub || showSettingsSub
@@ -210,8 +217,11 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
           }
         >
           <button
+            type="button"
             className="right-create-item"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
               setShowCreateSub(false);
               setCreatePos(null);
               if (onSelect) onSelect("maps");
@@ -221,8 +231,11 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
             <span>Maps</span>
           </button>
           <button
+            type="button"
             className="right-create-item"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
               setShowCreateSub(false);
               setCreatePos(null);
               if (onSelect) onSelect("zones");
@@ -232,8 +245,11 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
             <span>Zones</span>
           </button>
           <button
+            type="button"
             className="right-create-item"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
               setShowCreateSub(false);
               setCreatePos(null);
               if (onSelect) onSelect("waypoints");
@@ -243,8 +259,11 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
             <span>Waypoints</span>
           </button>
           <button
+            type="button"
             className="right-create-item"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
               setShowCreateSub(false);
               setCreatePos(null);
               if (onSelect) onSelect("missions");
@@ -254,8 +273,11 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
             <span>Missions</span>
           </button>
           <button
+            type="button"
             className="right-create-item"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
               setShowCreateSub(false);
               setCreatePos(null);
               if (onSelect) onSelect("users");
@@ -280,8 +302,11 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
           }
         >
           <button
+            type="button"
             className="right-create-item"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
               setShowMonitorSub(false);
               setMonitorPos(null);
               if (onSelect) onSelect("analytics");
@@ -291,8 +316,11 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
             <span>Analytics</span>
           </button>
           <button
+            type="button"
             className="right-create-item"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
               setShowMonitorSub(false);
               setMonitorPos(null);
               if (onSelect) onSelect("diagnostics");
@@ -302,8 +330,11 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
             <span>Diagnostics</span>
           </button>
           <button
+            type="button"
             className="right-create-item"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
               setShowMonitorSub(false);
               setMonitorPos(null);
               if (onSelect) onSelect("logs");
@@ -313,8 +344,11 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
             <span>Logs</span>
           </button>
           <button
+            type="button"
             className="right-create-item"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
               setShowMonitorSub(false);
               setMonitorPos(null);
               if (onSelect) onSelect("mission-logs");
@@ -324,8 +358,11 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
             <span>Mission Logs</span>
           </button>
           <button
+            type="button"
             className="right-create-item"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
               setShowMonitorSub(false);
               setMonitorPos(null);
               if (onSelect) onSelect("robot-bags");
@@ -350,8 +387,11 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
           }
         >
           <button
+            type="button"
             className="right-create-item"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
               setShowSettingsSub(false);
               setSettingsPos(null);
               if (onSelect) onSelect("robot-settings");
@@ -361,8 +401,11 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
             <span>Robot</span>
           </button>
           <button
+            type="button"
             className="right-create-item"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
               setShowSettingsSub(false);
               setSettingsPos(null);
               if (onSelect) onSelect("account");
@@ -372,8 +415,11 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
             <span>Account</span>
           </button>
           <button
+            type="button"
             className="right-create-item"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
               setShowSettingsSub(false);
               setSettingsPos(null);
               if (onSelect) onSelect("appearance");
@@ -383,8 +429,11 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
             <span>Appearance</span>
           </button>
           <button
+            type="button"
             className="right-create-item"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
               setShowSettingsSub(false);
               setSettingsPos(null);
               if (onSelect) onSelect("security");
@@ -394,8 +443,11 @@ const Sidebar = ({ onSelect, onBack } = {}) => {
             <span>Security</span>
           </button>
           <button
+            type="button"
             className="right-create-item"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
               setShowSettingsSub(false);
               setSettingsPos(null);
               if (onSelect) onSelect("integrations");

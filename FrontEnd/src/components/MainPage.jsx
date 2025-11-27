@@ -222,13 +222,12 @@ const MainPage = () => {
 
   // sample maps data — replace image paths with your real map images
   const mapsList = [
-    // use the new screenshot file for CFL_GF preview
     {
       id: "cfl_gf",
       name: "CFL_GF",
       createdBy: "CNDE IITM",
-      image:
-        "file:///home/shobot/Pictures/Screenshot from 2025-11-17 07-25-47.png",
+      // removed local screenshot reference
+      image: "",
       status: "Active",
     },
     {
@@ -245,31 +244,28 @@ const MainPage = () => {
       image: "/images/maps/shobot_arena2.png",
       status: "",
     },
-    /* zones entry: use the new screenshot you supplied */
+    /* zones entry: cleared local screenshot */
     {
       id: "zones",
       name: "Zones",
       createdBy: "ANSCER ADMIN",
-      image:
-        "file:///home/shobot/Pictures/Screenshot from 2025-11-17 07-45-26.png",
+      image: "",
       status: "",
     },
-    /* waypoints entry: show the requested screenshot when Waypoints is selected */
+    /* waypoints entry: cleared local screenshot */
     {
       id: "waypoints",
       name: "Waypoints",
       createdBy: "ANSCER ADMIN",
-      image:
-        "file:///home/shobot/Pictures/Screenshot from 2025-11-17 08-32-02.png",
+      image: "",
       status: "",
     },
-    /* users preview shown when selecting Users */
+    /* users preview cleared */
     {
       id: "users",
       name: "Users",
       createdBy: "ANSCER ADMIN",
-      image:
-        "file:///home/shobot/Pictures/Screenshot from 2025-11-17 08-54-24.png",
+      image: "",
       status: "",
     },
   ];
@@ -3224,162 +3220,8 @@ const MainPage = () => {
                 cursor: zoomLevel > 0 ? "zoom-out" : "zoom-in",
               }}
             >
-              {selectedMap ? (
-                <div
-                  style={{
-                    position: "relative",
-                    width: "100%",
-                    height: "100%",
-                  }}
-                >
-                  <img
-                    src={selectedMap.image}
-                    alt={selectedMap.name}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "contain",
-                      display: "block",
-                    }}
-                  />
-
-                  {/* bottom info bar like screenshot */}
-                  <div
-                    style={{
-                      position: "absolute",
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      background: "rgba(240,248,255,0.95)",
-                      padding: "12px 16px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                    }}
-                  >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 8 }}
-                    >
-                      <span style={{ fontSize: 18 }}>📍</span>
-                      <div>
-                        <div style={{ fontWeight: 800 }}>
-                          <span style={{ fontWeight: 700 }}>
-                            {breadcrumbParts.length > 1
-                              ? breadcrumbParts.slice(1).join(" › ")
-                              : selectedMap.name}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 12, color: "#6b7280" }}>
-                          Created By: {selectedMap.createdBy}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* action buttons group (Preview / Edit / Delete) */}
-                    <div style={{ display: "flex", gap: 8, marginLeft: 24 }}>
-                      <button
-                        onClick={() => {
-                          setActiveMapAction("preview");
-                          handleMapAction("preview", selectedMap);
-                        }}
-                        title="Preview map"
-                        aria-pressed={activeMapAction === "preview"}
-                        style={{
-                          padding: "6px 10px",
-                          borderRadius: 6,
-                          border: "none",
-                          background:
-                            activeMapAction === "preview"
-                              ? "#bfdbfe"
-                              : "#eef2ff",
-                          cursor: "pointer",
-                          boxShadow:
-                            activeMapAction === "preview"
-                              ? "inset 0 0 0 2px rgba(59,130,246,0.12)"
-                              : "none",
-                        }}
-                      >
-                        Preview
-                      </button>
-                      <button
-                        onClick={() => {
-                          setActiveMapAction("edit");
-                          handleMapAction("edit", selectedMap);
-                        }}
-                        title="Edit map"
-                        aria-pressed={activeMapAction === "edit"}
-                        style={{
-                          padding: "6px 10px",
-                          borderRadius: 6,
-                          border: "none",
-                          background:
-                            activeMapAction === "edit" ? "#bfdbfe" : "#e6f7ff",
-                          cursor: "pointer",
-                          boxShadow:
-                            activeMapAction === "edit"
-                              ? "inset 0 0 0 2px rgba(59,130,246,0.12)"
-                              : "none",
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => {
-                          setActiveMapAction("delete");
-                          handleMapAction("delete", selectedMap);
-                        }}
-                        title="Delete map"
-                        aria-pressed={activeMapAction === "delete"}
-                        style={{
-                          padding: "6px 10px",
-                          borderRadius: 6,
-                          border: "none",
-                          background:
-                            activeMapAction === "delete"
-                              ? "#fecaca"
-                              : "#ffdce0",
-                          cursor: "pointer",
-                          color: "#9b1b1b",
-                          boxShadow:
-                            activeMapAction === "delete"
-                              ? "inset 0 0 0 2px rgba(220,38,38,0.08)"
-                              : "none",
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </div>
-
-                    <div style={{ marginLeft: "auto", color: "#6b7280" }}>
-                      {selectedMap.status ? (
-                        <span
-                          style={{
-                            background: "#10b981",
-                            color: "#fff",
-                            padding: "2px 8px",
-                            borderRadius: 8,
-                          }}
-                        >
-                          {selectedMap.status}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#9ca3b8",
-                  }}
-                >
-                  No map selected
-                </div>
-              )}
+              {/* intentionally render nothing in the center */}
+              <div style={{ width: "100%", height: "100%" }} aria-hidden="true" />
             </div>
 
             <div className="map-overlays">

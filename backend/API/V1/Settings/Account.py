@@ -1,0 +1,5 @@
+# load user profile : get()
+# Update the user : put()
+# get all users : get()
+# create new user : post()
+# delete user : delete()

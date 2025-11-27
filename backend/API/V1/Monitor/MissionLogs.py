@@ -1,0 +1,5 @@
+# List all tasks: get()
+# create a new task : post()
+# One specific task : get()
+#  Update task status : put()
+# remove a task : delete()

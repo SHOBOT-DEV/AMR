@@ -20,9 +20,25 @@ const Joystick = ({ width = 120, height = 120, onMove, className }) => {
   const rafRef = useRef(null);
   const pressedRef = useRef(false); // for synthetic mouse press
 
+  // gate: enable keyboard control by default (global)
+  const activeKeyboardRef = useRef(true);
+  const setActiveKeyboard = (v) => {
+    activeKeyboardRef.current = !!v;
+  };
+
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || !window.JoyStick) return;
+    if (!container) return;
+
+    // ensure container has a stable unique id (joy.js expects an id)
+    if (!container.id) {
+      container.id = `joystick-${Math.random().toString(36).slice(2, 9)}`;
+    }
+
+    if (!window.JoyStick) {
+      // nothing to initialize; still allow keyboard gating
+      return;
+    }
 
     // Cleanup old joystick
     if (joystickRef.current?.Destroy) joystickRef.current.Destroy();
@@ -85,20 +101,60 @@ const Joystick = ({ width = 120, height = 120, onMove, className }) => {
       } catch {}
     };
 
+    // helper: is any editable element focused? (allows typing)
+    const anyEditableFocused = () => {
+      const el = document.activeElement;
+      if (!el) return false;
+      const tag = (el.tagName || "").toUpperCase();
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+      if (el.isContentEditable) return true;
+      return false;
+    };
+
+    // keys we handle for joystick control
+    const HANDLED_KEYS = new Set([
+      "w","a","s","d","W","A","S","D",
+      "ArrowUp","ArrowLeft","ArrowDown","ArrowRight"
+    ]);
+
+    // reset key state helper
+    const resetKeyState = () => {
+      const ks = keyStateRef.current;
+      for (const k of Object.keys(ks)) ks[k] = false;
+    };
+
     // Compute keyboard vector and synthesize native events to the joystick canvas
     const computeKeyboardMovement = () => {
+      // If keyboard control disabled, skip
+      if (!activeKeyboardRef.current) {
+        rafRef.current = requestAnimationFrame(computeKeyboardMovement);
+        return;
+      }
+
+      // If any editable is focused, ensure we have no active joystick commands
+      if (anyEditableFocused()) {
+        // If last sent was non-zero, send stop once
+        const last = lastSentRef.current || { force: 0 };
+        if (last.force && typeof onMove === "function") {
+          lastSentRef.current = { x: 0, y: 0, force: 0, angle: 0, type: "stop" };
+          onMove && onMove(lastSentRef.current);
+        }
+        rafRef.current = requestAnimationFrame(computeKeyboardMovement);
+        return;
+      }
+
       const s = keyStateRef.current;
 
       // Prefer letter keys (W/A/S/D). If none pressed, fall back to arrows.
       const lettersActive = s.w || s.a || s.s || s.d;
       const right = lettersActive ? (s.d ? 1 : 0) : (s.ArrowRight ? 1 : 0);
-      const left  = lettersActive ? (s.a ? 1 : 0) : (s.ArrowLeft  ? 1 : 0);
-      const down  = lettersActive ? (s.s ? 1 : 0) : (s.ArrowDown  ? 1 : 0);
-      const up    = lettersActive ? (s.w ? 1 : 0) : (s.ArrowUp    ? 1 : 0);
+      const left = lettersActive ? (s.a ? 1 : 0) : (s.ArrowLeft ? 1 : 0);
+      const down = lettersActive ? (s.s ? 1 : 0) : (s.ArrowDown ? 1 : 0);
+      const up = lettersActive ? (s.w ? 1 : 0) : (s.ArrowUp ? 1 : 0);
 
       // Discrete mapping: vx = D - A (right positive), vy = S - W (down positive)
       const vx = right - left; // -1, 0, 1
-      const vy = down - up;    // -1,0,1  (positive = down)
+      const vy = down - up; // -1,0,1  (positive = down)
 
       // onMove expects x right-positive, y up-positive (joy.js convention: y is inverted)
       const payloadX = vx;
@@ -124,7 +180,6 @@ const Joystick = ({ width = 120, height = 120, onMove, className }) => {
         const maxR = (Math.min(rect.width, rect.height) / 2) * 0.6;
 
         // compute viewport (client) coordinates:
-        // vx positive => move right; vy positive => move down (client Y increases downward)
         const clientPx = Math.round(cx + vx * maxR); // viewport X
         const clientPy = Math.round(cy + vy * maxR); // viewport Y (down positive)
 
@@ -157,11 +212,15 @@ const Joystick = ({ width = 120, height = 120, onMove, className }) => {
       rafRef.current = requestAnimationFrame(computeKeyboardMovement);
     };
 
-    // Keyboard listeners
+    // Global keyboard handlers — only intercept when no editable is focused
     const onKeyDown = (e) => {
       const k = e.key;
-      const ks = keyStateRef.current;
+      if (!HANDLED_KEYS.has(k)) return;
 
+      // If user is focused in an input/textarea/select/contentEditable, allow typing
+      if (anyEditableFocused()) return;
+
+      const ks = keyStateRef.current;
       if (k === "w" || k === "W") ks.w = true;
       if (k === "a" || k === "A") ks.a = true;
       if (k === "s" || k === "S") ks.s = true;
@@ -171,18 +230,17 @@ const Joystick = ({ width = 120, height = 120, onMove, className }) => {
       if (k === "ArrowDown") ks.ArrowDown = true;
       if (k === "ArrowRight") ks.ArrowRight = true;
 
-      if (
-        ["w", "a", "s", "d", "W", "A", "S", "D",
-         "ArrowUp", "ArrowLeft", "ArrowDown", "ArrowRight"].includes(k)
-      ) {
-        e.preventDefault();
-      }
+      // prevent default only when we intercept
+      e.preventDefault();
     };
 
     const onKeyUp = (e) => {
       const k = e.key;
-      const ks = keyStateRef.current;
+      if (!HANDLED_KEYS.has(k)) return;
 
+      if (anyEditableFocused()) return;
+
+      const ks = keyStateRef.current;
       if (k === "w" || k === "W") ks.w = false;
       if (k === "a" || k === "A") ks.a = false;
       if (k === "s" || k === "S") ks.s = false;
@@ -192,16 +250,27 @@ const Joystick = ({ width = 120, height = 120, onMove, className }) => {
       if (k === "ArrowDown") ks.ArrowDown = false;
       if (k === "ArrowRight") ks.ArrowRight = false;
 
-      if (
-        ["w", "a", "s", "d", "W", "A", "S", "D",
-         "ArrowUp", "ArrowLeft", "ArrowDown", "ArrowRight"].includes(k)
-      ) {
-        e.preventDefault();
+      e.preventDefault();
+    };
+
+    const handleFocusChange = () => {
+      if (anyEditableFocused()) {
+        // clear held keys and send stop command if necessary
+        resetKeyState();
+        lastSentRef.current = { x: 0, y: 0, force: 0, angle: 0, type: "stop" };
+        onMove && onMove(lastSentRef.current);
+        // also release visual joystick if pressed
+        if (joystickRef.current && typeof joystickRef.current.Release === "function") {
+          try { joystickRef.current.Release(); } catch {}
+        }
+        pressedRef.current = false;
       }
     };
 
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("keydown", onKeyDown, { passive: false });
+    window.addEventListener("keyup", onKeyUp, { passive: false });
+    window.addEventListener("focusin", handleFocusChange);
+    window.addEventListener("focusout", handleFocusChange);
 
     rafRef.current = requestAnimationFrame(computeKeyboardMovement);
 
@@ -221,10 +290,13 @@ const Joystick = ({ width = 120, height = 120, onMove, className }) => {
 
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("focusin", handleFocusChange);
+      window.removeEventListener("focusout", handleFocusChange);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
 
       if (joystickRef.current?.Destroy) joystickRef.current.Destroy();
       joystickRef.current = null;
+      activeKeyboardRef.current = false;
     };
   }, [width, height, onMove]);
 
@@ -233,6 +305,11 @@ const Joystick = ({ width = 120, height = 120, onMove, className }) => {
       id="joystick-container"
       ref={containerRef}
       className={className}
+      tabIndex={0} /* allow focus */
+      onFocus={() => setActiveKeyboard(true)}
+      onBlur={() => setActiveKeyboard(false)}
+      onMouseEnter={() => setActiveKeyboard(true)}
+      onMouseLeave={() => setActiveKeyboard(false)}
       style={{
         width: `${width}px`,
         height: `${height}px`,

@@ -1,0 +1,15 @@
+
+# Incidents : get ()
+# retrieve one incident : get()
+# create new incident : post()
+# update incident : put()
+# Battery : Get()
+# Battery data : Post()
+# Battery Swaps: Get()
+# New Battery Swap Event : post()
+#Avg, cycle : Get()
+# Stop issued : Get()
+# issued command : Post()
+# Update status - cleared : Put()
+# Cycle throughput : Get()
+#

@@ -531,3 +531,9 @@ function JoyStick(container, parameters, callback)
         }
     };
 }
+
+// Expose globally so React component (and tests) can access them
+if (typeof window !== "undefined") {
+    window.JoyStick = JoyStick;
+    window.StickStatus = typeof StickStatus !== "undefined" ? StickStatus : { xPosition:0, yPosition:0, x:0, y:0, cardinalDirection:"C" };
+}

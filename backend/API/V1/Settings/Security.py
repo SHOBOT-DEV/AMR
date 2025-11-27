@@ -1,0 +1,6 @@
+# security settings : get ()
+# update two Factor Auth : put()
+# update auto lock : put ()
+# update anomaly alerts : put()
+# security activity logs : get()
+# clear security logs : delete()
