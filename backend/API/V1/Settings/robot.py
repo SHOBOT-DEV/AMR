@@ -1,5 +1,0 @@
-# get robot settings : get()
-# Update : put()
-# update a single setting : patch()
-#  autopilot : patch()
-# reset : post()
