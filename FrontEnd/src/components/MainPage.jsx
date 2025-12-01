@@ -11,10 +11,14 @@ import {
   FaTrash,
   FaMicrophone,
   FaPaperPlane,
+  FaLock,
+  FaUnlock,
 } from "react-icons/fa";
 import { toast } from "react-hot-toast";
 import { fetchWithAuth, clearAuthTokens, API_BASE } from "../utils/auth";
 import "./MainPage.css";
+
+const API_V1_BASE = `${API_BASE}/api/v1`;
 
 const FALLBACK_STATS = {
   overview: {
@@ -221,7 +225,7 @@ const MainPage = () => {
   const [rightPage, setRightPage] = useState(null);
 
   // sample maps data — replace image paths with your real map images
-  const mapsList = [
+  const initialMaps = [
     {
       id: "cfl_gf",
       name: "CFL_GF",
@@ -269,8 +273,8 @@ const MainPage = () => {
       status: "",
     },
   ];
-
-  const [selectedMap, setSelectedMap] = useState(mapsList[0]);
+  const [mapsList, setMapsList] = useState(initialMaps);
+  const [selectedMap, setSelectedMap] = useState(initialMaps[0]);
   // waypoints data + selection
   const initialWaypoints = [
     {
@@ -351,30 +355,14 @@ const MainPage = () => {
   });
 
   // users data + selection (fixes eslint no-undef)
-  const initialUsers = [
-    {
-      id: "u1",
-      name: "ANSCER ADMIN",
-      email: "admin@anscer.com",
-      role: "Admin",
-      status: "Active",
-      createdBy: "—",
-      createdAt: "—",
-    },
-    {
-      id: "u2",
-      name: "CNDE",
-      email: "cnde@iitm.org",
-      role: "Admin",
-      status: "Active",
-      createdBy: "ANSCER ADMIN",
-      createdAt: "02/18/2025, 5:37:51 PM",
-    },
-  ];
-  const [users] = useState(initialUsers);
+  const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState(null);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [userActionLoading, setUserActionLoading] = useState(false);
+  const [usersError, setUsersError] = useState("");
+  const [isLocked, setIsLocked] = useState(false);
 
-  const zonesData = [
+  const initialZones = [
     {
       id: "z1",
       name: "Assembly Lane",
@@ -400,7 +388,7 @@ const MainPage = () => {
       createdAt: "2025-11-14",
     },
   ];
-  const [zones, setZones] = useState(zonesData);
+  const [zones, setZones] = useState(initialZones);
   const [zoneFormOpen, setZoneFormOpen] = useState(false);
   const [zoneForm, setZoneForm] = useState({
     name: "",
@@ -409,15 +397,17 @@ const MainPage = () => {
     active: true,
   });
 
-  const analyticsSummary = [
+  const [analyticsSummary, setAnalyticsSummary] = useState([
     { label: "Incidents", value: 2, trend: "+1 vs last week" },
     { label: "Stops Issued", value: 14, trend: "-3 vs last week" },
     { label: "Battery Swaps", value: 5, trend: "Stable" },
     { label: "Avg. Cycle", value: "42 min", trend: "±0" },
-  ];
+  ]);
 
-  const analyticsSeries = [12, 18, 22, 16, 24, 26, 20];
-  const analyticsAlerts = [
+  const [analyticsSeries, setAnalyticsSeries] = useState([
+    12, 18, 22, 16, 24, 26, 20,
+  ]);
+  const [analyticsAlerts, setAnalyticsAlerts] = useState([
     {
       id: "alert1",
       title: "Obstacle spikes",
@@ -428,9 +418,9 @@ const MainPage = () => {
       title: "Slow return",
       detail: "Mission Delivery Route 3 exceeded SLA by 4 min.",
     },
-  ];
+  ]);
 
-  const diagnosticsPanels = [
+  const [diagnosticsPanels, setDiagnosticsPanels] = useState([
     {
       id: "battery",
       title: "Battery Health",
@@ -452,9 +442,9 @@ const MainPage = () => {
       status: "Nominal",
       detail: "Last calibration 12h ago",
     },
-  ];
+  ]);
 
-  const logEvents = [
+  const [logEvents, setLogEvents] = useState([
     {
       id: "log1",
       ts: "10:42:01",
@@ -476,9 +466,9 @@ const MainPage = () => {
       message: "Pack voltage dipped to 45.9V",
       level: "warn",
     },
-  ];
+  ]);
 
-  const missionHistory = [
+  const [missionHistory, setMissionHistory] = useState([
     {
       id: "mh1",
       mission: "Inspect Zone A",
@@ -500,9 +490,9 @@ const MainPage = () => {
       outcome: "Completed",
       notes: "Pack swap verified",
     },
-  ];
+  ]);
 
-  const bagFiles = [
+  const [bagFiles, setBagFiles] = useState([
     {
       id: "bag1",
       name: "mission-0915.bag",
@@ -517,7 +507,7 @@ const MainPage = () => {
       size: "2.7 GB",
       status: "Processing",
     },
-  ];
+  ]);
 
   const [robotSettingsState, setRobotSettingsState] = useState({
     autopilot: true,
@@ -544,7 +534,7 @@ const MainPage = () => {
     anomalyAlerts: true,
   });
 
-  const securityEvents = [
+  const [securityEvents, setSecurityEvents] = useState([
     {
       id: "sec1",
       ts: "09:44",
@@ -559,7 +549,7 @@ const MainPage = () => {
       action: "Cert renewed",
       context: "Device",
     },
-  ];
+  ]);
 
   const [integrationItems, setIntegrationItems] = useState([
     {
@@ -680,37 +670,133 @@ const MainPage = () => {
     return "#f97316"; // mid (orange)
   })();
 
+  const requestV1 = useCallback(
+    async (path, options = {}) => {
+      const headers = {
+        Accept: "application/json",
+        ...(options.headers || {}),
+      };
+      if (options.body && !headers["Content-Type"]) {
+        headers["Content-Type"] = "application/json";
+      }
+
+      try {
+        const response = await fetchWithAuth(`${API_V1_BASE}${path}`, {
+          ...options,
+          headers,
+        });
+        const data = await response.json().catch(() => ({}));
+        if (response.status === 401 || response.status === 403) {
+          clearAuthTokens();
+          navigate("/");
+          throw new Error(data.message || "Unauthorized");
+        }
+        if (!response.ok || data.success === false) {
+          throw new Error(data.message || "Request failed");
+        }
+        return data;
+      } catch (error) {
+        if (error.message === "No access token available") {
+          clearAuthTokens();
+          navigate("/");
+        }
+        throw error;
+      }
+    },
+    [navigate],
+  );
+
+  const loadUsers = useCallback(async () => {
+    setUsersLoading(true);
+    setUsersError("");
+    try {
+      const response = await requestV1("/users");
+      setUsers(response.items || []);
+    } catch (error) {
+      console.error("Users fetch error", error);
+      setUsersError(error.message || "Failed to load users");
+      toast.error(error.message || "Failed to load users");
+    } finally {
+      setUsersLoading(false);
+    }
+  }, [requestV1]);
+
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
+
+  const handleResetUserPassword = useCallback(async () => {
+    if (!selectedUserId) {
+      toast.error("Select a user first");
+      return;
+    }
+    setUserActionLoading(true);
+    try {
+      const response = await requestV1(
+        `/users/${selectedUserId}/reset-password`,
+        { method: "POST" },
+      );
+      if (response.item) {
+        setUsers((prev) =>
+          prev.map((user) =>
+            user.id === response.item.id ? { ...user, ...response.item } : user,
+          ),
+        );
+      }
+      toast.success(response.message || "Password reset token generated");
+    } catch (error) {
+      console.error("Reset password error", error);
+      toast.error(error.message || "Failed to reset password");
+    } finally {
+      setUserActionLoading(false);
+    }
+  }, [requestV1, selectedUserId]);
+
   // Chat functions
   const formatTimestamp = (value) => {
     const date = typeof value === "string" ? new Date(value) : value;
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
-  const handleSendMessage = (presetText = "") => {
+  const handleSendMessage = async (presetText = "") => {
     const messageText = (presetText || chatInput).trim();
     if (!messageText) return;
+    const tempId = Date.now();
     const userMessage = {
-      id: Date.now(),
+      id: tempId,
       text: messageText,
       sender: "human",
       timestamp: new Date().toISOString(),
-      status: "Sent",
+      status: "Sending",
     };
     setChatMessages((prev) => [...prev, userMessage]);
     setChatInput("");
 
     setIsTyping(true);
-    setTimeout(() => {
-      const robotResponse = {
-        id: Date.now() + 1,
-        text: `I received "${messageText}". Let me process that and update you shortly.`,
-        sender: "robot",
-        timestamp: new Date().toISOString(),
-        status: "Delivered",
-      };
-      setChatMessages((prev) => [...prev, robotResponse]);
+    try {
+      const data = await requestV1("/chat/messages", {
+        method: "POST",
+        body: JSON.stringify({ text: messageText }),
+      });
+      setChatMessages((prev) => {
+        const updated = prev.map((msg) =>
+          msg.id === tempId
+            ? { ...msg, status: data.message?.status || "Delivered" }
+            : msg,
+        );
+        return data.reply ? [...updated, data.reply] : updated;
+      });
+    } catch (error) {
+      console.error("Chat send error", error);
+      setChatMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === tempId ? { ...msg, status: "Failed" } : msg,
+        ),
+      );
+      toast.error(error.message || "Unable to send message");
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -729,11 +815,29 @@ const MainPage = () => {
     handleSendMessage(prompt);
   };
 
+  const persistRobotSetting = useCallback(
+    (key, value, previousValue) => {
+      requestV1("/settings/robot", {
+        method: "PATCH",
+        body: JSON.stringify({ [key]: value }),
+      }).catch((error) => {
+        console.error("Robot setting update failed", error);
+        toast.error(error.message || "Failed to update setting");
+        setRobotSettingsState((prev) => ({ ...prev, [key]: previousValue }));
+      });
+    },
+    [requestV1],
+  );
+
   const toggleRobotSetting = (key) => {
-    setRobotSettingsState((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+    setRobotSettingsState((prev) => {
+      const nextValue = !prev[key];
+      persistRobotSetting(key, nextValue, prev[key]);
+      return {
+        ...prev,
+        [key]: nextValue,
+      };
+    });
   };
 
   const handleAccountChange = (field, value) => {
@@ -826,24 +930,63 @@ const MainPage = () => {
     }
   };
 
+  const persistSecurityPref = useCallback(
+    (key, value, previousValue) => {
+      requestV1("/settings/security", {
+        method: "PATCH",
+        body: JSON.stringify({ [key]: value }),
+      }).catch((error) => {
+        console.error("Security pref update failed", error);
+        toast.error(error.message || "Failed to update security preference");
+        setSecurityPreferences((prev) => ({ ...prev, [key]: previousValue }));
+      });
+    },
+    [requestV1],
+  );
+
   const toggleSecurityPref = (key) => {
-    setSecurityPreferences((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+    setSecurityPreferences((prev) => {
+      const nextValue = !prev[key];
+      persistSecurityPref(key, nextValue, prev[key]);
+      return {
+        ...prev,
+        [key]: nextValue,
+      };
+    });
   };
+
+  const persistIntegrationStatus = useCallback(
+    (id, status, previousStatus) => {
+      requestV1(`/settings/integrations/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      }).catch((error) => {
+        console.error("Integration status update failed", error);
+        toast.error(error.message || "Failed to update integration");
+        setIntegrationItems((items) =>
+          items.map((item) =>
+            item.id === id ? { ...item, status: previousStatus } : item,
+          ),
+        );
+      });
+    },
+    [requestV1],
+  );
 
   const toggleIntegrationStatus = (id) => {
     setIntegrationItems((items) =>
-      items.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              status:
-                item.status === "Connected" ? "Disconnected" : "Connected",
-            }
-          : item,
-      ),
+      items.map((item) => {
+        if (item.id !== id) {
+          return item;
+        }
+        const nextStatus =
+          item.status === "Connected" ? "Disconnected" : "Connected";
+        persistIntegrationStatus(id, nextStatus, item.status);
+        return {
+          ...item,
+          status: nextStatus,
+        };
+      }),
     );
   };
 
@@ -894,22 +1037,20 @@ const MainPage = () => {
           setStatsError("");
         }
 
-        const response = await fetch("http://127.0.0.1:5000/api/stats");
-        if (!response.ok) {
-          throw new Error("Failed to fetch stats");
-        }
-        const payload = await response.json();
+        const payload = await requestV1("/stats");
         if (!cancelled) {
+          const statsPayload = payload.data || FALLBACK_STATS;
           setStatsData({
-            overview: payload.overview || FALLBACK_STATS.overview,
-            missionTrend: payload.missionTrend || FALLBACK_STATS.missionTrend,
+            overview: statsPayload.overview || FALLBACK_STATS.overview,
+            missionTrend:
+              statsPayload.missionTrend || FALLBACK_STATS.missionTrend,
             monthlyMovement:
-              payload.monthlyMovement || FALLBACK_STATS.monthlyMovement,
+              statsPayload.monthlyMovement || FALLBACK_STATS.monthlyMovement,
             batterySeries:
-              payload.batterySeries || FALLBACK_STATS.batterySeries,
+              statsPayload.batterySeries || FALLBACK_STATS.batterySeries,
             batteryStatus:
-              payload.batteryStatus || FALLBACK_STATS.batteryStatus,
-            turns: payload.turns || FALLBACK_STATS.turns,
+              statsPayload.batteryStatus || FALLBACK_STATS.batteryStatus,
+            turns: statsPayload.turns || FALLBACK_STATS.turns,
           });
         }
       } catch (err) {
@@ -931,7 +1072,167 @@ const MainPage = () => {
       cancelled = true;
       clearInterval(intervalId);
     };
-  }, []);
+  }, [requestV1]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCreateData = async () => {
+      try {
+        const [mapsRes, zonesRes, waypointsRes, missionsRes, usersRes] =
+          await Promise.all([
+            requestV1("/maps"),
+            requestV1("/zones"),
+            requestV1("/waypoints"),
+            requestV1("/missions"),
+            requestV1("/users"),
+          ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        if (Array.isArray(mapsRes.items) && mapsRes.items.length) {
+          setMapsList(mapsRes.items);
+          setSelectedMap((prev) => {
+            if (prev) {
+              const stillExists = mapsRes.items.find((m) => m.id === prev.id);
+              if (stillExists) {
+                return stillExists;
+              }
+            }
+            return mapsRes.items[0] || null;
+          });
+        }
+        if (Array.isArray(zonesRes.items)) {
+          setZones(zonesRes.items);
+        }
+        if (Array.isArray(waypointsRes.items)) {
+          setWaypoints(waypointsRes.items);
+        }
+        if (Array.isArray(missionsRes.items)) {
+          setMissions(missionsRes.items);
+        }
+        if (Array.isArray(usersRes.items)) {
+          setUsers(usersRes.items);
+        }
+      } catch (error) {
+        console.error("Failed to load workspace data", error);
+      }
+    };
+
+    loadCreateData();
+    return () => {
+      cancelled = true;
+    };
+  }, [requestV1]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadMonitorData = async () => {
+      try {
+        const [analyticsRes, diagnosticsRes, logsRes, missionLogsRes, bagsRes] =
+          await Promise.all([
+            requestV1("/monitor/analytics"),
+            requestV1("/monitor/diagnostics"),
+            requestV1("/monitor/logs"),
+            requestV1("/monitor/mission-logs"),
+            requestV1("/monitor/robot-bags"),
+          ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        const analyticsPayload = analyticsRes.data || {};
+        if (Array.isArray(analyticsPayload.summary)) {
+          setAnalyticsSummary(analyticsPayload.summary);
+        }
+        if (Array.isArray(analyticsPayload.series)) {
+          setAnalyticsSeries(analyticsPayload.series);
+        }
+        if (Array.isArray(analyticsPayload.alerts)) {
+          setAnalyticsAlerts(analyticsPayload.alerts);
+        }
+        if (Array.isArray(diagnosticsRes.items)) {
+          setDiagnosticsPanels(diagnosticsRes.items);
+        }
+        if (Array.isArray(logsRes.items)) {
+          setLogEvents(logsRes.items);
+        }
+        if (Array.isArray(missionLogsRes.items)) {
+          setMissionHistory(missionLogsRes.items);
+        }
+        if (Array.isArray(bagsRes.items)) {
+          setBagFiles(bagsRes.items);
+        }
+      } catch (error) {
+        console.error("Failed to load monitor data", error);
+      }
+    };
+
+    loadMonitorData();
+    const intervalId = setInterval(loadMonitorData, 60000);
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [requestV1]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadSettingsAndChat = async () => {
+      try {
+        const [
+          robotRes,
+          securityRes,
+          securityEventsRes,
+          integrationsRes,
+          appearanceRes,
+          chatRes,
+        ] = await Promise.all([
+          requestV1("/settings/robot"),
+          requestV1("/settings/security"),
+          requestV1("/settings/security/events"),
+          requestV1("/settings/integrations"),
+          requestV1("/settings/appearance"),
+          requestV1("/chat/history"),
+        ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        if (robotRes.data) {
+          setRobotSettingsState((prev) => ({ ...prev, ...robotRes.data }));
+        }
+        if (securityRes.data) {
+          setSecurityPreferences((prev) => ({ ...prev, ...securityRes.data }));
+        }
+        if (Array.isArray(securityEventsRes.items)) {
+          setSecurityEvents(securityEventsRes.items);
+        }
+        if (Array.isArray(integrationsRes.items)) {
+          setIntegrationItems(integrationsRes.items);
+        }
+        if (appearanceRes.data?.theme) {
+          setSelectedTheme(appearanceRes.data.theme);
+        }
+        if (Array.isArray(chatRes.items) && chatRes.items.length) {
+          setChatMessages(chatRes.items);
+        }
+      } catch (error) {
+        console.error("Failed to load settings/chat data", error);
+      }
+    };
+
+    loadSettingsAndChat();
+    return () => {
+      cancelled = true;
+    };
+  }, [requestV1]);
 
   const {
     overview,
@@ -976,11 +1277,34 @@ const MainPage = () => {
   return (
     <div
       ref={layoutRef}
-      className={`main-container ${rightPage ? "has-right-pane" : ""}`}
+      className={`main-container ${rightPage ? "has-right-pane" : ""} ${
+        isLocked ? "is-locked" : ""
+      }`}
     >
       <header className="mp-header">
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-
+          <button
+            type="button"
+            className="lock-toggle-btn"
+            aria-pressed={isLocked}
+            onClick={() => {
+              setIsLocked((prev) => {
+                const next = !prev;
+                if (next) {
+                  toast("Console locked", { icon: "🔒" });
+                } else {
+                  toast("Console unlocked", { icon: "🔓" });
+                }
+                return next;
+              });
+            }}
+            title={isLocked ? "Unlock console" : "Lock console"}
+          >
+            {isLocked ? <FaLock /> : <FaUnlock />}
+            <span style={{ marginLeft: 6 }}>
+              {isLocked ? "Locked" : "Lock"}
+            </span>
+          </button>
         </div>
 
         {/* Header-centered Emergency Stop */}
@@ -1382,30 +1706,36 @@ const MainPage = () => {
                           <button
                             className="primary-btn"
                             type="button"
-                            onClick={() => {
+                            onClick={async () => {
                               if (!zoneForm.name.trim()) {
                                 toast.error("Enter a zone name");
                                 return;
                               }
-                              const newZone = {
-                                id: `z${zones.length + 1}`,
+                              const payload = {
                                 name: zoneForm.name.trim(),
                                 category: zoneForm.category,
                                 geometry: zoneForm.geometry || "Polygon(...)",
                                 active: zoneForm.active,
-                                createdAt: new Date()
-                                  .toISOString()
-                                  .split("T")[0],
                               };
-                              setZones((prev) => [newZone, ...prev]);
-                              setZoneForm({
-                                name: "",
-                                category: "Safe",
-                                geometry: "",
-                                active: true,
-                              });
-                              setZoneFormOpen(false);
-                              toast.success("Zone created");
+                              try {
+                                const response = await requestV1("/zones", {
+                                  method: "POST",
+                                  body: JSON.stringify(payload),
+                                });
+                                const createdZone = response.item || payload;
+                                setZones((prev) => [createdZone, ...prev]);
+                                setZoneForm({
+                                  name: "",
+                                  category: "Safe",
+                                  geometry: "",
+                                  active: true,
+                                });
+                                setZoneFormOpen(false);
+                                toast.success("Zone created");
+                              } catch (error) {
+                                console.error("Zone create error", error);
+                                toast.error(error.message || "Failed to create zone");
+                              }
                             }}
                           >
                             Save Zone
@@ -1730,7 +2060,7 @@ const MainPage = () => {
                           <button
                             className="primary-btn"
                             type="button"
-                            onClick={() => {
+                            onClick={async () => {
                               if (!waypointForm.name.trim()) {
                                 toast.error("Enter a waypoint name");
                                 return;
@@ -1739,28 +2069,36 @@ const MainPage = () => {
                                 toast.error("Add waypoint coordinates");
                                 return;
                               }
-                              const newWp = {
-                                id: `wp${waypoints.length + 1}`,
+                              const payload = {
                                 name: waypointForm.name.trim(),
                                 category: waypointForm.category,
                                 geom: waypointForm.geom || "Point(0 0)",
                                 notes: waypointForm.notes,
                                 active: waypointForm.active,
-                                createdAt: new Date()
-                                  .toISOString()
-                                  .split("T")[0],
                               };
-                              setWaypoints((prev) => [newWp, ...prev]);
-                              setSelectedWaypointId(newWp.id);
-                              setWaypointForm({
-                                name: "",
-                                category: "Nav",
-                                geom: "",
-                                notes: "",
-                                active: true,
-                              });
-                              setWaypointFormOpen(false);
-                              toast.success("Waypoint created");
+                              try {
+                                const response = await requestV1("/waypoints", {
+                                  method: "POST",
+                                  body: JSON.stringify(payload),
+                                });
+                                const createdWp = response.item || payload;
+                                setWaypoints((prev) => [createdWp, ...prev]);
+                                setSelectedWaypointId(createdWp.id);
+                                setWaypointForm({
+                                  name: "",
+                                  category: "Nav",
+                                  geom: "",
+                                  notes: "",
+                                  active: true,
+                                });
+                                setWaypointFormOpen(false);
+                                toast.success("Waypoint created");
+                              } catch (error) {
+                                console.error("Waypoint create error", error);
+                                toast.error(
+                                  error.message || "Failed to create waypoint",
+                                );
+                              }
                             }}
                           >
                             Save Waypoint
@@ -1996,10 +2334,39 @@ const MainPage = () => {
                         padding: "12px 16px",
                         borderBottom: "1px solid #eef2f6",
                         display: "flex",
+                        alignItems: "center",
                         gap: 12,
                       }}
                     >
                       <div style={{ fontWeight: 800, fontSize: 18 }}>Users</div>
+                      <div
+                        style={{
+                          marginLeft: "auto",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                        }}
+                      >
+                        {usersError && (
+                          <span style={{ color: "#dc2626", fontSize: 13 }}>
+                            {usersError}
+                          </span>
+                        )}
+                        <button
+                          onClick={loadUsers}
+                          disabled={usersLoading}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: 6,
+                            border: "1px solid #dbe3ea",
+                            background: usersLoading ? "#f1f5f9" : "#fff",
+                            color: "#0f172a",
+                            cursor: usersLoading ? "not-allowed" : "pointer",
+                          }}
+                        >
+                          {usersLoading ? "Refreshing..." : "Refresh"}
+                        </button>
+                      </div>
                     </div>
 
                     <div style={{ padding: "8px 16px" }}>
@@ -2160,6 +2527,34 @@ const MainPage = () => {
                               </td>
                             </tr>
                           ))}
+                          {users.length === 0 && !usersLoading && (
+                            <tr>
+                              <td
+                                colSpan={7}
+                                style={{
+                                  padding: "16px 8px",
+                                  textAlign: "center",
+                                  color: "#94a3b8",
+                                }}
+                              >
+                                No users found.
+                              </td>
+                            </tr>
+                          )}
+                          {usersLoading && (
+                            <tr>
+                              <td
+                                colSpan={7}
+                                style={{
+                                  padding: "16px 8px",
+                                  textAlign: "center",
+                                  color: "#94a3b8",
+                                }}
+                              >
+                                Loading users...
+                              </td>
+                            </tr>
+                          )}
                         </tbody>
                       </table>
                     </div>
@@ -2201,9 +2596,10 @@ const MainPage = () => {
                             background: "#fff",
                             color: "#6b7280",
                           }}
-                          disabled
+                          disabled={!selectedUserId || userActionLoading}
+                          onClick={handleResetUserPassword}
                         >
-                          Reset Password
+                          {userActionLoading ? "Resetting..." : "Reset Password"}
                         </button>
                       </div>
                     </div>
@@ -2350,7 +2746,7 @@ const MainPage = () => {
                         <button
                           className="primary-btn"
                           type="button"
-                          onClick={() => {
+                          onClick={async () => {
                             if (!missionForm.name.trim()) {
                               toast.error("Mission name required");
                               return;
@@ -2359,25 +2755,34 @@ const MainPage = () => {
                               toast.error("Mission owner required");
                               return;
                             }
-                            const id = `m${missions.length + 1}`;
-                            const newMission = {
-                              id,
+                            const payload = {
                               name: missionForm.name.trim(),
                               owner: missionForm.owner.trim(),
                               status: missionForm.status,
-                              createdAt: new Date().toISOString().split("T")[0],
                               notes: missionForm.notes,
                             };
-                            setMissions((prev) => [newMission, ...prev]);
-                            setSelectedMissionId(id);
-                            setMissionForm({
-                              name: "",
-                              owner: "",
-                              status: "Draft",
-                              notes: "",
-                            });
-                            setMissionFormOpen(false);
-                            toast.success("Mission saved");
+                            try {
+                              const response = await requestV1("/missions", {
+                                method: "POST",
+                                body: JSON.stringify(payload),
+                              });
+                              const createdMission = response.item || payload;
+                              setMissions((prev) => [createdMission, ...prev]);
+                              setSelectedMissionId(createdMission.id);
+                              setMissionForm({
+                                name: "",
+                                owner: "",
+                                status: "Draft",
+                                notes: "",
+                              });
+                              setMissionFormOpen(false);
+                              toast.success("Mission saved");
+                            } catch (error) {
+                              console.error("Mission create error", error);
+                              toast.error(
+                                error.message || "Failed to create mission",
+                              );
+                            }
                           }}
                         >
                           Save Mission
@@ -2568,9 +2973,18 @@ const MainPage = () => {
                             </div>
                             <div style={{ marginTop: 10, color: "#475569" }}>
                               {m.notes || "No notes."}
-                            </div>
-                          </div>
-                        );
+      </div>
+      {isLocked && (
+        <div className="lock-screen-overlay" aria-live="polite">
+          <div className="lock-screen-card">
+            <FaLock size={32} />
+            <p>Console is locked</p>
+            <small>Use the lock button to unlock and resume control.</small>
+          </div>
+        </div>
+      )}
+    </div>
+  );
                       })()
                     ) : (
                       <div style={{ color: "#94a3b8" }}>

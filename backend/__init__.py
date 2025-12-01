@@ -24,11 +24,13 @@ def create_app(config_name="default"):
     from backend.routes.admin import admin_bp
     from backend.routes.user import user_bp
     from backend.routes.stats import stats_bp
+    from backend.API.V1 import api_v1_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api")
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
     app.register_blueprint(user_bp, url_prefix="/api/user")
     app.register_blueprint(stats_bp, url_prefix="/api")
+    app.register_blueprint(api_v1_bp, url_prefix="/api/v1")
 
     # Register root route
     @app.route("/")

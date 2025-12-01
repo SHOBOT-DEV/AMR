@@ -4,6 +4,7 @@
   height: 100vh;
   width: 100%;
   background-color: #f0f2f5;
+  position: relative;
 }
 
 /* header */
@@ -22,6 +23,56 @@
   left: 0;
   right: 0;
   z-index: 100;
+}
+
+.lock-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.12);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.lock-toggle-btn:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.6);
+}
+.lock-toggle-btn:hover {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.lock-screen-overlay {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 95;
+}
+.lock-screen-card {
+  background: #0f172a;
+  color: #fff;
+  padding: 32px;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 25px 70px rgba(15, 23, 42, 0.5);
+}
+.lock-screen-card p {
+  margin-top: 12px;
+  font-size: 18px;
+  font-weight: 600;
+}
+.lock-screen-card small {
+  display: block;
+  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 
