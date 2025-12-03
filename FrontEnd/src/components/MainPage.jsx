@@ -13,6 +13,9 @@ import {
   FaPaperPlane,
   FaLock,
   FaUnlock,
+  FaSignOutAlt,
+  FaEye,
+  FaEdit,
 } from "react-icons/fa";
 import { toast } from "react-hot-toast";
 import { fetchWithAuth, clearAuthTokens, API_BASE } from "../utils/auth";
@@ -361,6 +364,33 @@ const MainPage = () => {
   const [userActionLoading, setUserActionLoading] = useState(false);
   const [usersError, setUsersError] = useState("");
   const [isLocked, setIsLocked] = useState(false);
+  const LOCK_TOAST_ID = "lock-toast";
+
+  const showLockedAttemptToast = useCallback(() => {
+    // single toast id to avoid duplicates when user repeatedly clicks
+    toast.dismiss("locked-attempt");
+    toast.error("The screen is locked", { id: "locked-attempt" });
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    // clear tokens and go back to login
+    clearAuthTokens();
+    navigate("/");
+  }, [navigate]);
+
+  const handleToggleLock = useCallback(() => {
+    setIsLocked((prev) => {
+      const next = !prev;
+      // ensure only one toast shown by using a fixed id and dismissing previous
+      toast.dismiss(LOCK_TOAST_ID);
+      if (next) {
+        toast.error("Console locked", { id: LOCK_TOAST_ID });
+      } else {
+        toast.success("Console unlocked", { id: LOCK_TOAST_ID });
+      }
+      return next;
+    });
+  }, []);
 
   const initialZones = [
     {
@@ -1274,6 +1304,65 @@ const MainPage = () => {
   if (rightPage === "maps" && selectedMap)
     breadcrumbParts.push(selectedMap.name);
 
+  // stable id to avoid duplicate toasts for emergency toggle
+  const EMERGENCY_TOAST_ID = "emergency-toast";
+
+  // centralized handler to toggle emergency and show single toast
+  const handleEmergencyToggle = React.useCallback(() => {
+    setEmergencyClicked((prev) => {
+      const next = !prev;
+      // ensure any previous emergency toast is removed first
+      toast.dismiss(EMERGENCY_TOAST_ID);
+      if (next) {
+        toast.error("Emergency stop engaged", { id: EMERGENCY_TOAST_ID });
+      } else {
+        toast.success("Emergency stop released", { id: EMERGENCY_TOAST_ID });
+      }
+      return next;
+    });
+  }, []);
+
+  // Runtime diagnostics: show tiny startup toast and report unhandled errors
+  useEffect(() => {
+    // small startup hint so we know React mounted
+    toast.dismiss("app-start");
+    toast.success("App initialized", { id: "app-start", duration: 1500 });
+
+    const onUnhandledRejection = (ev) => {
+      console.error("Unhandled promise rejection:", ev.reason);
+      try {
+        toast.error(`Unhandled rejection: ${String(ev.reason).slice(0, 80)}`, { duration: 4000 });
+      } catch {}
+    };
+    const onError = (message, source, lineno, colno, error) => {
+      console.error("Window error:", message, { source, lineno, colno, error });
+      try {
+        toast.error(`Error: ${String(message).slice(0, 80)}`, { duration: 4000 });
+      } catch {}
+      // return false to allow default browser handling
+      return false;
+    };
+
+    window.addEventListener("unhandledrejection", onUnhandledRejection);
+    window.addEventListener("error", onError);
+    return () => {
+      window.removeEventListener("unhandledrejection", onUnhandledRejection);
+      window.removeEventListener("error", onError);
+    };
+  }, []);
+
+  // allow unlocking via Escape to avoid getting locked out
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!isLocked) return;
+      if (e.key === "Escape") {
+        handleToggleLock();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isLocked, handleToggleLock]);
+
   return (
     <div
       ref={layoutRef}
@@ -1282,45 +1371,15 @@ const MainPage = () => {
       }`}
     >
       <header className="mp-header">
+        {/* left header group (kept minimal) */}
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button
-            type="button"
-            className="lock-toggle-btn"
-            aria-pressed={isLocked}
-            onClick={() => {
-              setIsLocked((prev) => {
-                const next = !prev;
-                if (next) {
-                  toast("Console locked", { icon: "🔒" });
-                } else {
-                  toast("Console unlocked", { icon: "🔓" });
-                }
-                return next;
-              });
-            }}
-            title={isLocked ? "Unlock console" : "Lock console"}
-          >
-            {isLocked ? <FaLock /> : <FaUnlock />}
-            <span style={{ marginLeft: 6 }}>
-              {isLocked ? "Locked" : "Lock"}
-            </span>
-          </button>
+          {/* ...existing left items (kept empty or for future icons) ... */}
         </div>
 
         {/* Header-centered Emergency Stop */}
         <div className="header-center-emergency">
           <button
-            onClick={() =>
-              setEmergencyClicked((prev) => {
-                const next = !prev;
-                if (next) {
-                  toast.error("Emergency stop engaged");
-                } else {
-                  toast.success("Emergency stop released");
-                }
-                return next;
-              })
-            }
+            onClick={handleEmergencyToggle}
             aria-pressed={emergencyClicked}
             className={
               emergencyClicked
@@ -1385,8 +1444,33 @@ const MainPage = () => {
             onClick={toggleFullScreen}
             title={isFullScreen ? "Exit Fullscreen" : "Fullscreen"}
             className="fullscreen-btn"
+            type="button"
           >
             {isFullScreen ? <FaCompress /> : <FaExpand />}
+          </button>
+
+          {/* Lock icon: use top-level isLocked and handleToggleLock defined earlier */}
+          <button
+            type="button"
+            className="lock-toggle-btn"
+            aria-pressed={isLocked}
+            aria-label={isLocked ? "Unlock console" : "Lock console"}
+            onMouseDown={(e) => e.preventDefault()} /* prevent focusing on mouse down */
+            onClick={handleToggleLock}
+            title={isLocked ? "Unlock console" : "Lock console"}
+          >
+            {isLocked ? <FaLock /> : <FaUnlock />}
+          </button>
+
+          {/* Logout button — icon-only for compact header */}
+          <button
+            type="button"
+            className="logout-btn"
+            onClick={handleLogout}
+            title="Log out"
+            aria-label="Log out"
+          >
+            <FaSignOutAlt />
           </button>
         </div>
       </header>
@@ -1490,6 +1574,17 @@ const MainPage = () => {
                           >
                             Status
                           </th>
+                          <th
+                            style={{
+                              textAlign: "right",
+                              padding: "12px 8px",
+                              fontSize: 13,
+                              color: "#374151",
+                              width: 140,
+                            }}
+                          >
+                            Actions
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1553,6 +1648,46 @@ const MainPage = () => {
                               ) : (
                                 <span style={{ color: "#9ca3af" }}>—</span>
                               )}
+                            </td>
+                            <td
+                              style={{
+                                padding: "12px 8px",
+                                borderBottom: "1px solid #eef2f6",
+                                textAlign: "right",
+                                display: "flex",
+                                gap: 8,
+                                justifyContent: "flex-end",
+                                alignItems: "center",
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                title="Preview map"
+                                aria-label={`Preview ${m.name}`}
+                                onClick={() => handleMapAction("preview", m)}
+                                className="ghost-btn"
+                                style={{ padding: "6px", minWidth: 36 }}
+                              >
+                                <FaEye />
+                              </button>
+                              <button
+                                title="Edit map"
+                                aria-label={`Edit ${m.name}`}
+                                onClick={() => handleMapAction("edit", m)}
+                                className="ghost-btn"
+                                style={{ padding: "6px", minWidth: 36 }}
+                              >
+                                <FaEdit />
+                              </button>
+                              <button
+                                title="Delete map"
+                                aria-label={`Delete ${m.name}`}
+                                onClick={() => handleMapAction("delete", m)}
+                                className="ghost-btn"
+                                style={{ padding: "6px", minWidth: 36 }}
+                              >
+                                <FaTrash />
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -2452,7 +2587,7 @@ const MainPage = () => {
                                 style={{
                                   padding: "12px 8px",
                                   borderBottom: "1px solid #eef2f6",
-                                  color: "#6b7280",
+                                                                   color: "#6b7280",
                                 }}
                               >
                                 {u.email}
@@ -2973,18 +3108,9 @@ const MainPage = () => {
                             </div>
                             <div style={{ marginTop: 10, color: "#475569" }}>
                               {m.notes || "No notes."}
-      </div>
-      {isLocked && (
-        <div className="lock-screen-overlay" aria-live="polite">
-          <div className="lock-screen-card">
-            <FaLock size={32} />
-            <p>Console is locked</p>
-            <small>Use the lock button to unlock and resume control.</small>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+                            </div>
+                          </div>
+                        );
                       })()
                     ) : (
                       <div style={{ color: "#94a3b8" }}>
@@ -3732,6 +3858,53 @@ const MainPage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Lock overlay: shown when isLocked is true — covers full viewport including header */}
+      {isLocked && (
+        <div
+          className="lock-overlay"
+          role="button"
+          aria-label="Locked overlay"
+          tabIndex={0}
+          onClick={(e) => {
+            e.stopPropagation();
+            showLockedAttemptToast();
+          }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            showLockedAttemptToast();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              showLockedAttemptToast();
+            }
+          }}
+        >
+          {/* Visible hint so operators know how to unlock (Escape) */}
+          <div className="unlock-hint" aria-hidden="true">
+            Screen locked — press Esc to unlock
+          </div>
+        </div>
+      )}
+
+      {/* Fixed lock/unlock control that remains clickable when everything else is locked */}
+      {isLocked && (
+        <button
+          type="button"
+          className="lock-toggle-fixed"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleToggleLock();
+          }}
+          onMouseDown={(e) => e.preventDefault()}
+          aria-pressed={isLocked}
+          aria-label="Unlock console"
+          title="Unlock console (Esc)"
+        >
+          {isLocked ? <FaLock /> : <FaUnlock />}
+        </button>
       )}
     </div>
   );
