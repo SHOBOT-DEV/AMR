@@ -10,13 +10,14 @@
 /* header */
 .mp-header {
   height: 56px;
+  
   background: #87ceeb;
   color: #fff;
   display: flex;
   align-items: center;
   padding: 0 16px;
   gap: 12px;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+  /* box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2); */
   /* keep header fixed to top so content sits directly beneath it */
   position: fixed;
   top: 0;
@@ -206,8 +207,9 @@
   justify-content: center;
   cursor: pointer;
   color: #fff;
+  box-shadow: 0 25px 70px rgba(15, 23, 42, 0.5);
   padding: 0;
-  box-shadow: none; /* remove box-shadow */
+  /* box-shadow: none; remove box-shadow */
 }
 .fullscreen-btn:focus {
   outline: 2px solid rgba(11,116,209,0.18);
@@ -757,7 +759,10 @@
   font-size: 12px;
   text-transform: uppercase;
 }
-
+.log.pill.info{
+  background:#0369a1;
+  color: #b45309
+}
 .log-pill.info {
   background: #e0f2fe;
   color: #0369a1;

@@ -14,7 +14,7 @@ import {
   FaLock,
   FaUnlock,
   FaSignOutAlt,
-  FaEye,
+  FaPlus,
   FaEdit,
 } from "react-icons/fa";
 import { toast } from "react-hot-toast";
@@ -278,6 +278,10 @@ const MainPage = () => {
   ];
   const [mapsList, setMapsList] = useState(initialMaps);
   const [selectedMap, setSelectedMap] = useState(initialMaps[0]);
+  // unified map search (single dropdown selects field, single input is the query)
+  const [mapSearchField, setMapSearchField] = useState("any"); // any,name,createdBy,category,createdAt,status
+  const [mapSearchTerm, setMapSearchTerm] = useState("");
+
   // waypoints data + selection
   const initialWaypoints = [
     {
@@ -497,7 +501,7 @@ const MainPage = () => {
       level: "warn",
     },
   ]);
-
+  
   const [missionHistory, setMissionHistory] = useState([
     {
       id: "mh1",
@@ -664,25 +668,223 @@ const MainPage = () => {
     }
   };
 
-  // map action handler (Preview / Edit / Delete)
-  const handleMapAction = (action, map) => {
-    // placeholder behavior — replace with real navigation / API calls
-    console.log("Map action:", action, "on", map && map.id);
-    if (action === "delete") {
-      // example: remove map from mapsList (in real app you'd call API)
-      // For now just clear selection if deleting currently selected map
-      if (selectedMap && map && selectedMap.id === map.id) setSelectedMap(null);
+  // Map modal state for preview / edit / create
+  const [mapModalOpen, setMapModalOpen] = useState(false);
+  const [mapModalMode, setMapModalMode] = useState("preview"); // "preview" | "edit" | "create"
+  const [mapModalMap, setMapModalMap] = useState(null);
+
+  // form used for create/edit
+  const [mapForm, setMapForm] = useState({
+    id: null,
+    name: "",
+    createdBy: "",
+    image: "",
+    status: "",
+    category: "",
+    createdAt: "",
+  });
+
+  const openMapModal = (mode, map = null) => {
+    setMapModalMode(mode);
+    setMapModalMap(map);
+    if (!map) {
+      setMapForm({
+        id: null,
+        name: "",
+        createdBy: "",
+        image: "",
+        status: "",
+        category: "",
+        createdAt: new Date().toISOString().slice(0, 10),
+      });
+    } else {
+      setMapForm({
+        id: map.id,
+        name: map.name || "",
+        createdBy: map.createdBy || "",
+        image: map.image || "",
+        status: map.status || "",
+        category: map.category || "",
+        createdAt: map.createdAt || "",
+      });
     }
-    if (action === "preview") {
-      // example: open a preview modal — placeholder log
+    setMapModalOpen(true);
+  };
+
+  const closeMapModal = () => {
+    setMapModalOpen(false);
+    setMapModalMap(null);
+  };
+
+  const handleMapAction = async (action, map) => {
+    try {
+      if (action === "edit") {
+        openMapModal("edit", map);
+        return;
+      }
+      if (action === "delete") {
+        const ok = window.confirm(
+          `Delete map "${map?.name || map?.id}"? This cannot be undone.`,
+        );
+        if (!ok) return;
+
+        // Try server delete first; fallback to local removal on failure
+        try {
+          await requestV1(`/maps/${map.id}`, { method: "DELETE" });
+          setMapsList((prev) => prev.filter((m) => m.id !== map.id));
+          if (selectedMap && selectedMap.id === map.id) setSelectedMap(null);
+          toast.success("Map deleted");
+        } catch (err) {
+          console.warn("Delete API failed, falling back to local remove", err);
+          // fallback local behavior
+          setMapsList((prev) => prev.filter((m) => m.id !== map.id));
+          if (selectedMap && selectedMap.id === map.id) setSelectedMap(null);
+          toast.success("Map removed (local)");
+        }
+        return;
+      }
+    } catch (err) {
+      console.error("Map action error", err);
+      toast.error(err.message || "Map action failed");
     }
-    if (action === "edit") {
-      // example: open edit UI — placeholder log
+  };
+
+  // Create a new map immediately (optimistic local create with server persist attempt)
+  const createNewMapImmediate = async () => {
+    const newMap = {
+      id: `local_${Date.now()}`,
+      name: `New Map ${mapsList.length + 1}`,
+      createdBy: "Operator",
+      image: "",
+      status: "Inactive",
+      category: "",
+      createdAt: new Date().toISOString().slice(0, 10),
+    };
+    // optimistic UI update
+    setMapsList((prev) => [newMap, ...prev]);
+    setSelectedMap(newMap);
+    toast.success("Map added");
+
+    // try persist to server, replace local id with server item on success
+    try {
+      const res = await requestV1("/maps", {
+        method: "POST",
+        body: JSON.stringify({
+          name: newMap.name,
+          createdBy: newMap.createdBy,
+          image: newMap.image,
+          status: newMap.status,
+          category: newMap.category,
+          createdAt: newMap.createdAt,
+        }),
+      });
+      const created = res.item || { ...newMap, id: res.id || newMap.id };
+      setMapsList((prev) => prev.map((m) => (m.id === newMap.id ? created : m)));
+      setSelectedMap(created);
+      toast.success("Map persisted");
+    } catch (err) {
+      console.warn("Persist new map failed, kept local map", err);
+      toast.error("Map added locally (server persist failed)");
+    }
+  };
+
+  // Activate a map (radio). Optimistic UI update, try to persist via API.
+  const handleActivateMap = async (map) => {
+    if (!map) return;
+    try {
+      // Optimistically update UI: mark chosen map Active, clear previous active status
+      setMapsList((prev) =>
+        prev.map((m) => {
+          if (m.id === map.id) return { ...m, status: "Active" };
+          // clear status for others that were Active
+          if (m.status === "Active" && m.id !== map.id) return { ...m, status: "" };
+          return m;
+        }),
+      );
+      setSelectedMap(map);
+      toast.success(`Activated map: ${map.name}`);
+
+      // Persist change to server (best-effort)
+      try {
+        await requestV1(`/maps/${map.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ status: "Active" }),
+        });
+      } catch (err) {
+        console.warn("Failed to persist map activation:", err);
+        toast.error("Activation persisted locally (server sync failed)");
+      }
+    } catch (err) {
+      console.error("Activation error", err);
+      toast.error("Failed to activate map");
+    }
+  };
+ 
+  const saveMapFromForm = async () => {
+    // basic validation
+    if (!mapForm.name.trim()) {
+      toast.error("Map name required");
+      return;
+    }
+    const payload = {
+      name: mapForm.name.trim(),
+      createdBy: mapForm.createdBy,
+      image: mapForm.image,
+      status: mapForm.status,
+      category: mapForm.category,
+      createdAt: mapForm.createdAt,
+    };
+
+    try {
+      if (mapModalMode === "create") {
+        // POST /maps
+        try {
+          const res = await requestV1("/maps", {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+          const created = res.item || { ...payload, id: res.id || `map_${Date.now()}` };
+          setMapsList((prev) => [created, ...prev]);
+          setSelectedMap(created);
+          toast.success("Map created");
+        } catch (err) {
+          // fallback local creation
+          const created = { ...payload, id: `local_${Date.now()}` };
+          setMapsList((prev) => [created, ...prev]);
+          setSelectedMap(created);
+          toast.success("Map created (local)");
+        }
+      } else if (mapModalMode === "edit") {
+        const id = mapForm.id;
+        try {
+          const res = await requestV1(`/maps/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+          });
+          const updated = res.item || { ...payload, id };
+          setMapsList((prev) => prev.map((m) => (m.id === id ? { ...m, ...updated } : m)));
+          if (selectedMap && selectedMap.id === id) setSelectedMap((s) => ({ ...s, ...updated }));
+          toast.success("Map updated");
+        } catch (err) {
+          console.warn("Edit API failed, applying local update", err);
+          setMapsList((prev) => prev.map((m) => (m.id === id ? { ...m, ...payload } : m)));
+          if (selectedMap && selectedMap.id === id) setSelectedMap((s) => ({ ...s, ...payload }));
+          toast.success("Map updated (local)");
+        }
+      }
+      closeMapModal();
+    } catch (err) {
+      console.error("Save map error", err);
+      toast.error(err.message || "Failed to save map");
     }
   };
 
   // active action radio state for the map action buttons
   const [activeMapAction, setActiveMapAction] = useState(null);
+
+  // handler for testing: force error on next request
+  const [forceError, setForceError] = useState(false);
+  const handleTestError = () => setForceError((e) => !e);
 
   // helper to map battery level to CSS class
   const batteryClass = (() => {
@@ -1483,7 +1685,6 @@ const MainPage = () => {
             if (rightPage) setRightPage(null);
           }}
         />
-
         {/* Right pane: shows the selected page in the right half of the screen */}
         {rightPage && (
           <aside className="right-pane" role="region" aria-label="Right pane">
@@ -1499,198 +1700,124 @@ const MainPage = () => {
                 ✕
               </button>
             </div>
+
             <div className="right-pane-body">
-              {/* Maps list page: clickable rows */}
+              {/* Maps page: unified search + create + table */}
               {rightPage === "maps" && (
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 8 }}
-                >
-                  {/* Search / filter controls */}
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 8 }}
-                  >
-                    <select>
-                      <option>Search Map By Name</option>
-                    </select>
-                    <input
-                      style={{ flex: 1, padding: "6px 8px" }}
-                      placeholder="Search map..."
-                    />
-                    <button title="Toggle visibility">👁</button>
-                  </div>
-
-                  <div
-                    style={{ borderTop: "1px solid #e6eef2", marginTop: 8 }}
-                  />
-
-                  {/* Table view for maps (Name | Created By | Created At | Status) */}
-                  <div style={{ overflowY: "auto", maxHeight: 420 }}>
-                    <table
-                      style={{
-                        width: "100%",
-                        borderCollapse: "collapse",
-                        marginTop: 8,
-                      }}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <select
+                      aria-label="Search field"
+                      value={mapSearchField}
+                      onChange={(e) => setMapSearchField(e.target.value)}
+                      style={{ padding: "6px 8px" }}
                     >
+                      <option value="any">Search By</option>
+                      <option value="name">Name</option>
+                      <option value="createdBy">Created By</option>
+                      <option value="category">Category</option>
+                      <option value="createdAt">Created At</option>
+                      <option value="status">Status</option>
+                    </select>
+
+                    <input
+                      value={mapSearchTerm}
+                      onChange={(e) => setMapSearchTerm(e.target.value)}
+                      placeholder="Type to search..."
+                      style={{ padding: "6px 8px", minWidth: 220 }}
+                    />
+
+                    <div>
+                      <button
+                        onClick={createNewMapImmediate}
+                        aria-label="Create new map"
+                        title="+ Create New Map"
+                        style={{
+                          background: "#0b74d1",
+                          color: "#fff",
+                          padding: "8px 12px",
+                          borderRadius: 8,
+                          border: "none",
+                          cursor: "pointer",
+                          boxShadow: "0 6px 18px rgba(11,116,209,0.16)",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
+                          fontWeight: 700,
+                        }}
+                      >
+                        <FaPlus />
+                        <span> Create New Map</span>
+                      </button>
+                    </div>
+                  </div>
+                        
+                  <div style={{ borderTop: "1px solid #e6eef2", marginTop: 8 }} />
+
+                  <div style={{ overflowY: "auto", maxHeight: 420 }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 8 }}>
                       <thead style={{ background: "#f8fafc" }}>
                         <tr>
-                          <th
-                            style={{
-                              textAlign: "left",
-                              padding: "12px 8px",
-                              fontSize: 13,
-                              color: "#374151",
-                            }}
-                          >
-                            Name
-                          </th>
-                          <th
-                            style={{
-                              textAlign: "left",
-                              padding: "12px 8px",
-                              fontSize: 13,
-                              color: "#374151",
-                            }}
-                          >
-                            Created By
-                          </th>
-                          <th
-                            style={{
-                              textAlign: "left",
-                              padding: "12px 8px",
-                              fontSize: 13,
-                              color: "#374151",
-                            }}
-                          >
-                            Created At
-                          </th>
-                          <th
-                            style={{
-                              textAlign: "right",
-                              padding: "12px 8px",
-                              fontSize: 13,
-                              color: "#374151",
-                            }}
-                          >
-                            Status
-                          </th>
-                          <th
-                            style={{
-                              textAlign: "right",
-                              padding: "12px 8px",
-                              fontSize: 13,
-                              color: "#374151",
-                              width: 140,
-                            }}
-                          >
-                            Actions
-                          </th>
+                          <th style={{ textAlign: "center", padding: 12, width: 72 }}>Active</th>
+                          <th style={{ textAlign: "left", padding: 12 }}>Name</th>
+                          <th style={{ textAlign: "left", padding: 12 }}>Created By</th>
+                          <th style={{ textAlign: "left", padding: 12 }}>Created At</th>
+                          <th style={{ textAlign: "right", padding: 12 }}>Status</th>
+                          <th style={{ textAlign: "right", padding: 12, width: 160 }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {mapsList.map((m) => (
-                          <tr
-                            key={m.id}
-                            onClick={() => setSelectedMap(m)}
-                            style={{
-                              cursor: "pointer",
-                              background:
-                                selectedMap && selectedMap.id === m.id
-                                  ? "rgba(3,48,80,0.04)"
-                                  : "transparent",
-                            }}
-                          >
-                            <td
-                              style={{
-                                padding: "12px 8px",
-                                borderBottom: "1px solid #eef2f6",
-                                fontWeight: 700,
-                              }}
-                            >
-                              {m.name}
-                            </td>
-                            <td
-                              style={{
-                                padding: "12px 8px",
-                                borderBottom: "1px solid #eef2f6",
-                                color: "#6b7280",
-                              }}
-                            >
-                              {m.createdBy}
-                            </td>
-                            <td
-                              style={{
-                                padding: "12px 8px",
-                                borderBottom: "1px solid #eef2f6",
-                                color: "#6b7280",
-                              }}
-                            >
-                              2025-11-12
-                            </td>
-                            <td
-                              style={{
-                                padding: "12px 8px",
-                                borderBottom: "1px solid #eef2f6",
-                                textAlign: "right",
-                              }}
-                            >
-                              {m.status ? (
+                        {(() => {
+                          const term = (mapSearchTerm || "").trim().toLowerCase();
+                          const field = mapSearchField;
+                          const filtered = mapsList.filter((m) => {
+                            if (!term) return true;
+                            if (field === "any") {
+                              const hay = `${m.name||""} ${m.createdBy||""} ${m.category||""} ${m.createdAt||""} ${m.status||""}`.toLowerCase();
+                              return hay.includes(term);
+                            }
+                            return String(m[field] || "").toLowerCase().includes(term);
+                          });
+                          return filtered.map((m) => (
+                            <tr key={m.id} onClick={() => setSelectedMap(m)} style={{ cursor: "pointer", background: selectedMap?.id === m.id ? "rgba(3,48,80,0.04)" : "transparent" }}>
+                              <td style={{ padding: 12, borderBottom: "1px solid #eef2f6", textAlign: "center" }}>
+                                <input
+                                  type="radio"
+                                  name="activeMap"
+                                  checked={selectedMap?.id === m.id}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    handleActivateMap(m);
+                                  }}
+                                  aria-label={`Activate ${m.name}`}
+                                />
+                              </td>
+                              <td style={{ padding: 12, borderBottom: "1px solid #eef2f6", fontWeight: 700 }}>{m.name}</td>
+                              <td style={{ padding: 12, borderBottom: "1px solid #eef2f6", color: "#6b7280" }}>{m.createdBy}</td>
+                              <td style={{ padding: 12, borderBottom: "1px solid #eef2f6", color: "#6b7280" }}>{m.createdAt || "—"}</td>
+                              <td style={{ padding: 12, borderBottom: "1px solid #eef2f6", textAlign: "right" }}>
                                 <span
                                   style={{
-                                    background: "#10b981",
+                                    background:
+                                      (String(m.status || "").toLowerCase() === "active")
+                                        ? "#10b981" // green for Active
+                                        : "#ef4444ff", // red for Inactive / other
                                     color: "#fff",
                                     padding: "2px 8px",
                                     borderRadius: 8,
+                                    textTransform: "capitalize",
                                   }}
                                 >
-                                  {m.status}
+                                  {m.status ? m.status : "Inactive"}
                                 </span>
-                              ) : (
-                                <span style={{ color: "#9ca3af" }}>—</span>
-                              )}
-                            </td>
-                            <td
-                              style={{
-                                padding: "12px 8px",
-                                borderBottom: "1px solid #eef2f6",
-                                textAlign: "right",
-                                display: "flex",
-                                gap: 8,
-                                justifyContent: "flex-end",
-                                alignItems: "center",
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <button
-                                title="Preview map"
-                                aria-label={`Preview ${m.name}`}
-                                onClick={() => handleMapAction("preview", m)}
-                                className="ghost-btn"
-                                style={{ padding: "6px", minWidth: 36 }}
-                              >
-                                <FaEye />
-                              </button>
-                              <button
-                                title="Edit map"
-                                aria-label={`Edit ${m.name}`}
-                                onClick={() => handleMapAction("edit", m)}
-                                className="ghost-btn"
-                                style={{ padding: "6px", minWidth: 36 }}
-                              >
-                                <FaEdit />
-                              </button>
-                              <button
-                                title="Delete map"
-                                aria-label={`Delete ${m.name}`}
-                                onClick={() => handleMapAction("delete", m)}
-                                className="ghost-btn"
-                                style={{ padding: "6px", minWidth: 36 }}
-                              >
-                                <FaTrash />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                              </td>
+                              <td style={{ padding: 12, borderBottom: "1px solid #eef2f6", display: "flex", gap: 8, justifyContent: "flex-end" }} onClick={(e) => e.stopPropagation()}>
+                                <button title="Edit" onClick={() => handleMapAction("edit", m)} className="ghost-btn"><FaEdit /></button>
+                                <button title="Delete" onClick={() => handleMapAction("delete", m)} className="ghost-btn"><FaTrash /></button>
+                              </td>
+                            </tr>
+                          ));
+                        })()}
                       </tbody>
                     </table>
                   </div>
@@ -1723,8 +1850,12 @@ const MainPage = () => {
                         Search Zone By
                       </label>
                       <select style={{ padding: "6px 8px" }}>
-                        <option>Name</option>
-                        <option>Category</option>
+                       <option value="Search By">Search By</option>
+                       <option value="name">Name</option>
+                       <option value="createdBy">Created By</option>
+                       <option value="category">Category</option>
+                       <option value="createdAt">Created At</option>
+                       <option value="status">Status</option>
                       </select>
                       <input
                         placeholder="Search zone..."
@@ -2086,7 +2217,6 @@ const MainPage = () => {
                           borderRadius: 8,
                           border: "none",
                           cursor: "pointer",
-                          boxShadow: "0 6px 18px rgba(11,116,209,0.16)",
                         }}
                         onClick={() => setWaypointFormOpen((v) => !v)}
                       >
@@ -2311,8 +2441,8 @@ const MainPage = () => {
                               }}
                             >
                               Created At
-                            </th>
-                          </tr>
+                            </th> 
+                          </tr>                        
                         </thead>
                         <tbody>
                           {waypoints.length === 0 && (
@@ -2790,7 +2920,6 @@ const MainPage = () => {
                         borderRadius: 8,
                         border: "none",
                         cursor: "pointer",
-                        boxShadow: "0 6px 18px rgba(11,116,209,0.16)",
                       }}
                       onClick={() => setMissionFormOpen((v) => !v)}
                     >
@@ -2956,7 +3085,6 @@ const MainPage = () => {
                         Rows per page: 10
                       </div>
                     </div>
-
                     <div style={{ padding: "8px 16px" }}>
                       <table
                         style={{ width: "100%", borderCollapse: "collapse" }}
@@ -3906,6 +4034,101 @@ const MainPage = () => {
           {isLocked ? <FaLock /> : <FaUnlock />}
         </button>
       )}
+
+      {mapModalOpen && (
+          <div className="modal-backdrop" onClick={closeMapModal}>
+            <div
+              className="battery-modal"
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-label={mapModalMode === "edit" ? "Edit map" : "Create map"}
+            >
+              <div className="battery-modal-header">
+                <h3>{mapModalMode === "edit" ? "Edit Map" : "Create Map"}</h3>
+                <button
+                  className="right-pane-close"
+                  type="button"
+                  onClick={closeMapModal}
+                  aria-label="Close map modal"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="battery-modal-body">
+                <div style={{ display: "grid", gap: 10 }}>
+                  <label>
+                    Name
+                    <input
+                      value={mapForm.name}
+                      onChange={(e) =>
+                        setMapForm((prev) => ({ ...prev, name: e.target.value }))
+                      }
+                      placeholder="Map name"
+                    />
+                  </label>
+                  <label>
+                    Created By
+                    <input
+                      value={mapForm.createdBy}
+                      onChange={(e) =>
+                        setMapForm((prev) => ({ ...prev, createdBy: e.target.value }))
+                      }
+                      placeholder="Creator"
+                    />
+                  </label>
+                  <label>
+                    Status
+                    <input
+                      value={mapForm.status}
+                      onChange={(e) =>
+                        setMapForm((prev) => ({ ...prev, status: e.target.value }))
+                      }
+                      placeholder="Active / Inactive / Draft"
+                    />
+                  </label>
+                  <label>
+                    Category
+                    <input
+                      value={mapForm.category}
+                      onChange={(e) =>
+                        setMapForm((prev) => ({ ...prev, category: e.target.value }))
+                      }
+                      placeholder="Optional category"
+                    />
+                  </label>
+                  <label>
+                    Image (URL or path)
+                    <input
+                      value={mapForm.image}
+                      onChange={(e) =>
+                        setMapForm((prev) => ({ ...prev, image: e.target.value }))
+                      }
+                      placeholder="/images/maps/example.png"
+                    />
+                  </label>
+                </div>
+
+                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 12 }}>
+                  <button
+                    className="ghost-btn"
+                    type="button"
+                    onClick={closeMapModal}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="primary-btn"
+                    type="button"
+                    onClick={saveMapFromForm}
+                  >
+                    {mapModalMode === "edit" ? "Save Changes" : "Create Map"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 };
