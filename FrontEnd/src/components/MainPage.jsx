@@ -11,10 +11,17 @@ import {
   FaTrash,
   FaMicrophone,
   FaPaperPlane,
+  FaLock,
+  FaUnlock,
+  FaSignOutAlt,
+  FaPlus,
+  FaEdit,
 } from "react-icons/fa";
 import { toast } from "react-hot-toast";
 import { fetchWithAuth, clearAuthTokens, API_BASE } from "../utils/auth";
 import "./MainPage.css";
+
+const API_V1_BASE = `${API_BASE}/api/v1`;
 
 const FALLBACK_STATS = {
   overview: {
@@ -221,7 +228,7 @@ const MainPage = () => {
   const [rightPage, setRightPage] = useState(null);
 
   // sample maps data — replace image paths with your real map images
-  const mapsList = [
+  const initialMaps = [
     {
       id: "cfl_gf",
       name: "CFL_GF",
@@ -269,8 +276,12 @@ const MainPage = () => {
       status: "",
     },
   ];
+  const [mapsList, setMapsList] = useState(initialMaps);
+  const [selectedMap, setSelectedMap] = useState(initialMaps[0]);
+  // unified map search (single dropdown selects field, single input is the query)
+  const [mapSearchField, setMapSearchField] = useState("any"); // any,name,createdBy,category,createdAt,status
+  const [mapSearchTerm, setMapSearchTerm] = useState("");
 
-  const [selectedMap, setSelectedMap] = useState(mapsList[0]);
   // waypoints data + selection
   const initialWaypoints = [
     {
@@ -351,30 +362,41 @@ const MainPage = () => {
   });
 
   // users data + selection (fixes eslint no-undef)
-  const initialUsers = [
-    {
-      id: "u1",
-      name: "ANSCER ADMIN",
-      email: "admin@anscer.com",
-      role: "Admin",
-      status: "Active",
-      createdBy: "—",
-      createdAt: "—",
-    },
-    {
-      id: "u2",
-      name: "CNDE",
-      email: "cnde@iitm.org",
-      role: "Admin",
-      status: "Active",
-      createdBy: "ANSCER ADMIN",
-      createdAt: "02/18/2025, 5:37:51 PM",
-    },
-  ];
-  const [users] = useState(initialUsers);
+  const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState(null);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [userActionLoading, setUserActionLoading] = useState(false);
+  const [usersError, setUsersError] = useState("");
+  const [isLocked, setIsLocked] = useState(false);
+  const LOCK_TOAST_ID = "lock-toast";
 
-  const zonesData = [
+  const showLockedAttemptToast = useCallback(() => {
+    // single toast id to avoid duplicates when user repeatedly clicks
+    toast.dismiss("locked-attempt");
+    toast.error("The screen is locked", { id: "locked-attempt" });
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    // clear tokens and go back to login
+    clearAuthTokens();
+    navigate("/");
+  }, [navigate]);
+
+  const handleToggleLock = useCallback(() => {
+    setIsLocked((prev) => {
+      const next = !prev;
+      // ensure only one toast shown by using a fixed id and dismissing previous
+      toast.dismiss(LOCK_TOAST_ID);
+      if (next) {
+        toast.error("Console locked", { id: LOCK_TOAST_ID });
+      } else {
+        toast.success("Console unlocked", { id: LOCK_TOAST_ID });
+      }
+      return next;
+    });
+  }, []);
+
+  const initialZones = [
     {
       id: "z1",
       name: "Assembly Lane",
@@ -400,7 +422,7 @@ const MainPage = () => {
       createdAt: "2025-11-14",
     },
   ];
-  const [zones, setZones] = useState(zonesData);
+  const [zones, setZones] = useState(initialZones);
   const [zoneFormOpen, setZoneFormOpen] = useState(false);
   const [zoneForm, setZoneForm] = useState({
     name: "",
@@ -409,15 +431,17 @@ const MainPage = () => {
     active: true,
   });
 
-  const analyticsSummary = [
+  const [analyticsSummary, setAnalyticsSummary] = useState([
     { label: "Incidents", value: 2, trend: "+1 vs last week" },
     { label: "Stops Issued", value: 14, trend: "-3 vs last week" },
     { label: "Battery Swaps", value: 5, trend: "Stable" },
     { label: "Avg. Cycle", value: "42 min", trend: "±0" },
-  ];
+  ]);
 
-  const analyticsSeries = [12, 18, 22, 16, 24, 26, 20];
-  const analyticsAlerts = [
+  const [analyticsSeries, setAnalyticsSeries] = useState([
+    12, 18, 22, 16, 24, 26, 20,
+  ]);
+  const [analyticsAlerts, setAnalyticsAlerts] = useState([
     {
       id: "alert1",
       title: "Obstacle spikes",
@@ -428,9 +452,9 @@ const MainPage = () => {
       title: "Slow return",
       detail: "Mission Delivery Route 3 exceeded SLA by 4 min.",
     },
-  ];
+  ]);
 
-  const diagnosticsPanels = [
+  const [diagnosticsPanels, setDiagnosticsPanels] = useState([
     {
       id: "battery",
       title: "Battery Health",
@@ -452,9 +476,9 @@ const MainPage = () => {
       status: "Nominal",
       detail: "Last calibration 12h ago",
     },
-  ];
+  ]);
 
-  const logEvents = [
+  const [logEvents, setLogEvents] = useState([
     {
       id: "log1",
       ts: "10:42:01",
@@ -476,9 +500,9 @@ const MainPage = () => {
       message: "Pack voltage dipped to 45.9V",
       level: "warn",
     },
-  ];
-
-  const missionHistory = [
+  ]);
+  
+  const [missionHistory, setMissionHistory] = useState([
     {
       id: "mh1",
       mission: "Inspect Zone A",
@@ -500,9 +524,9 @@ const MainPage = () => {
       outcome: "Completed",
       notes: "Pack swap verified",
     },
-  ];
+  ]);
 
-  const bagFiles = [
+  const [bagFiles, setBagFiles] = useState([
     {
       id: "bag1",
       name: "mission-0915.bag",
@@ -517,7 +541,7 @@ const MainPage = () => {
       size: "2.7 GB",
       status: "Processing",
     },
-  ];
+  ]);
 
   const [robotSettingsState, setRobotSettingsState] = useState({
     autopilot: true,
@@ -544,7 +568,7 @@ const MainPage = () => {
     anomalyAlerts: true,
   });
 
-  const securityEvents = [
+  const [securityEvents, setSecurityEvents] = useState([
     {
       id: "sec1",
       ts: "09:44",
@@ -559,7 +583,7 @@ const MainPage = () => {
       action: "Cert renewed",
       context: "Device",
     },
-  ];
+  ]);
 
   const [integrationItems, setIntegrationItems] = useState([
     {
@@ -644,25 +668,223 @@ const MainPage = () => {
     }
   };
 
-  // map action handler (Preview / Edit / Delete)
-  const handleMapAction = (action, map) => {
-    // placeholder behavior — replace with real navigation / API calls
-    console.log("Map action:", action, "on", map && map.id);
-    if (action === "delete") {
-      // example: remove map from mapsList (in real app you'd call API)
-      // For now just clear selection if deleting currently selected map
-      if (selectedMap && map && selectedMap.id === map.id) setSelectedMap(null);
+  // Map modal state for preview / edit / create
+  const [mapModalOpen, setMapModalOpen] = useState(false);
+  const [mapModalMode, setMapModalMode] = useState("preview"); // "preview" | "edit" | "create"
+  const [mapModalMap, setMapModalMap] = useState(null);
+
+  // form used for create/edit
+  const [mapForm, setMapForm] = useState({
+    id: null,
+    name: "",
+    createdBy: "",
+    image: "",
+    status: "",
+    category: "",
+    createdAt: "",
+  });
+
+  const openMapModal = (mode, map = null) => {
+    setMapModalMode(mode);
+    setMapModalMap(map);
+    if (!map) {
+      setMapForm({
+        id: null,
+        name: "",
+        createdBy: "",
+        image: "",
+        status: "",
+        category: "",
+        createdAt: new Date().toISOString().slice(0, 10),
+      });
+    } else {
+      setMapForm({
+        id: map.id,
+        name: map.name || "",
+        createdBy: map.createdBy || "",
+        image: map.image || "",
+        status: map.status || "",
+        category: map.category || "",
+        createdAt: map.createdAt || "",
+      });
     }
-    if (action === "preview") {
-      // example: open a preview modal — placeholder log
+    setMapModalOpen(true);
+  };
+
+  const closeMapModal = () => {
+    setMapModalOpen(false);
+    setMapModalMap(null);
+  };
+
+  const handleMapAction = async (action, map) => {
+    try {
+      if (action === "edit") {
+        openMapModal("edit", map);
+        return;
+      }
+      if (action === "delete") {
+        const ok = window.confirm(
+          `Delete map "${map?.name || map?.id}"? This cannot be undone.`,
+        );
+        if (!ok) return;
+
+        // Try server delete first; fallback to local removal on failure
+        try {
+          await requestV1(`/maps/${map.id}`, { method: "DELETE" });
+          setMapsList((prev) => prev.filter((m) => m.id !== map.id));
+          if (selectedMap && selectedMap.id === map.id) setSelectedMap(null);
+          toast.success("Map deleted");
+        } catch (err) {
+          console.warn("Delete API failed, falling back to local remove", err);
+          // fallback local behavior
+          setMapsList((prev) => prev.filter((m) => m.id !== map.id));
+          if (selectedMap && selectedMap.id === map.id) setSelectedMap(null);
+          toast.success("Map removed (local)");
+        }
+        return;
+      }
+    } catch (err) {
+      console.error("Map action error", err);
+      toast.error(err.message || "Map action failed");
     }
-    if (action === "edit") {
-      // example: open edit UI — placeholder log
+  };
+
+  // Create a new map immediately (optimistic local create with server persist attempt)
+  const createNewMapImmediate = async () => {
+    const newMap = {
+      id: `local_${Date.now()}`,
+      name: `New Map ${mapsList.length + 1}`,
+      createdBy: "Operator",
+      image: "",
+      status: "Inactive",
+      category: "",
+      createdAt: new Date().toISOString().slice(0, 10),
+    };
+    // optimistic UI update
+    setMapsList((prev) => [newMap, ...prev]);
+    setSelectedMap(newMap);
+    toast.success("Map added");
+
+    // try persist to server, replace local id with server item on success
+    try {
+      const res = await requestV1("/maps", {
+        method: "POST",
+        body: JSON.stringify({
+          name: newMap.name,
+          createdBy: newMap.createdBy,
+          image: newMap.image,
+          status: newMap.status,
+          category: newMap.category,
+          createdAt: newMap.createdAt,
+        }),
+      });
+      const created = res.item || { ...newMap, id: res.id || newMap.id };
+      setMapsList((prev) => prev.map((m) => (m.id === newMap.id ? created : m)));
+      setSelectedMap(created);
+      toast.success("Map persisted");
+    } catch (err) {
+      console.warn("Persist new map failed, kept local map", err);
+      toast.error("Map added locally (server persist failed)");
+    }
+  };
+
+  // Activate a map (radio). Optimistic UI update, try to persist via API.
+  const handleActivateMap = async (map) => {
+    if (!map) return;
+    try {
+      // Optimistically update UI: mark chosen map Active, clear previous active status
+      setMapsList((prev) =>
+        prev.map((m) => {
+          if (m.id === map.id) return { ...m, status: "Active" };
+          // clear status for others that were Active
+          if (m.status === "Active" && m.id !== map.id) return { ...m, status: "" };
+          return m;
+        }),
+      );
+      setSelectedMap(map);
+      toast.success(`Activated map: ${map.name}`);
+
+      // Persist change to server (best-effort)
+      try {
+        await requestV1(`/maps/${map.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ status: "Active" }),
+        });
+      } catch (err) {
+        console.warn("Failed to persist map activation:", err);
+        toast.error("Activation persisted locally (server sync failed)");
+      }
+    } catch (err) {
+      console.error("Activation error", err);
+      toast.error("Failed to activate map");
+    }
+  };
+ 
+  const saveMapFromForm = async () => {
+    // basic validation
+    if (!mapForm.name.trim()) {
+      toast.error("Map name required");
+      return;
+    }
+    const payload = {
+      name: mapForm.name.trim(),
+      createdBy: mapForm.createdBy,
+      image: mapForm.image,
+      status: mapForm.status,
+      category: mapForm.category,
+      createdAt: mapForm.createdAt,
+    };
+
+    try {
+      if (mapModalMode === "create") {
+        // POST /maps
+        try {
+          const res = await requestV1("/maps", {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+          const created = res.item || { ...payload, id: res.id || `map_${Date.now()}` };
+          setMapsList((prev) => [created, ...prev]);
+          setSelectedMap(created);
+          toast.success("Map created");
+        } catch (err) {
+          // fallback local creation
+          const created = { ...payload, id: `local_${Date.now()}` };
+          setMapsList((prev) => [created, ...prev]);
+          setSelectedMap(created);
+          toast.success("Map created (local)");
+        }
+      } else if (mapModalMode === "edit") {
+        const id = mapForm.id;
+        try {
+          const res = await requestV1(`/maps/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+          });
+          const updated = res.item || { ...payload, id };
+          setMapsList((prev) => prev.map((m) => (m.id === id ? { ...m, ...updated } : m)));
+          if (selectedMap && selectedMap.id === id) setSelectedMap((s) => ({ ...s, ...updated }));
+          toast.success("Map updated");
+        } catch (err) {
+          console.warn("Edit API failed, applying local update", err);
+          setMapsList((prev) => prev.map((m) => (m.id === id ? { ...m, ...payload } : m)));
+          if (selectedMap && selectedMap.id === id) setSelectedMap((s) => ({ ...s, ...payload }));
+          toast.success("Map updated (local)");
+        }
+      }
+      closeMapModal();
+    } catch (err) {
+      console.error("Save map error", err);
+      toast.error(err.message || "Failed to save map");
     }
   };
 
   // active action radio state for the map action buttons
   const [activeMapAction, setActiveMapAction] = useState(null);
+
+  // handler for testing: force error on next request
+  const [forceError, setForceError] = useState(false);
+  const handleTestError = () => setForceError((e) => !e);
 
   // helper to map battery level to CSS class
   const batteryClass = (() => {
@@ -680,37 +902,133 @@ const MainPage = () => {
     return "#f97316"; // mid (orange)
   })();
 
+  const requestV1 = useCallback(
+    async (path, options = {}) => {
+      const headers = {
+        Accept: "application/json",
+        ...(options.headers || {}),
+      };
+      if (options.body && !headers["Content-Type"]) {
+        headers["Content-Type"] = "application/json";
+      }
+
+      try {
+        const response = await fetchWithAuth(`${API_V1_BASE}${path}`, {
+          ...options,
+          headers,
+        });
+        const data = await response.json().catch(() => ({}));
+        if (response.status === 401 || response.status === 403) {
+          clearAuthTokens();
+          navigate("/");
+          throw new Error(data.message || "Unauthorized");
+        }
+        if (!response.ok || data.success === false) {
+          throw new Error(data.message || "Request failed");
+        }
+        return data;
+      } catch (error) {
+        if (error.message === "No access token available") {
+          clearAuthTokens();
+          navigate("/");
+        }
+        throw error;
+      }
+    },
+    [navigate],
+  );
+
+  const loadUsers = useCallback(async () => {
+    setUsersLoading(true);
+    setUsersError("");
+    try {
+      const response = await requestV1("/users");
+      setUsers(response.items || []);
+    } catch (error) {
+      console.error("Users fetch error", error);
+      setUsersError(error.message || "Failed to load users");
+      toast.error(error.message || "Failed to load users");
+    } finally {
+      setUsersLoading(false);
+    }
+  }, [requestV1]);
+
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
+
+  const handleResetUserPassword = useCallback(async () => {
+    if (!selectedUserId) {
+      toast.error("Select a user first");
+      return;
+    }
+    setUserActionLoading(true);
+    try {
+      const response = await requestV1(
+        `/users/${selectedUserId}/reset-password`,
+        { method: "POST" },
+      );
+      if (response.item) {
+        setUsers((prev) =>
+          prev.map((user) =>
+            user.id === response.item.id ? { ...user, ...response.item } : user,
+          ),
+        );
+      }
+      toast.success(response.message || "Password reset token generated");
+    } catch (error) {
+      console.error("Reset password error", error);
+      toast.error(error.message || "Failed to reset password");
+    } finally {
+      setUserActionLoading(false);
+    }
+  }, [requestV1, selectedUserId]);
+
   // Chat functions
   const formatTimestamp = (value) => {
     const date = typeof value === "string" ? new Date(value) : value;
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
-  const handleSendMessage = (presetText = "") => {
+  const handleSendMessage = async (presetText = "") => {
     const messageText = (presetText || chatInput).trim();
     if (!messageText) return;
+    const tempId = Date.now();
     const userMessage = {
-      id: Date.now(),
+      id: tempId,
       text: messageText,
       sender: "human",
       timestamp: new Date().toISOString(),
-      status: "Sent",
+      status: "Sending",
     };
     setChatMessages((prev) => [...prev, userMessage]);
     setChatInput("");
 
     setIsTyping(true);
-    setTimeout(() => {
-      const robotResponse = {
-        id: Date.now() + 1,
-        text: `I received "${messageText}". Let me process that and update you shortly.`,
-        sender: "robot",
-        timestamp: new Date().toISOString(),
-        status: "Delivered",
-      };
-      setChatMessages((prev) => [...prev, robotResponse]);
+    try {
+      const data = await requestV1("/chat/messages", {
+        method: "POST",
+        body: JSON.stringify({ text: messageText }),
+      });
+      setChatMessages((prev) => {
+        const updated = prev.map((msg) =>
+          msg.id === tempId
+            ? { ...msg, status: data.message?.status || "Delivered" }
+            : msg,
+        );
+        return data.reply ? [...updated, data.reply] : updated;
+      });
+    } catch (error) {
+      console.error("Chat send error", error);
+      setChatMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === tempId ? { ...msg, status: "Failed" } : msg,
+        ),
+      );
+      toast.error(error.message || "Unable to send message");
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -729,11 +1047,29 @@ const MainPage = () => {
     handleSendMessage(prompt);
   };
 
+  const persistRobotSetting = useCallback(
+    (key, value, previousValue) => {
+      requestV1("/settings/robot", {
+        method: "PATCH",
+        body: JSON.stringify({ [key]: value }),
+      }).catch((error) => {
+        console.error("Robot setting update failed", error);
+        toast.error(error.message || "Failed to update setting");
+        setRobotSettingsState((prev) => ({ ...prev, [key]: previousValue }));
+      });
+    },
+    [requestV1],
+  );
+
   const toggleRobotSetting = (key) => {
-    setRobotSettingsState((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+    setRobotSettingsState((prev) => {
+      const nextValue = !prev[key];
+      persistRobotSetting(key, nextValue, prev[key]);
+      return {
+        ...prev,
+        [key]: nextValue,
+      };
+    });
   };
 
   const handleAccountChange = (field, value) => {
@@ -826,24 +1162,63 @@ const MainPage = () => {
     }
   };
 
+  const persistSecurityPref = useCallback(
+    (key, value, previousValue) => {
+      requestV1("/settings/security", {
+        method: "PATCH",
+        body: JSON.stringify({ [key]: value }),
+      }).catch((error) => {
+        console.error("Security pref update failed", error);
+        toast.error(error.message || "Failed to update security preference");
+        setSecurityPreferences((prev) => ({ ...prev, [key]: previousValue }));
+      });
+    },
+    [requestV1],
+  );
+
   const toggleSecurityPref = (key) => {
-    setSecurityPreferences((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+    setSecurityPreferences((prev) => {
+      const nextValue = !prev[key];
+      persistSecurityPref(key, nextValue, prev[key]);
+      return {
+        ...prev,
+        [key]: nextValue,
+      };
+    });
   };
+
+  const persistIntegrationStatus = useCallback(
+    (id, status, previousStatus) => {
+      requestV1(`/settings/integrations/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      }).catch((error) => {
+        console.error("Integration status update failed", error);
+        toast.error(error.message || "Failed to update integration");
+        setIntegrationItems((items) =>
+          items.map((item) =>
+            item.id === id ? { ...item, status: previousStatus } : item,
+          ),
+        );
+      });
+    },
+    [requestV1],
+  );
 
   const toggleIntegrationStatus = (id) => {
     setIntegrationItems((items) =>
-      items.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              status:
-                item.status === "Connected" ? "Disconnected" : "Connected",
-            }
-          : item,
-      ),
+      items.map((item) => {
+        if (item.id !== id) {
+          return item;
+        }
+        const nextStatus =
+          item.status === "Connected" ? "Disconnected" : "Connected";
+        persistIntegrationStatus(id, nextStatus, item.status);
+        return {
+          ...item,
+          status: nextStatus,
+        };
+      }),
     );
   };
 
@@ -894,22 +1269,20 @@ const MainPage = () => {
           setStatsError("");
         }
 
-        const response = await fetch("http://127.0.0.1:5000/api/stats");
-        if (!response.ok) {
-          throw new Error("Failed to fetch stats");
-        }
-        const payload = await response.json();
+        const payload = await requestV1("/stats");
         if (!cancelled) {
+          const statsPayload = payload.data || FALLBACK_STATS;
           setStatsData({
-            overview: payload.overview || FALLBACK_STATS.overview,
-            missionTrend: payload.missionTrend || FALLBACK_STATS.missionTrend,
+            overview: statsPayload.overview || FALLBACK_STATS.overview,
+            missionTrend:
+              statsPayload.missionTrend || FALLBACK_STATS.missionTrend,
             monthlyMovement:
-              payload.monthlyMovement || FALLBACK_STATS.monthlyMovement,
+              statsPayload.monthlyMovement || FALLBACK_STATS.monthlyMovement,
             batterySeries:
-              payload.batterySeries || FALLBACK_STATS.batterySeries,
+              statsPayload.batterySeries || FALLBACK_STATS.batterySeries,
             batteryStatus:
-              payload.batteryStatus || FALLBACK_STATS.batteryStatus,
-            turns: payload.turns || FALLBACK_STATS.turns,
+              statsPayload.batteryStatus || FALLBACK_STATS.batteryStatus,
+            turns: statsPayload.turns || FALLBACK_STATS.turns,
           });
         }
       } catch (err) {
@@ -931,7 +1304,167 @@ const MainPage = () => {
       cancelled = true;
       clearInterval(intervalId);
     };
-  }, []);
+  }, [requestV1]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCreateData = async () => {
+      try {
+        const [mapsRes, zonesRes, waypointsRes, missionsRes, usersRes] =
+          await Promise.all([
+            requestV1("/maps"),
+            requestV1("/zones"),
+            requestV1("/waypoints"),
+            requestV1("/missions"),
+            requestV1("/users"),
+          ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        if (Array.isArray(mapsRes.items) && mapsRes.items.length) {
+          setMapsList(mapsRes.items);
+          setSelectedMap((prev) => {
+            if (prev) {
+              const stillExists = mapsRes.items.find((m) => m.id === prev.id);
+              if (stillExists) {
+                return stillExists;
+              }
+            }
+            return mapsRes.items[0] || null;
+          });
+        }
+        if (Array.isArray(zonesRes.items)) {
+          setZones(zonesRes.items);
+        }
+        if (Array.isArray(waypointsRes.items)) {
+          setWaypoints(waypointsRes.items);
+        }
+        if (Array.isArray(missionsRes.items)) {
+          setMissions(missionsRes.items);
+        }
+        if (Array.isArray(usersRes.items)) {
+          setUsers(usersRes.items);
+        }
+      } catch (error) {
+        console.error("Failed to load workspace data", error);
+      }
+    };
+
+    loadCreateData();
+    return () => {
+      cancelled = true;
+    };
+  }, [requestV1]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadMonitorData = async () => {
+      try {
+        const [analyticsRes, diagnosticsRes, logsRes, missionLogsRes, bagsRes] =
+          await Promise.all([
+            requestV1("/monitor/analytics"),
+            requestV1("/monitor/diagnostics"),
+            requestV1("/monitor/logs"),
+            requestV1("/monitor/mission-logs"),
+            requestV1("/monitor/robot-bags"),
+          ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        const analyticsPayload = analyticsRes.data || {};
+        if (Array.isArray(analyticsPayload.summary)) {
+          setAnalyticsSummary(analyticsPayload.summary);
+        }
+        if (Array.isArray(analyticsPayload.series)) {
+          setAnalyticsSeries(analyticsPayload.series);
+        }
+        if (Array.isArray(analyticsPayload.alerts)) {
+          setAnalyticsAlerts(analyticsPayload.alerts);
+        }
+        if (Array.isArray(diagnosticsRes.items)) {
+          setDiagnosticsPanels(diagnosticsRes.items);
+        }
+        if (Array.isArray(logsRes.items)) {
+          setLogEvents(logsRes.items);
+        }
+        if (Array.isArray(missionLogsRes.items)) {
+          setMissionHistory(missionLogsRes.items);
+        }
+        if (Array.isArray(bagsRes.items)) {
+          setBagFiles(bagsRes.items);
+        }
+      } catch (error) {
+        console.error("Failed to load monitor data", error);
+      }
+    };
+
+    loadMonitorData();
+    const intervalId = setInterval(loadMonitorData, 60000);
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [requestV1]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadSettingsAndChat = async () => {
+      try {
+        const [
+          robotRes,
+          securityRes,
+          securityEventsRes,
+          integrationsRes,
+          appearanceRes,
+          chatRes,
+        ] = await Promise.all([
+          requestV1("/settings/robot"),
+          requestV1("/settings/security"),
+          requestV1("/settings/security/events"),
+          requestV1("/settings/integrations"),
+          requestV1("/settings/appearance"),
+          requestV1("/chat/history"),
+        ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        if (robotRes.data) {
+          setRobotSettingsState((prev) => ({ ...prev, ...robotRes.data }));
+        }
+        if (securityRes.data) {
+          setSecurityPreferences((prev) => ({ ...prev, ...securityRes.data }));
+        }
+        if (Array.isArray(securityEventsRes.items)) {
+          setSecurityEvents(securityEventsRes.items);
+        }
+        if (Array.isArray(integrationsRes.items)) {
+          setIntegrationItems(integrationsRes.items);
+        }
+        if (appearanceRes.data?.theme) {
+          setSelectedTheme(appearanceRes.data.theme);
+        }
+        if (Array.isArray(chatRes.items) && chatRes.items.length) {
+          setChatMessages(chatRes.items);
+        }
+      } catch (error) {
+        console.error("Failed to load settings/chat data", error);
+      }
+    };
+
+    loadSettingsAndChat();
+    return () => {
+      cancelled = true;
+    };
+  }, [requestV1]);
 
   const {
     overview,
@@ -973,30 +1506,82 @@ const MainPage = () => {
   if (rightPage === "maps" && selectedMap)
     breadcrumbParts.push(selectedMap.name);
 
+  // stable id to avoid duplicate toasts for emergency toggle
+  const EMERGENCY_TOAST_ID = "emergency-toast";
+
+  // centralized handler to toggle emergency and show single toast
+  const handleEmergencyToggle = React.useCallback(() => {
+    setEmergencyClicked((prev) => {
+      const next = !prev;
+      // ensure any previous emergency toast is removed first
+      toast.dismiss(EMERGENCY_TOAST_ID);
+      if (next) {
+        toast.error("Emergency stop engaged", { id: EMERGENCY_TOAST_ID });
+      } else {
+        toast.success("Emergency stop released", { id: EMERGENCY_TOAST_ID });
+      }
+      return next;
+    });
+  }, []);
+
+  // Runtime diagnostics: show tiny startup toast and report unhandled errors
+  useEffect(() => {
+    // small startup hint so we know React mounted
+    toast.dismiss("app-start");
+    toast.success("App initialized", { id: "app-start", duration: 1500 });
+
+    const onUnhandledRejection = (ev) => {
+      console.error("Unhandled promise rejection:", ev.reason);
+      try {
+        toast.error(`Unhandled rejection: ${String(ev.reason).slice(0, 80)}`, { duration: 4000 });
+      } catch {}
+    };
+    const onError = (message, source, lineno, colno, error) => {
+      console.error("Window error:", message, { source, lineno, colno, error });
+      try {
+        toast.error(`Error: ${String(message).slice(0, 80)}`, { duration: 4000 });
+      } catch {}
+      // return false to allow default browser handling
+      return false;
+    };
+
+    window.addEventListener("unhandledrejection", onUnhandledRejection);
+    window.addEventListener("error", onError);
+    return () => {
+      window.removeEventListener("unhandledrejection", onUnhandledRejection);
+      window.removeEventListener("error", onError);
+    };
+  }, []);
+
+  // allow unlocking via Escape to avoid getting locked out
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!isLocked) return;
+      if (e.key === "Escape") {
+        handleToggleLock();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isLocked, handleToggleLock]);
+
   return (
     <div
       ref={layoutRef}
-      className={`main-container ${rightPage ? "has-right-pane" : ""}`}
+      className={`main-container ${rightPage ? "has-right-pane" : ""} ${
+        isLocked ? "is-locked" : ""
+      }`}
     >
       <header className="mp-header">
+        {/* left header group (kept minimal) */}
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-
+          {/* ...existing left items (kept empty or for future icons) ... */}
         </div>
 
         {/* Header-centered Emergency Stop */}
         <div className="header-center-emergency">
           <button
-            onClick={() =>
-              setEmergencyClicked((prev) => {
-                const next = !prev;
-                if (next) {
-                  toast.error("Emergency stop engaged");
-                } else {
-                  toast.success("Emergency stop released");
-                }
-                return next;
-              })
-            }
+            onClick={handleEmergencyToggle}
             aria-pressed={emergencyClicked}
             className={
               emergencyClicked
@@ -1061,8 +1646,33 @@ const MainPage = () => {
             onClick={toggleFullScreen}
             title={isFullScreen ? "Exit Fullscreen" : "Fullscreen"}
             className="fullscreen-btn"
+            type="button"
           >
             {isFullScreen ? <FaCompress /> : <FaExpand />}
+          </button>
+
+          {/* Lock icon: use top-level isLocked and handleToggleLock defined earlier */}
+          <button
+            type="button"
+            className="lock-toggle-btn"
+            aria-pressed={isLocked}
+            aria-label={isLocked ? "Unlock console" : "Lock console"}
+            onMouseDown={(e) => e.preventDefault()} /* prevent focusing on mouse down */
+            onClick={handleToggleLock}
+            title={isLocked ? "Unlock console" : "Lock console"}
+          >
+            {isLocked ? <FaLock /> : <FaUnlock />}
+          </button>
+
+          {/* Logout button — icon-only for compact header */}
+          <button
+            type="button"
+            className="logout-btn"
+            onClick={handleLogout}
+            title="Log out"
+            aria-label="Log out"
+          >
+            <FaSignOutAlt />
           </button>
         </div>
       </header>
@@ -1075,7 +1685,6 @@ const MainPage = () => {
             if (rightPage) setRightPage(null);
           }}
         />
-
         {/* Right pane: shows the selected page in the right half of the screen */}
         {rightPage && (
           <aside className="right-pane" role="region" aria-label="Right pane">
@@ -1091,147 +1700,124 @@ const MainPage = () => {
                 ✕
               </button>
             </div>
+
             <div className="right-pane-body">
-              {/* Maps list page: clickable rows */}
+              {/* Maps page: unified search + create + table */}
               {rightPage === "maps" && (
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 8 }}
-                >
-                  {/* Search / filter controls */}
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 8 }}
-                  >
-                    <select>
-                      <option>Search Map By Name</option>
-                    </select>
-                    <input
-                      style={{ flex: 1, padding: "6px 8px" }}
-                      placeholder="Search map..."
-                    />
-                    <button title="Toggle visibility">👁</button>
-                  </div>
-
-                  <div
-                    style={{ borderTop: "1px solid #e6eef2", marginTop: 8 }}
-                  />
-
-                  {/* Table view for maps (Name | Created By | Created At | Status) */}
-                  <div style={{ overflowY: "auto", maxHeight: 420 }}>
-                    <table
-                      style={{
-                        width: "100%",
-                        borderCollapse: "collapse",
-                        marginTop: 8,
-                      }}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <select
+                      aria-label="Search field"
+                      value={mapSearchField}
+                      onChange={(e) => setMapSearchField(e.target.value)}
+                      style={{ padding: "6px 8px" }}
                     >
+                      <option value="any">Search By</option>
+                      <option value="name">Name</option>
+                      <option value="createdBy">Created By</option>
+                      <option value="category">Category</option>
+                      <option value="createdAt">Created At</option>
+                      <option value="status">Status</option>
+                    </select>
+
+                    <input
+                      value={mapSearchTerm}
+                      onChange={(e) => setMapSearchTerm(e.target.value)}
+                      placeholder="Type to search..."
+                      style={{ padding: "6px 8px", minWidth: 220 }}
+                    />
+
+                    <div>
+                      <button
+                        onClick={createNewMapImmediate}
+                        aria-label="Create new map"
+                        title="+ Create New Map"
+                        style={{
+                          background: "#0b74d1",
+                          color: "#fff",
+                          padding: "8px 12px",
+                          borderRadius: 8,
+                          border: "none",
+                          cursor: "pointer",
+                          boxShadow: "0 6px 18px rgba(11,116,209,0.16)",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
+                          fontWeight: 700,
+                        }}
+                      >
+                        <FaPlus />
+                        <span> Create New Map</span>
+                      </button>
+                    </div>
+                  </div>
+                        
+                  <div style={{ borderTop: "1px solid #e6eef2", marginTop: 8 }} />
+
+                  <div style={{ overflowY: "auto", maxHeight: 420 }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 8 }}>
                       <thead style={{ background: "#f8fafc" }}>
                         <tr>
-                          <th
-                            style={{
-                              textAlign: "left",
-                              padding: "12px 8px",
-                              fontSize: 13,
-                              color: "#374151",
-                            }}
-                          >
-                            Name
-                          </th>
-                          <th
-                            style={{
-                              textAlign: "left",
-                              padding: "12px 8px",
-                              fontSize: 13,
-                              color: "#374151",
-                            }}
-                          >
-                            Created By
-                          </th>
-                          <th
-                            style={{
-                              textAlign: "left",
-                              padding: "12px 8px",
-                              fontSize: 13,
-                              color: "#374151",
-                            }}
-                          >
-                            Created At
-                          </th>
-                          <th
-                            style={{
-                              textAlign: "right",
-                              padding: "12px 8px",
-                              fontSize: 13,
-                              color: "#374151",
-                            }}
-                          >
-                            Status
-                          </th>
+                          <th style={{ textAlign: "center", padding: 12, width: 72 }}>Active</th>
+                          <th style={{ textAlign: "left", padding: 12 }}>Name</th>
+                          <th style={{ textAlign: "left", padding: 12 }}>Created By</th>
+                          <th style={{ textAlign: "left", padding: 12 }}>Created At</th>
+                          <th style={{ textAlign: "right", padding: 12 }}>Status</th>
+                          <th style={{ textAlign: "right", padding: 12, width: 160 }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {mapsList.map((m) => (
-                          <tr
-                            key={m.id}
-                            onClick={() => setSelectedMap(m)}
-                            style={{
-                              cursor: "pointer",
-                              background:
-                                selectedMap && selectedMap.id === m.id
-                                  ? "rgba(3,48,80,0.04)"
-                                  : "transparent",
-                            }}
-                          >
-                            <td
-                              style={{
-                                padding: "12px 8px",
-                                borderBottom: "1px solid #eef2f6",
-                                fontWeight: 700,
-                              }}
-                            >
-                              {m.name}
-                            </td>
-                            <td
-                              style={{
-                                padding: "12px 8px",
-                                borderBottom: "1px solid #eef2f6",
-                                color: "#6b7280",
-                              }}
-                            >
-                              {m.createdBy}
-                            </td>
-                            <td
-                              style={{
-                                padding: "12px 8px",
-                                borderBottom: "1px solid #eef2f6",
-                                color: "#6b7280",
-                              }}
-                            >
-                              2025-11-12
-                            </td>
-                            <td
-                              style={{
-                                padding: "12px 8px",
-                                borderBottom: "1px solid #eef2f6",
-                                textAlign: "right",
-                              }}
-                            >
-                              {m.status ? (
+                        {(() => {
+                          const term = (mapSearchTerm || "").trim().toLowerCase();
+                          const field = mapSearchField;
+                          const filtered = mapsList.filter((m) => {
+                            if (!term) return true;
+                            if (field === "any") {
+                              const hay = `${m.name||""} ${m.createdBy||""} ${m.category||""} ${m.createdAt||""} ${m.status||""}`.toLowerCase();
+                              return hay.includes(term);
+                            }
+                            return String(m[field] || "").toLowerCase().includes(term);
+                          });
+                          return filtered.map((m) => (
+                            <tr key={m.id} onClick={() => setSelectedMap(m)} style={{ cursor: "pointer", background: selectedMap?.id === m.id ? "rgba(3,48,80,0.04)" : "transparent" }}>
+                              <td style={{ padding: 12, borderBottom: "1px solid #eef2f6", textAlign: "center" }}>
+                                <input
+                                  type="radio"
+                                  name="activeMap"
+                                  checked={selectedMap?.id === m.id}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    handleActivateMap(m);
+                                  }}
+                                  aria-label={`Activate ${m.name}`}
+                                />
+                              </td>
+                              <td style={{ padding: 12, borderBottom: "1px solid #eef2f6", fontWeight: 700 }}>{m.name}</td>
+                              <td style={{ padding: 12, borderBottom: "1px solid #eef2f6", color: "#6b7280" }}>{m.createdBy}</td>
+                              <td style={{ padding: 12, borderBottom: "1px solid #eef2f6", color: "#6b7280" }}>{m.createdAt || "—"}</td>
+                              <td style={{ padding: 12, borderBottom: "1px solid #eef2f6", textAlign: "right" }}>
                                 <span
                                   style={{
-                                    background: "#10b981",
+                                    background:
+                                      (String(m.status || "").toLowerCase() === "active")
+                                        ? "#10b981" // green for Active
+                                        : "#ef4444ff", // red for Inactive / other
                                     color: "#fff",
                                     padding: "2px 8px",
                                     borderRadius: 8,
+                                    textTransform: "capitalize",
                                   }}
                                 >
-                                  {m.status}
+                                  {m.status ? m.status : "Inactive"}
                                 </span>
-                              ) : (
-                                <span style={{ color: "#9ca3af" }}>—</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
+                              </td>
+                              <td style={{ padding: 12, borderBottom: "1px solid #eef2f6", display: "flex", gap: 8, justifyContent: "flex-end" }} onClick={(e) => e.stopPropagation()}>
+                                <button title="Edit" onClick={() => handleMapAction("edit", m)} className="ghost-btn"><FaEdit /></button>
+                                <button title="Delete" onClick={() => handleMapAction("delete", m)} className="ghost-btn"><FaTrash /></button>
+                              </td>
+                            </tr>
+                          ));
+                        })()}
                       </tbody>
                     </table>
                   </div>
@@ -1264,8 +1850,12 @@ const MainPage = () => {
                         Search Zone By
                       </label>
                       <select style={{ padding: "6px 8px" }}>
-                        <option>Name</option>
-                        <option>Category</option>
+                       <option value="Search By">Search By</option>
+                       <option value="name">Name</option>
+                       <option value="createdBy">Created By</option>
+                       <option value="category">Category</option>
+                       <option value="createdAt">Created At</option>
+                       <option value="status">Status</option>
                       </select>
                       <input
                         placeholder="Search zone..."
@@ -1382,30 +1972,36 @@ const MainPage = () => {
                           <button
                             className="primary-btn"
                             type="button"
-                            onClick={() => {
+                            onClick={async () => {
                               if (!zoneForm.name.trim()) {
                                 toast.error("Enter a zone name");
                                 return;
                               }
-                              const newZone = {
-                                id: `z${zones.length + 1}`,
+                              const payload = {
                                 name: zoneForm.name.trim(),
                                 category: zoneForm.category,
                                 geometry: zoneForm.geometry || "Polygon(...)",
                                 active: zoneForm.active,
-                                createdAt: new Date()
-                                  .toISOString()
-                                  .split("T")[0],
                               };
-                              setZones((prev) => [newZone, ...prev]);
-                              setZoneForm({
-                                name: "",
-                                category: "Safe",
-                                geometry: "",
-                                active: true,
-                              });
-                              setZoneFormOpen(false);
-                              toast.success("Zone created");
+                              try {
+                                const response = await requestV1("/zones", {
+                                  method: "POST",
+                                  body: JSON.stringify(payload),
+                                });
+                                const createdZone = response.item || payload;
+                                setZones((prev) => [createdZone, ...prev]);
+                                setZoneForm({
+                                  name: "",
+                                  category: "Safe",
+                                  geometry: "",
+                                  active: true,
+                                });
+                                setZoneFormOpen(false);
+                                toast.success("Zone created");
+                              } catch (error) {
+                                console.error("Zone create error", error);
+                                toast.error(error.message || "Failed to create zone");
+                              }
                             }}
                           >
                             Save Zone
@@ -1621,7 +2217,6 @@ const MainPage = () => {
                           borderRadius: 8,
                           border: "none",
                           cursor: "pointer",
-                          boxShadow: "0 6px 18px rgba(11,116,209,0.16)",
                         }}
                         onClick={() => setWaypointFormOpen((v) => !v)}
                       >
@@ -1730,7 +2325,7 @@ const MainPage = () => {
                           <button
                             className="primary-btn"
                             type="button"
-                            onClick={() => {
+                            onClick={async () => {
                               if (!waypointForm.name.trim()) {
                                 toast.error("Enter a waypoint name");
                                 return;
@@ -1739,28 +2334,36 @@ const MainPage = () => {
                                 toast.error("Add waypoint coordinates");
                                 return;
                               }
-                              const newWp = {
-                                id: `wp${waypoints.length + 1}`,
+                              const payload = {
                                 name: waypointForm.name.trim(),
                                 category: waypointForm.category,
                                 geom: waypointForm.geom || "Point(0 0)",
                                 notes: waypointForm.notes,
                                 active: waypointForm.active,
-                                createdAt: new Date()
-                                  .toISOString()
-                                  .split("T")[0],
                               };
-                              setWaypoints((prev) => [newWp, ...prev]);
-                              setSelectedWaypointId(newWp.id);
-                              setWaypointForm({
-                                name: "",
-                                category: "Nav",
-                                geom: "",
-                                notes: "",
-                                active: true,
-                              });
-                              setWaypointFormOpen(false);
-                              toast.success("Waypoint created");
+                              try {
+                                const response = await requestV1("/waypoints", {
+                                  method: "POST",
+                                  body: JSON.stringify(payload),
+                                });
+                                const createdWp = response.item || payload;
+                                setWaypoints((prev) => [createdWp, ...prev]);
+                                setSelectedWaypointId(createdWp.id);
+                                setWaypointForm({
+                                  name: "",
+                                  category: "Nav",
+                                  geom: "",
+                                  notes: "",
+                                  active: true,
+                                });
+                                setWaypointFormOpen(false);
+                                toast.success("Waypoint created");
+                              } catch (error) {
+                                console.error("Waypoint create error", error);
+                                toast.error(
+                                  error.message || "Failed to create waypoint",
+                                );
+                              }
                             }}
                           >
                             Save Waypoint
@@ -1838,8 +2441,8 @@ const MainPage = () => {
                               }}
                             >
                               Created At
-                            </th>
-                          </tr>
+                            </th> 
+                          </tr>                        
                         </thead>
                         <tbody>
                           {waypoints.length === 0 && (
@@ -1996,10 +2599,39 @@ const MainPage = () => {
                         padding: "12px 16px",
                         borderBottom: "1px solid #eef2f6",
                         display: "flex",
+                        alignItems: "center",
                         gap: 12,
                       }}
                     >
                       <div style={{ fontWeight: 800, fontSize: 18 }}>Users</div>
+                      <div
+                        style={{
+                          marginLeft: "auto",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                        }}
+                      >
+                        {usersError && (
+                          <span style={{ color: "#dc2626", fontSize: 13 }}>
+                            {usersError}
+                          </span>
+                        )}
+                        <button
+                          onClick={loadUsers}
+                          disabled={usersLoading}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: 6,
+                            border: "1px solid #dbe3ea",
+                            background: usersLoading ? "#f1f5f9" : "#fff",
+                            color: "#0f172a",
+                            cursor: usersLoading ? "not-allowed" : "pointer",
+                          }}
+                        >
+                          {usersLoading ? "Refreshing..." : "Refresh"}
+                        </button>
+                      </div>
                     </div>
 
                     <div style={{ padding: "8px 16px" }}>
@@ -2085,7 +2717,7 @@ const MainPage = () => {
                                 style={{
                                   padding: "12px 8px",
                                   borderBottom: "1px solid #eef2f6",
-                                  color: "#6b7280",
+                                                                   color: "#6b7280",
                                 }}
                               >
                                 {u.email}
@@ -2160,6 +2792,34 @@ const MainPage = () => {
                               </td>
                             </tr>
                           ))}
+                          {users.length === 0 && !usersLoading && (
+                            <tr>
+                              <td
+                                colSpan={7}
+                                style={{
+                                  padding: "16px 8px",
+                                  textAlign: "center",
+                                  color: "#94a3b8",
+                                }}
+                              >
+                                No users found.
+                              </td>
+                            </tr>
+                          )}
+                          {usersLoading && (
+                            <tr>
+                              <td
+                                colSpan={7}
+                                style={{
+                                  padding: "16px 8px",
+                                  textAlign: "center",
+                                  color: "#94a3b8",
+                                }}
+                              >
+                                Loading users...
+                              </td>
+                            </tr>
+                          )}
                         </tbody>
                       </table>
                     </div>
@@ -2201,9 +2861,10 @@ const MainPage = () => {
                             background: "#fff",
                             color: "#6b7280",
                           }}
-                          disabled
+                          disabled={!selectedUserId || userActionLoading}
+                          onClick={handleResetUserPassword}
                         >
-                          Reset Password
+                          {userActionLoading ? "Resetting..." : "Reset Password"}
                         </button>
                       </div>
                     </div>
@@ -2259,7 +2920,6 @@ const MainPage = () => {
                         borderRadius: 8,
                         border: "none",
                         cursor: "pointer",
-                        boxShadow: "0 6px 18px rgba(11,116,209,0.16)",
                       }}
                       onClick={() => setMissionFormOpen((v) => !v)}
                     >
@@ -2350,7 +3010,7 @@ const MainPage = () => {
                         <button
                           className="primary-btn"
                           type="button"
-                          onClick={() => {
+                          onClick={async () => {
                             if (!missionForm.name.trim()) {
                               toast.error("Mission name required");
                               return;
@@ -2359,25 +3019,34 @@ const MainPage = () => {
                               toast.error("Mission owner required");
                               return;
                             }
-                            const id = `m${missions.length + 1}`;
-                            const newMission = {
-                              id,
+                            const payload = {
                               name: missionForm.name.trim(),
                               owner: missionForm.owner.trim(),
                               status: missionForm.status,
-                              createdAt: new Date().toISOString().split("T")[0],
                               notes: missionForm.notes,
                             };
-                            setMissions((prev) => [newMission, ...prev]);
-                            setSelectedMissionId(id);
-                            setMissionForm({
-                              name: "",
-                              owner: "",
-                              status: "Draft",
-                              notes: "",
-                            });
-                            setMissionFormOpen(false);
-                            toast.success("Mission saved");
+                            try {
+                              const response = await requestV1("/missions", {
+                                method: "POST",
+                                body: JSON.stringify(payload),
+                              });
+                              const createdMission = response.item || payload;
+                              setMissions((prev) => [createdMission, ...prev]);
+                              setSelectedMissionId(createdMission.id);
+                              setMissionForm({
+                                name: "",
+                                owner: "",
+                                status: "Draft",
+                                notes: "",
+                              });
+                              setMissionFormOpen(false);
+                              toast.success("Mission saved");
+                            } catch (error) {
+                              console.error("Mission create error", error);
+                              toast.error(
+                                error.message || "Failed to create mission",
+                              );
+                            }
                           }}
                         >
                           Save Mission
@@ -2416,7 +3085,6 @@ const MainPage = () => {
                         Rows per page: 10
                       </div>
                     </div>
-
                     <div style={{ padding: "8px 16px" }}>
                       <table
                         style={{ width: "100%", borderCollapse: "collapse" }}
@@ -3319,6 +3987,148 @@ const MainPage = () => {
           </div>
         </div>
       )}
+
+      {/* Lock overlay: shown when isLocked is true — covers full viewport including header */}
+      {isLocked && (
+        <div
+          className="lock-overlay"
+          role="button"
+          aria-label="Locked overlay"
+          tabIndex={0}
+          onClick={(e) => {
+            e.stopPropagation();
+            showLockedAttemptToast();
+          }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            showLockedAttemptToast();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              showLockedAttemptToast();
+            }
+          }}
+        >
+          {/* Visible hint so operators know how to unlock (Escape) */}
+          <div className="unlock-hint" aria-hidden="true">
+            Screen locked — press Esc to unlock
+          </div>
+        </div>
+      )}
+
+      {/* Fixed lock/unlock control that remains clickable when everything else is locked */}
+      {isLocked && (
+        <button
+          type="button"
+          className="lock-toggle-fixed"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleToggleLock();
+          }}
+          onMouseDown={(e) => e.preventDefault()}
+          aria-pressed={isLocked}
+          aria-label="Unlock console"
+          title="Unlock console (Esc)"
+        >
+          {isLocked ? <FaLock /> : <FaUnlock />}
+        </button>
+      )}
+
+      {mapModalOpen && (
+          <div className="modal-backdrop" onClick={closeMapModal}>
+            <div
+              className="battery-modal"
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-label={mapModalMode === "edit" ? "Edit map" : "Create map"}
+            >
+              <div className="battery-modal-header">
+                <h3>{mapModalMode === "edit" ? "Edit Map" : "Create Map"}</h3>
+                <button
+                  className="right-pane-close"
+                  type="button"
+                  onClick={closeMapModal}
+                  aria-label="Close map modal"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="battery-modal-body">
+                <div style={{ display: "grid", gap: 10 }}>
+                  <label>
+                    Name
+                    <input
+                      value={mapForm.name}
+                      onChange={(e) =>
+                        setMapForm((prev) => ({ ...prev, name: e.target.value }))
+                      }
+                      placeholder="Map name"
+                    />
+                  </label>
+                  <label>
+                    Created By
+                    <input
+                      value={mapForm.createdBy}
+                      onChange={(e) =>
+                        setMapForm((prev) => ({ ...prev, createdBy: e.target.value }))
+                      }
+                      placeholder="Creator"
+                    />
+                  </label>
+                  <label>
+                    Status
+                    <input
+                      value={mapForm.status}
+                      onChange={(e) =>
+                        setMapForm((prev) => ({ ...prev, status: e.target.value }))
+                      }
+                      placeholder="Active / Inactive / Draft"
+                    />
+                  </label>
+                  <label>
+                    Category
+                    <input
+                      value={mapForm.category}
+                      onChange={(e) =>
+                        setMapForm((prev) => ({ ...prev, category: e.target.value }))
+                      }
+                      placeholder="Optional category"
+                    />
+                  </label>
+                  <label>
+                    Image (URL or path)
+                    <input
+                      value={mapForm.image}
+                      onChange={(e) =>
+                        setMapForm((prev) => ({ ...prev, image: e.target.value }))
+                      }
+                      placeholder="/images/maps/example.png"
+                    />
+                  </label>
+                </div>
+
+                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 12 }}>
+                  <button
+                    className="ghost-btn"
+                    type="button"
+                    onClick={closeMapModal}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="primary-btn"
+                    type="button"
+                    onClick={saveMapFromForm}
+                  >
+                    {mapModalMode === "edit" ? "Save Changes" : "Create Map"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 };
