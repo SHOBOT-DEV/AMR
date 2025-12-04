@@ -57,3 +57,7 @@ htmlcov/
 # Database (keep instance folder structure but ignore db files if needed)
 # instance/*.db
 # instance/*.sqlite
+
+
+SHOBOT_AMR_ws/install
+SHOBOT_AMR_ws/build
