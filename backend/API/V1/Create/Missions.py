@@ -28,7 +28,7 @@ def register_mission_routes(bp, store):
                 jsonify({"success": False, "message": "Mission not found"}),
                 404,
             )
-
+    
     @bp.route("/missions/<mission_id>", methods=["DELETE"])
     def delete_mission(mission_id):
         try:
