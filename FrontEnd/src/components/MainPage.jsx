@@ -20,6 +20,7 @@ import {
 import { toast } from "react-hot-toast";
 import { fetchWithAuth, clearAuthTokens, API_BASE } from "../utils/auth";
 import "./MainPage.css";
+import RightPane from "./RightPane";
 
 const API_V1_BASE = `${API_BASE}/api/v1`;
 
@@ -79,6 +80,7 @@ const MainPage = () => {
   const mapRef = useRef(null);
   const layoutRef = useRef(null);
   const chatContainerRef = useRef(null);
+  const mapImageInputRef = useRef(null); // hidden file input used by map modal
 
   // Chat state
   const [chatMessages, setChatMessages] = useState([
@@ -282,10 +284,15 @@ const MainPage = () => {
   const [mapSearchField, setMapSearchField] = useState("any"); // any,name,createdBy,category,createdAt,status
   const [mapSearchTerm, setMapSearchTerm] = useState("");
 
+  // Add zone search state
+  const [zoneSearchField, setZoneSearchField] = useState("any");
+  const [zoneSearchTerm, setZoneSearchTerm] = useState("");
+
   // waypoints data + selection
   const initialWaypoints = [
     {
       id: "wp1",
+      mapId: "cfl_gf",
       name: "WP_A",
       category: "Nav",
       active: true,
@@ -295,6 +302,7 @@ const MainPage = () => {
     },
     {
       id: "wp2",
+      mapId: "cfl_gf",
       name: "WP_B",
       category: "Inspect",
       active: false,
@@ -304,6 +312,7 @@ const MainPage = () => {
     },
     {
       id: "wp3",
+      mapId: "cfl_gf",
       name: "WP_C",
       category: "Charge",
       active: true,
@@ -327,6 +336,7 @@ const MainPage = () => {
   const initialMissions = [
     {
       id: "m1",
+      mapId: "cfl_gf",
       name: "Inspect Zone A",
       owner: "CNDE",
       status: "Draft",
@@ -335,6 +345,7 @@ const MainPage = () => {
     },
     {
       id: "m2",
+      mapId: "cfl_gf",
       name: "Delivery Route 3",
       owner: "ANSCER ADMIN",
       status: "Scheduled",
@@ -343,6 +354,7 @@ const MainPage = () => {
     },
     {
       id: "m3",
+      mapId: "cfl_gf",
       name: "Battery Check",
       owner: "CNDE",
       status: "Completed",
@@ -361,8 +373,103 @@ const MainPage = () => {
     notes: "",
   });
 
+  // Add filtered getters for waypoints, zones, missions based on active map
+  const getFilteredWaypoints = () => {
+    if (!selectedMap) return [];
+    const filtered = waypoints.filter((wp) => wp.mapId === selectedMap.id);
+    console.log(`📍 getFilteredWaypoints for map ${selectedMap.id}:`, filtered);
+    return filtered;
+  };
+
+  const getFilteredZones = () => {
+    if (!selectedMap) return [];
+    const filtered = zones.filter((z) => z.mapId === selectedMap.id);
+    console.log(`📍 getFilteredZones for map ${selectedMap.id}:`, filtered);
+    return filtered;
+  };
+
+  const getFilteredMissions = () => {
+    if (!selectedMap) return [];
+    const filtered = missions.filter((m) => m.mapId === selectedMap.id);
+    console.log(`📍 getFilteredMissions for map ${selectedMap.id}:`, filtered);
+    return filtered;
+  };
+
   // users data + selection (fixes eslint no-undef)
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState([
+    {
+      id: 1,
+      username: "john_doe",
+      email: "john.doe@example.com",
+      company: "ANSCER Robotics",
+      amr_type: "Type A",
+      role: "user",
+      approval: "Approved",
+    },
+    {
+      id: 2,
+      username: "jane_smith",
+      email: "jane.smith@example.com",
+      company: "CNDE IITM",
+      amr_type: "Type B",
+      role: "user",
+      approval: "Pending",
+    },
+    {
+      id: 3,
+      username: "bob_wilson",
+      email: "bob.wilson@example.com",
+      company: "TechCorp",
+      amr_type: "Type A",
+      role: "user",
+      approval: "Approved",
+    },
+    {
+      id: 4,
+      username: "alice_johnson",
+      email: "alice.johnson@example.com",
+      company: "Innovation Labs",
+      amr_type: "Type C",
+      role: "user",
+      approval: "Rejected",
+    },
+    {
+      id: 5,
+      username: "charlie_brown",
+      email: "charlie.brown@example.com",
+      company: "RoboTech Inc",
+      amr_type: "Type A",
+      role: "user",
+      approval: "Approved",
+    },
+    {
+      id: 6,
+      username: "diana_prince",
+      email: "diana.prince@example.com",
+      company: "Wonder Systems",
+      amr_type: "Type B",
+      role: "user",
+      approval: "Approved",
+    },
+    {
+      id: 7,
+      username: "edward_norton",
+      email: "edward.norton@example.com",
+      company: "Norton Industries",
+      amr_type: "Type C",
+      role: "user",
+      approval: "Pending",
+    },
+    {
+      id: 8,
+      username: "admin_user",
+      email: "admin@example.com",
+      company: "ANSCER Admin",
+      amr_type: "Admin Console",
+      role: "admin",
+      approval: "Approved",
+    },
+  ]);
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [usersLoading, setUsersLoading] = useState(false);
   const [userActionLoading, setUserActionLoading] = useState(false);
@@ -399,6 +506,7 @@ const MainPage = () => {
   const initialZones = [
     {
       id: "z1",
+      mapId: "cfl_gf",
       name: "Assembly Lane",
       category: "Safe",
       active: true,
@@ -407,6 +515,7 @@ const MainPage = () => {
     },
     {
       id: "z2",
+      mapId: "cfl_gf",
       name: "Battery Bay",
       category: "No-Go",
       active: true,
@@ -415,6 +524,7 @@ const MainPage = () => {
     },
     {
       id: "z3",
+      mapId: "cfl_gf",
       name: "Dock Tunnel",
       category: "Caution",
       active: false,
@@ -560,7 +670,14 @@ const MainPage = () => {
   const [profileError, setProfileError] = useState("");
   const [profileSuccess, setProfileSuccess] = useState("");
 
-  const [selectedTheme, setSelectedTheme] = useState("system");
+  // apply a simple theme state for whole app (light|dark|system)
+  const [selectedTheme, setSelectedTheme] = useState("light");
+
+  useEffect(() => {
+    try {
+      document.documentElement.setAttribute("data-theme", selectedTheme);
+    } catch {}
+  }, [selectedTheme]);
 
   const [securityPreferences, setSecurityPreferences] = useState({
     twoFactor: true,
@@ -650,17 +767,21 @@ const MainPage = () => {
       if (id === "maps") {
         setSelectedMap(mapsList[0]);
       } else if (id === "zones") {
-        // select the zones entry so left-side panel shows the requested path
-        const z = mapsList.find((m) => m.id === "zones");
-        if (z) setSelectedMap(z);
+        // Select the active map (not the "zones" dummy entry)
+        const activeMap = mapsList.find((m) => (m.status || "").toLowerCase() === "active");
+        if (activeMap) setSelectedMap(activeMap);
       } else if (id === "waypoints") {
-        // select the waypoints entry so main area shows the provided screenshot path
-        const w = mapsList.find((m) => m.id === "waypoints");
-        if (w) setSelectedMap(w);
+        // Select the active map so waypoints page shows that map's waypoints
+        const activeMap = mapsList.find((m) => (m.status || "").toLowerCase() === "active");
+        if (activeMap) setSelectedMap(activeMap);
+      } else if (id === "missions") {
+        // Select the active map so missions page shows that map's missions
+        const activeMap = mapsList.find((m) => (m.status || "").toLowerCase() === "active");
+        if (activeMap) setSelectedMap(activeMap);
       } else if (id === "users") {
-        // select the users preview so left info shows the screenshot/path
-        const u = mapsList.find((m) => m.id === "users");
-        if (u) setSelectedMap(u);
+        // Users page doesn't need a selectedMap — it shows all users
+        // Don't change selectedMap so it stays on the current map
+        // RightPane will handle the users display directly without map filtering
       }
     } else {
       // ignore main sidebar icons (do not render a page)
@@ -714,6 +835,25 @@ const MainPage = () => {
   const closeMapModal = () => {
     setMapModalOpen(false);
     setMapModalMap(null);
+  };
+
+  // Handle image file selection for map modal — read as data URL and store in mapForm.image
+  const handleMapImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setMapForm((prev) => ({ ...prev, image: reader.result || "" }));
+    };
+    reader.readAsDataURL(file);
+  };
+  
+  const triggerMapImagePicker = () => {
+    try {
+      if (mapImageInputRef.current) mapImageInputRef.current.click();
+    } catch (err) {
+      console.warn("Image picker failed", err);
+    }
   };
 
   const handleMapAction = async (action, map) => {
@@ -792,16 +932,190 @@ const MainPage = () => {
   const handleActivateMap = async (map) => {
     if (!map) return;
     try {
+      const mapId = map.id;
+      
+      console.log(`🗺️ Activating map: ${mapId}`);
+      
       // Optimistically update UI: mark chosen map Active, clear previous active status
       setMapsList((prev) =>
         prev.map((m) => {
           if (m.id === map.id) return { ...m, status: "Active" };
-          // clear status for others that were Active
-          if (m.status === "Active" && m.id !== map.id) return { ...m, status: "" };
+          if ((m.status || "").toLowerCase() === "active" && m.id !== map.id) return { ...m, status: "" };
           return m;
         }),
       );
-      setSelectedMap(map);
+      
+      // Set selected map
+      setSelectedMap({ ...map, status: "Active" });
+      
+      // Check if this map already has waypoints/zones/missions
+      const hasWaypoints = waypoints.some(wp => wp.mapId === mapId);
+      const hasZones = zones.some(z => z.mapId === mapId);
+      const hasMissions = missions.some(m => m.mapId === mapId);
+      
+      console.log(`📍 Existing data - Waypoints: ${hasWaypoints}, Zones: ${hasZones}, Missions: ${hasMissions}`);
+      
+      // Create and set waypoints immediately
+      if (!hasWaypoints) {
+        const defaultWaypoints = [
+          {
+            id: `wp-${mapId}-delivery`,
+            mapId: mapId,
+            name: "Delivery",
+            category: "Normal",
+            geom: "Point(10 10)",
+            notes: `Delivery waypoint for ${map.name}`,
+            active: true,
+            createdAt: new Date().toLocaleString(),
+          },
+          {
+            id: `wp-${mapId}-shelf1`,
+            mapId: mapId,
+            name: "Shelf_1",
+            category: "Normal",
+            geom: "Point(50 30)",
+            notes: `Shelf 1 waypoint for ${map.name}`,
+            active: true,
+            createdAt: new Date().toLocaleString(),
+          },
+          {
+            id: `wp-${mapId}-shelf2`,
+            mapId: mapId,
+            name: "Shelf_2",
+            category: "Normal",
+            geom: "Point(80 50)",
+            notes: `Shelf 2 waypoint for ${map.name}`,
+            active: true,
+            createdAt: new Date().toLocaleString(),
+          },
+          {
+            id: `wp-${mapId}-shelf3`,
+            mapId: mapId,
+            name: "Shelf_3",
+            category: "Normal",
+            geom: "Point(20 70)",
+            notes: `Shelf 3 waypoint for ${map.name}`,
+            active: true,
+            createdAt: new Date().toLocaleString(),
+          },
+          {
+            id: `wp-${mapId}-shelf4`,
+            mapId: mapId,
+            name: "Shelf_4",
+            category: "Normal",
+            geom: "Point(60 80)",
+            notes: `Shelf 4 waypoint for ${map.name}`,
+            active: true,
+            createdAt: new Date().toLocaleString(),
+          },
+        ];
+        console.log(`✅ Creating ${defaultWaypoints.length} waypoints for map ${mapId}`);
+        setWaypoints(prev => [...prev, ...defaultWaypoints]);
+      }
+      
+      // Create and set zones immediately
+      if (!hasZones) {
+        const defaultZones = [
+          {
+            id: `zone-${mapId}-1`,
+            mapId: mapId,
+            name: `${map.name} - Safe Zone`,
+            category: "Safe",
+            geometry: "Polygon((0,0),(100,0),(100,50),(0,50))",
+            active: true,
+            createdAt: new Date().toLocaleString(),
+          },
+          {
+            id: `zone-${mapId}-2`,
+            mapId: mapId,
+            name: `${map.name} - Caution Area`,
+            category: "Caution",
+            geometry: "Polygon((0,50),(50,50),(50,100),(0,100))",
+            active: true,
+            createdAt: new Date().toLocaleString(),
+          },
+          {
+            id: `zone-${mapId}-3`,
+            mapId: mapId,
+            name: `${map.name} - Restricted`,
+            category: "No-Go",
+            geometry: "Polygon((50,50),(100,50),(100,100),(50,100))",
+            active: true,
+            createdAt: new Date().toLocaleString(),
+          },
+        ];
+        console.log(`✅ Creating ${defaultZones.length} zones for map ${mapId}`);
+        setZones(prev => [...prev, ...defaultZones]);
+      }
+      
+      // Create and set missions immediately
+      if (!hasMissions) {
+        const defaultMissions = [
+          {
+            id: `mission-${mapId}-delivery`,
+            mapId: mapId,
+            name: "Delivery",
+            owner: "CNDE",
+            status: "Draft",
+            notes: `Delivery mission for ${map.name}`,
+            createdAt: new Date().toLocaleString(),
+            iteration: 1,
+          },
+          {
+            id: `mission-${mapId}-shelf1`,
+            mapId: mapId,
+            name: "Shelf_1",
+            owner: "CNDE",
+            status: "Draft",
+            notes: `Shelf 1 mission for ${map.name}`,
+            createdAt: new Date().toLocaleString(),
+            iteration: 1,
+          },
+          {
+            id: `mission-${mapId}-shelf2`,
+            mapId: mapId,
+            name: "Shelf_2",
+            owner: "CNDE",
+            status: "Draft",
+            notes: `Shelf 2 mission for ${map.name}`,
+            createdAt: new Date().toLocaleString(),
+            iteration: 1,
+          },
+          {
+            id: `mission-${mapId}-shelf3`,
+            mapId: mapId,
+            name: "Shelf_3",
+            owner: "CNDE",
+            status: "Draft",
+            notes: `Shelf 3 mission for ${map.name}`,
+            createdAt: new Date().toLocaleString(),
+            iteration: 1,
+          },
+          {
+            id: `mission-${mapId}-shelf4`,
+            mapId: mapId,
+            name: "Shelf_4",
+            owner: "CNDE",
+            status: "Draft",
+            notes: `Shelf 4 mission for ${map.name}`,
+            createdAt: new Date().toLocaleString(),
+            iteration: 1,
+          },
+        ];
+        console.log(`✅ Creating ${defaultMissions.length} missions for map ${mapId}`);
+        setMissions(prev => [...prev, ...defaultMissions]);
+      }
+      
+      // Show success toasts
+      if (!hasWaypoints) {
+        toast.success(`Created 5 waypoints for ${map.name}`);
+      }
+      if (!hasZones) {
+        toast.success(`Created 3 zones for ${map.name}`);
+      }
+      if (!hasMissions) {
+        toast.success(`Created 5 missions for ${map.name}`);
+      }
       toast.success(`Activated map: ${map.name}`);
 
       // Persist change to server (best-effort)
@@ -812,7 +1126,6 @@ const MainPage = () => {
         });
       } catch (err) {
         console.warn("Failed to persist map activation:", err);
-        toast.error("Activation persisted locally (server sync failed)");
       }
     } catch (err) {
       console.error("Activation error", err);
@@ -1325,25 +1638,44 @@ const MainPage = () => {
         }
 
         if (Array.isArray(mapsRes.items) && mapsRes.items.length) {
-          setMapsList(mapsRes.items);
-          setSelectedMap((prev) => {
-            if (prev) {
-              const stillExists = mapsRes.items.find((m) => m.id === prev.id);
-              if (stillExists) {
-                return stillExists;
-              }
-            }
-            return mapsRes.items[0] || null;
-          });
+          // Normalize active status: ensure exactly one Active map locally
+          const items = mapsRes.items.slice();
+          const firstActiveIdx = items.findIndex(
+            (m) => (m.status || "").toLowerCase() === "active",
+          );
+          let normalized;
+          if (firstActiveIdx === -1) {
+            // no active => mark first as Active
+            normalized = items.map((m, idx) => (idx === 0 ? { ...m, status: "Active" } : { ...m, status: m.status || "" }));
+          } else {
+            // multiple active possible — keep firstActiveIdx active and clear others
+            normalized = items.map((m, idx) =>
+              idx === firstActiveIdx ? { ...m, status: "Active" } : { ...m, status: (m.status && m.status.toLowerCase() === "active") ? "" : (m.status || "") },
+            );
+          }
+          setMapsList(normalized);
+          // pick the active map as selected
+          const activeMap = normalized.find((m) => (m.status || "").toLowerCase() === "active") || normalized[0];
+          setSelectedMap(activeMap || null);
         }
         if (Array.isArray(zonesRes.items)) {
           setZones(zonesRes.items);
         }
         if (Array.isArray(waypointsRes.items)) {
-          setWaypoints(waypointsRes.items);
+          // Ensure all waypoints have mapId from server
+          const waypointsWithMapId = waypointsRes.items.map(wp => ({
+            ...wp,
+            mapId: wp.mapId || "cfl_gf", // default to first map if missing
+          }));
+          setWaypoints(waypointsWithMapId);
         }
         if (Array.isArray(missionsRes.items)) {
-          setMissions(missionsRes.items);
+          // Ensure all missions have mapId from server
+          const missionsWithMapId = missionsRes.items.map(m => ({
+            ...m,
+            mapId: m.mapId || "cfl_gf", // default to first map if missing
+          }));
+          setMissions(missionsWithMapId);
         }
         if (Array.isArray(usersRes.items)) {
           setUsers(usersRes.items);
@@ -1572,6 +1904,37 @@ const MainPage = () => {
         isLocked ? "is-locked" : ""
       }`}
     >
+      {/* Lock Overlay - shows when locked */}
+      {isLocked && (
+        <div 
+          className="lock-overlay" 
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
+        >
+          <div className="unlock-hint">
+            Console Locked - Click unlock button to access
+          </div>
+        </div>
+      )}
+
+      {/* Unlock Button - ONLY visible when locked (floating on top) */}
+      {isLocked && (
+        <button
+          className="lock-toggle-fixed"
+          onClick={handleToggleLock}
+          aria-label="Unlock console"
+          title="Unlock Console"
+        >
+          {/* Unlocked icon (padlock open) */}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+          </svg>
+        </button>
+      )}
+
       <header className="mp-header">
         {/* left header group (kept minimal) */}
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -1651,18 +2014,20 @@ const MainPage = () => {
             {isFullScreen ? <FaCompress /> : <FaExpand />}
           </button>
 
-          {/* Lock icon: use top-level isLocked and handleToggleLock defined earlier */}
-          <button
-            type="button"
-            className="lock-toggle-btn"
-            aria-pressed={isLocked}
-            aria-label={isLocked ? "Unlock console" : "Lock console"}
-            onMouseDown={(e) => e.preventDefault()} /* prevent focusing on mouse down */
-            onClick={handleToggleLock}
-            title={isLocked ? "Unlock console" : "Lock console"}
-          >
-            {isLocked ? <FaLock /> : <FaUnlock />}
-          </button>
+          {/* Lock button in header - ONLY visible when NOT locked */}
+          {!isLocked && (
+            <button
+              type="button"
+              className="lock-toggle-btn"
+              aria-pressed={false}
+              aria-label="Lock console"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={handleToggleLock}
+              title="Lock console"
+            >
+              <FaUnlock />
+            </button>
+          )}
 
           {/* Logout button — icon-only for compact header */}
           <button
@@ -1681,2184 +2046,122 @@ const MainPage = () => {
         <Sidebar
           onSelect={handleSidebarSelect}
           onBack={() => {
-            // close the right-side page if open; otherwise no-op for now
             if (rightPage) setRightPage(null);
           }}
         />
-        {/* Right pane: shows the selected page in the right half of the screen */}
+
+        {/* Right pane moved to separate component */}
         {rightPage && (
-          <aside className="right-pane" role="region" aria-label="Right pane">
-            <div className="right-pane-header">
-              <strong>
-                {rightPage.charAt(0).toUpperCase() + rightPage.slice(1)}
-              </strong>
-              <button
-                className="right-pane-close"
-                onClick={() => setRightPage(null)}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="right-pane-body">
-              {/* Maps page: unified search + create + table */}
-              {rightPage === "maps" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                    <select
-                      aria-label="Search field"
-                      value={mapSearchField}
-                      onChange={(e) => setMapSearchField(e.target.value)}
-                      style={{ padding: "6px 8px" }}
-                    >
-                      <option value="any">Search By</option>
-                      <option value="name">Name</option>
-                      <option value="createdBy">Created By</option>
-                      <option value="category">Category</option>
-                      <option value="createdAt">Created At</option>
-                      <option value="status">Status</option>
-                    </select>
-
-                    <input
-                      value={mapSearchTerm}
-                      onChange={(e) => setMapSearchTerm(e.target.value)}
-                      placeholder="Type to search..."
-                      style={{ padding: "6px 8px", minWidth: 220 }}
-                    />
-
-                    <div>
-                      <button
-                        onClick={createNewMapImmediate}
-                        aria-label="Create new map"
-                        title="+ Create New Map"
-                        style={{
-                          background: "#0b74d1",
-                          color: "#fff",
-                          padding: "8px 12px",
-                          borderRadius: 8,
-                          border: "none",
-                          cursor: "pointer",
-                          boxShadow: "0 6px 18px rgba(11,116,209,0.16)",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 8,
-                          fontWeight: 700,
-                        }}
-                      >
-                        <FaPlus />
-                        <span> Create New Map</span>
-                      </button>
-                    </div>
-                  </div>
-                        
-                  <div style={{ borderTop: "1px solid #e6eef2", marginTop: 8 }} />
-
-                  <div style={{ overflowY: "auto", maxHeight: 420 }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 8 }}>
-                      <thead style={{ background: "#f8fafc" }}>
-                        <tr>
-                          <th style={{ textAlign: "center", padding: 12, width: 72 }}>Active</th>
-                          <th style={{ textAlign: "left", padding: 12 }}>Name</th>
-                          <th style={{ textAlign: "left", padding: 12 }}>Created By</th>
-                          <th style={{ textAlign: "left", padding: 12 }}>Created At</th>
-                          <th style={{ textAlign: "right", padding: 12 }}>Status</th>
-                          <th style={{ textAlign: "right", padding: 12, width: 160 }}>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(() => {
-                          const term = (mapSearchTerm || "").trim().toLowerCase();
-                          const field = mapSearchField;
-                          const filtered = mapsList.filter((m) => {
-                            if (!term) return true;
-                            if (field === "any") {
-                              const hay = `${m.name||""} ${m.createdBy||""} ${m.category||""} ${m.createdAt||""} ${m.status||""}`.toLowerCase();
-                              return hay.includes(term);
-                            }
-                            return String(m[field] || "").toLowerCase().includes(term);
-                          });
-                          return filtered.map((m) => (
-                            <tr key={m.id} onClick={() => setSelectedMap(m)} style={{ cursor: "pointer", background: selectedMap?.id === m.id ? "rgba(3,48,80,0.04)" : "transparent" }}>
-                              <td style={{ padding: 12, borderBottom: "1px solid #eef2f6", textAlign: "center" }}>
-                                <input
-                                  type="radio"
-                                  name="activeMap"
-                                  checked={selectedMap?.id === m.id}
-                                  onChange={(e) => {
-                                    e.stopPropagation();
-                                    handleActivateMap(m);
-                                  }}
-                                  aria-label={`Activate ${m.name}`}
-                                />
-                              </td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #eef2f6", fontWeight: 700 }}>{m.name}</td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #eef2f6", color: "#6b7280" }}>{m.createdBy}</td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #eef2f6", color: "#6b7280" }}>{m.createdAt || "—"}</td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #eef2f6", textAlign: "right" }}>
-                                <span
-                                  style={{
-                                    background:
-                                      (String(m.status || "").toLowerCase() === "active")
-                                        ? "#10b981" // green for Active
-                                        : "#ef4444ff", // red for Inactive / other
-                                    color: "#fff",
-                                    padding: "2px 8px",
-                                    borderRadius: 8,
-                                    textTransform: "capitalize",
-                                  }}
-                                >
-                                  {m.status ? m.status : "Inactive"}
-                                </span>
-                              </td>
-                              <td style={{ padding: 12, borderBottom: "1px solid #eef2f6", display: "flex", gap: 8, justifyContent: "flex-end" }} onClick={(e) => e.stopPropagation()}>
-                                <button title="Edit" onClick={() => handleMapAction("edit", m)} className="ghost-btn"><FaEdit /></button>
-                                <button title="Delete" onClick={() => handleMapAction("delete", m)} className="ghost-btn"><FaTrash /></button>
-                              </td>
-                            </tr>
-                          ));
-                        })()}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* Zones page: search, create button, and table matching screenshot layout */}
-              {rightPage === "zones" && (
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 12 }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: 12,
-                    }}
-                  >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 8 }}
-                    >
-                      <label
-                        style={{
-                          fontSize: 13,
-                          color: "#475569",
-                          fontWeight: 600,
-                        }}
-                      >
-                        Search Zone By
-                      </label>
-                      <select style={{ padding: "6px 8px" }}>
-                       <option value="Search By">Search By</option>
-                       <option value="name">Name</option>
-                       <option value="createdBy">Created By</option>
-                       <option value="category">Category</option>
-                       <option value="createdAt">Created At</option>
-                       <option value="status">Status</option>
-                      </select>
-                      <input
-                        placeholder="Search zone..."
-                        style={{
-                          padding: "8px 10px",
-                          borderRadius: 8,
-                          border: "1px solid #e6eef2",
-                          minWidth: 220,
-                        }}
-                      />
-                    </div>
-
-                    <div>
-                      <button
-                        onClick={() => setZoneFormOpen((v) => !v)}
-                        style={{
-                          background: "#0b74d1",
-                          color: "#fff",
-                          padding: "10px 14px",
-                          borderRadius: 8,
-                          border: "none",
-                          cursor: "pointer",
-                          boxShadow: "0 6px 18px rgba(11,116,209,0.16)",
-                        }}
-                      >
-                        + Create New Zone
-                      </button>
-                    </div>
-                  </div>
-
-                  {zoneFormOpen && (
-                    <div className="zone-form">
-                      <div className="zone-form-row">
-                        <label>
-                          Name
-                          <input
-                            value={zoneForm.name}
-                            onChange={(e) =>
-                              setZoneForm((prev) => ({
-                                ...prev,
-                                name: e.target.value,
-                              }))
-                            }
-                            placeholder="Zone name"
-                          />
-                        </label>
-                        <label>
-                          Category
-                          <select
-                            value={zoneForm.category}
-                            onChange={(e) =>
-                              setZoneForm((prev) => ({
-                                ...prev,
-                                category: e.target.value,
-                              }))
-                            }
-                          >
-                            <option value="Safe">Safe</option>
-                            <option value="Caution">Caution</option>
-                            <option value="No-Go">No-Go</option>
-                          </select>
-                        </label>
-                        <label>
-                          Geometry
-                          <input
-                            value={zoneForm.geometry}
-                            onChange={(e) =>
-                              setZoneForm((prev) => ({
-                                ...prev,
-                                geometry: e.target.value,
-                              }))
-                            }
-                            placeholder="Polygon(...)"
-                          />
-                        </label>
-                      </div>
-                      <div className="zone-form-footer">
-                        <label className="toggle-row">
-                          <input
-                            type="checkbox"
-                            checked={zoneForm.active}
-                            onChange={() =>
-                              setZoneForm((prev) => ({
-                                ...prev,
-                                active: !prev.active,
-                              }))
-                            }
-                          />
-                          <div>
-                            <strong>Zone Enabled</strong>
-                            <p>
-                              {zoneForm.active
-                                ? "Robots can enter"
-                                : "Robots must avoid"}
-                            </p>
-                          </div>
-                        </label>
-                        <div className="zone-form-actions">
-                          <button
-                            className="ghost-btn"
-                            type="button"
-                            onClick={() => {
-                              setZoneFormOpen(false);
-                              setZoneForm({
-                                name: "",
-                                category: "Safe",
-                                geometry: "",
-                                active: true,
-                              });
-                            }}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            className="primary-btn"
-                            type="button"
-                            onClick={async () => {
-                              if (!zoneForm.name.trim()) {
-                                toast.error("Enter a zone name");
-                                return;
-                              }
-                              const payload = {
-                                name: zoneForm.name.trim(),
-                                category: zoneForm.category,
-                                geometry: zoneForm.geometry || "Polygon(...)",
-                                active: zoneForm.active,
-                              };
-                              try {
-                                const response = await requestV1("/zones", {
-                                  method: "POST",
-                                  body: JSON.stringify(payload),
-                                });
-                                const createdZone = response.item || payload;
-                                setZones((prev) => [createdZone, ...prev]);
-                                setZoneForm({
-                                  name: "",
-                                  category: "Safe",
-                                  geometry: "",
-                                  active: true,
-                                });
-                                setZoneFormOpen(false);
-                                toast.success("Zone created");
-                              } catch (error) {
-                                console.error("Zone create error", error);
-                                toast.error(error.message || "Failed to create zone");
-                              }
-                            }}
-                          >
-                            Save Zone
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div
-                    style={{ borderTop: "1px solid #e6eef2", marginTop: 4 }}
-                  />
-
-                  {/* single-column layout: table occupies full available width (empty body) */}
-                  <div>
-                    <div
-                      style={{
-                        background: "#fff",
-                        borderRadius: 8,
-                        boxShadow: "0 1px 3px rgba(2,6,23,0.06)",
-                        overflow: "hidden",
-                      }}
-                    >
-                      <div
-                        style={{
-                          padding: "12px 16px",
-                          borderBottom: "1px solid #eef2f6",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 12,
-                        }}
-                      >
-                        <div
-                          style={{ flex: 1, fontWeight: 700, color: "#0f172a" }}
-                        >
-                          Zones
-                        </div>
-                        <div style={{ color: "#94a3b8", fontSize: 13 }}>
-                          Rows per page: 5
-                        </div>
-                      </div>
-
-                      <div style={{ padding: "8px 16px" }}>
-                        <table
-                          style={{ width: "100%", borderCollapse: "collapse" }}
-                        >
-                          <thead
-                            style={{
-                              background: "#fafafa",
-                              color: "#475569",
-                              fontSize: 13,
-                            }}
-                          >
-                            <tr>
-                              <th
-                                style={{
-                                  textAlign: "left",
-                                  padding: "12px 8px",
-                                }}
-                              >
-                                Name
-                              </th>
-                              <th
-                                style={{
-                                  textAlign: "left",
-                                  padding: "12px 8px",
-                                }}
-                              >
-                                Category
-                              </th>
-                              <th
-                                style={{
-                                  textAlign: "center",
-                                  padding: "12px 8px",
-                                }}
-                              >
-                                Active
-                              </th>
-                              <th
-                                style={{
-                                  textAlign: "left",
-                                  padding: "12px 8px",
-                                }}
-                              >
-                                Geometry
-                              </th>
-                              <th
-                                style={{
-                                  textAlign: "right",
-                                  padding: "12px 8px",
-                                }}
-                              >
-                                Created At
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {zones.map((zone) => (
-                              <tr key={zone.id}>
-                                <td
-                                  style={{
-                                    padding: "12px 8px",
-                                    borderBottom: "1px solid #eef2f6",
-                                    fontWeight: 700,
-                                  }}
-                                >
-                                  {zone.name}
-                                </td>
-                                <td
-                                  style={{
-                                    padding: "12px 8px",
-                                    borderBottom: "1px solid #eef2f6",
-                                  }}
-                                >
-                                  {zone.category}
-                                </td>
-                                <td
-                                  style={{
-                                    padding: "12px 8px",
-                                    borderBottom: "1px solid #eef2f6",
-                                    textAlign: "center",
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      background: zone.active
-                                        ? "#d1fae5"
-                                        : "#fee2e2",
-                                      color: zone.active
-                                        ? "#047857"
-                                        : "#b91c1c",
-                                      padding: "4px 8px",
-                                      borderRadius: 999,
-                                      fontSize: 12,
-                                    }}
-                                  >
-                                    {zone.active ? "Active" : "Disabled"}
-                                  </span>
-                                </td>
-                                <td
-                                  style={{
-                                    padding: "12px 8px",
-                                    borderBottom: "1px solid #eef2f6",
-                                    color: "#6b7280",
-                                  }}
-                                >
-                                  {zone.geometry}
-                                </td>
-                                <td
-                                  style={{
-                                    padding: "12px 8px",
-                                    borderBottom: "1px solid #eef2f6",
-                                    textAlign: "right",
-                                    color: "#6b7280",
-                                  }}
-                                >
-                                  {zone.createdAt}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Waypoints page: show map/file path on left and waypoints table on right */}
-              {rightPage === "waypoints" && (
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 12 }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 8 }}
-                    >
-                      <label
-                        style={{
-                          fontSize: 13,
-                          color: "#475569",
-                          fontWeight: 600,
-                        }}
-                      >
-                        Search Waypoint By
-                      </label>
-                      <select style={{ padding: "6px 8px" }}>
-                        <option>Name</option>
-                        <option>Category</option>
-                      </select>
-                      <input
-                        placeholder="Search waypoint..."
-                        style={{
-                          padding: "8px 10px",
-                          borderRadius: 8,
-                          border: "1px solid #e6eef2",
-                          minWidth: 220,
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <button
-                        style={{
-                          background: "#0b74d1",
-                          color: "#fff",
-                          padding: "10px 14px",
-                          borderRadius: 8,
-                          border: "none",
-                          cursor: "pointer",
-                        }}
-                        onClick={() => setWaypointFormOpen((v) => !v)}
-                      >
-                        + Create New Waypoint
-                      </button>
-                    </div>
-                  </div>
-
-                  {waypointFormOpen && (
-                    <div className="waypoint-form">
-                      <div className="zone-form-row">
-                        <label>
-                          Name
-                          <input
-                            value={waypointForm.name}
-                            onChange={(e) =>
-                              setWaypointForm((prev) => ({
-                                ...prev,
-                                name: e.target.value,
-                              }))
-                            }
-                            placeholder="Waypoint name"
-                          />
-                        </label>
-                        <label>
-                          Category
-                          <select
-                            value={waypointForm.category}
-                            onChange={(e) =>
-                              setWaypointForm((prev) => ({
-                                ...prev,
-                                category: e.target.value,
-                              }))
-                            }
-                          >
-                            <option value="Nav">Nav</option>
-                            <option value="Inspect">Inspect</option>
-                            <option value="Charge">Charge</option>
-                          </select>
-                        </label>
-                        <label>
-                          Geometry
-                          <input
-                            value={waypointForm.geom}
-                            onChange={(e) =>
-                              setWaypointForm((prev) => ({
-                                ...prev,
-                                geom: e.target.value,
-                              }))
-                            }
-                            placeholder="Point(x y)"
-                          />
-                        </label>
-                      </div>
-                      <label>
-                        Notes
-                        <input
-                          value={waypointForm.notes}
-                          onChange={(e) =>
-                            setWaypointForm((prev) => ({
-                              ...prev,
-                              notes: e.target.value,
-                            }))
-                          }
-                          placeholder="Optional operator note"
-                        />
-                      </label>
-                      <div className="zone-form-footer">
-                        <label className="toggle-row">
-                          <input
-                            type="checkbox"
-                            checked={waypointForm.active}
-                            onChange={() =>
-                              setWaypointForm((prev) => ({
-                                ...prev,
-                                active: !prev.active,
-                              }))
-                            }
-                          />
-                          <div>
-                            <strong>Waypoint Active</strong>
-                            <p>
-                              {waypointForm.active
-                                ? "Included in missions"
-                                : "Hidden from routing"}
-                            </p>
-                          </div>
-                        </label>
-                        <div className="zone-form-actions">
-                          <button
-                            className="ghost-btn"
-                            type="button"
-                            onClick={() => {
-                              setWaypointFormOpen(false);
-                              setWaypointForm({
-                                name: "",
-                                category: "Nav",
-                                geom: "",
-                                notes: "",
-                                active: true,
-                              });
-                            }}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            className="primary-btn"
-                            type="button"
-                            onClick={async () => {
-                              if (!waypointForm.name.trim()) {
-                                toast.error("Enter a waypoint name");
-                                return;
-                              }
-                              if (!waypointForm.geom.trim()) {
-                                toast.error("Add waypoint coordinates");
-                                return;
-                              }
-                              const payload = {
-                                name: waypointForm.name.trim(),
-                                category: waypointForm.category,
-                                geom: waypointForm.geom || "Point(0 0)",
-                                notes: waypointForm.notes,
-                                active: waypointForm.active,
-                              };
-                              try {
-                                const response = await requestV1("/waypoints", {
-                                  method: "POST",
-                                  body: JSON.stringify(payload),
-                                });
-                                const createdWp = response.item || payload;
-                                setWaypoints((prev) => [createdWp, ...prev]);
-                                setSelectedWaypointId(createdWp.id);
-                                setWaypointForm({
-                                  name: "",
-                                  category: "Nav",
-                                  geom: "",
-                                  notes: "",
-                                  active: true,
-                                });
-                                setWaypointFormOpen(false);
-                                toast.success("Waypoint created");
-                              } catch (error) {
-                                console.error("Waypoint create error", error);
-                                toast.error(
-                                  error.message || "Failed to create waypoint",
-                                );
-                              }
-                            }}
-                          >
-                            Save Waypoint
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div
-                    style={{
-                      background: "#fff",
-                      borderRadius: 8,
-                      boxShadow: "0 1px 3px rgba(2,6,23,0.06)",
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
-                      style={{
-                        padding: "12px 16px",
-                        borderBottom: "1px solid #eef2f6",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                      }}
-                    >
-                      <div
-                        style={{ flex: 1, fontWeight: 700, color: "#0f172a" }}
-                      >
-                        Waypoints
-                      </div>
-                      <div style={{ color: "#94a3b8", fontSize: 13 }}>
-                        Rows per page: 10
-                      </div>
-                    </div>
-                    <div style={{ padding: "8px 16px" }}>
-                      <table
-                        style={{ width: "100%", borderCollapse: "collapse" }}
-                      >
-                        <thead
-                          style={{
-                            background: "#fafafa",
-                            color: "#475569",
-                            fontSize: 13,
-                          }}
-                        >
-                          <tr>
-                            <th
-                              style={{ textAlign: "left", padding: "12px 8px" }}
-                            >
-                              Name
-                            </th>
-                            <th
-                              style={{ textAlign: "left", padding: "12px 8px" }}
-                            >
-                              Category
-                            </th>
-                            <th
-                              style={{
-                                textAlign: "center",
-                                padding: "12px 8px",
-                              }}
-                            >
-                              Active
-                            </th>
-                            <th
-                              style={{ textAlign: "left", padding: "12px 8px" }}
-                            >
-                              Geometry
-                            </th>
-                            <th
-                              style={{
-                                textAlign: "right",
-                                padding: "12px 8px",
-                              }}
-                            >
-                              Created At
-                            </th> 
-                          </tr>                        
-                        </thead>
-                        <tbody>
-                          {waypoints.length === 0 && (
-                            <tr>
-                              <td
-                                colSpan={5}
-                                style={{
-                                  padding: "36px 8px",
-                                  textAlign: "center",
-                                  color: "#94a3b8",
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    fontWeight: 700,
-                                    color: "#0f172a",
-                                    marginBottom: 6,
-                                  }}
-                                >
-                                  No Waypoints Found
-                                </div>
-                                <div>Try creating new waypoints.</div>
-                              </td>
-                            </tr>
-                          )}
-                          {waypoints.map((wp) => (
-                            <tr
-                              key={wp.id}
-                              onClick={() => handleSelectWaypoint(wp.id)}
-                              style={{
-                                cursor: "pointer",
-                                background:
-                                  selectedWaypointId === wp.id
-                                    ? "rgba(3,48,80,0.04)"
-                                    : "transparent",
-                              }}
-                            >
-                              <td
-                                style={{
-                                  padding: "12px 8px",
-                                  borderBottom: "1px solid #eef2f6",
-                                  fontWeight: 700,
-                                }}
-                              >
-                                {wp.name}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "12px 8px",
-                                  borderBottom: "1px solid #eef2f6",
-                                  color: "#6b7280",
-                                }}
-                              >
-                                {wp.category}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "12px 8px",
-                                  borderBottom: "1px solid #eef2f6",
-                                  textAlign: "center",
-                                }}
-                              >
-                                {wp.active ? "Yes" : "No"}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "12px 8px",
-                                  borderBottom: "1px solid #eef2f6",
-                                  color: "#6b7280",
-                                }}
-                              >
-                                {wp.geom}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "12px 8px",
-                                  borderBottom: "1px solid #eef2f6",
-                                  textAlign: "right",
-                                }}
-                              >
-                                {wp.createdAt}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Users page: search, create button and table similar to your screenshot */}
-              {rightPage === "users" && (
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 12 }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 8 }}
-                    >
-                      <label
-                        style={{
-                          fontSize: 13,
-                          color: "#475569",
-                          fontWeight: 600,
-                        }}
-                      >
-                        Search User By
-                      </label>
-                      <select style={{ padding: "6px 8px" }}>
-                        <option>Name</option>
-                        <option>Email</option>
-                      </select>
-                      <input
-                        placeholder="Search user..."
-                        style={{
-                          padding: "8px 10px",
-                          borderRadius: 8,
-                          border: "1px solid #e6eef2",
-                          minWidth: 300,
-                        }}
-                      />
-                    </div>
-                    <button
-                      style={{
-                        background: "#0b74d1",
-                        color: "#fff",
-                        padding: "10px 14px",
-                        borderRadius: 8,
-                        border: "none",
-                        cursor: "pointer",
-                      }}
-                    >
-                      + Create New User
-                    </button>
-                  </div>
-
-                  <div
-                    style={{
-                      background: "#fff",
-                      borderRadius: 8,
-                      overflow: "hidden",
-                      boxShadow: "0 1px 3px rgba(2,6,23,0.06)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        padding: "12px 16px",
-                        borderBottom: "1px solid #eef2f6",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                      }}
-                    >
-                      <div style={{ fontWeight: 800, fontSize: 18 }}>Users</div>
-                      <div
-                        style={{
-                          marginLeft: "auto",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 12,
-                        }}
-                      >
-                        {usersError && (
-                          <span style={{ color: "#dc2626", fontSize: 13 }}>
-                            {usersError}
-                          </span>
-                        )}
-                        <button
-                          onClick={loadUsers}
-                          disabled={usersLoading}
-                          style={{
-                            padding: "6px 12px",
-                            borderRadius: 6,
-                            border: "1px solid #dbe3ea",
-                            background: usersLoading ? "#f1f5f9" : "#fff",
-                            color: "#0f172a",
-                            cursor: usersLoading ? "not-allowed" : "pointer",
-                          }}
-                        >
-                          {usersLoading ? "Refreshing..." : "Refresh"}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div style={{ padding: "8px 16px" }}>
-                      <table
-                        style={{ width: "100%", borderCollapse: "collapse" }}
-                      >
-                        <thead
-                          style={{
-                            background: "#fafafa",
-                            color: "#475569",
-                            fontSize: 13,
-                          }}
-                        >
-                          <tr>
-                            <th
-                              style={{ textAlign: "left", padding: "12px 8px" }}
-                            >
-                              Name
-                            </th>
-                            <th
-                              style={{ textAlign: "left", padding: "12px 8px" }}
-                            >
-                              Email
-                            </th>
-                            <th
-                              style={{ textAlign: "left", padding: "12px 8px" }}
-                            >
-                              Role
-                            </th>
-                            <th
-                              style={{
-                                textAlign: "center",
-                                padding: "12px 8px",
-                              }}
-                            >
-                              Status
-                            </th>
-                            <th
-                              style={{ textAlign: "left", padding: "12px 8px" }}
-                            >
-                              Created By
-                            </th>
-                            <th
-                              style={{
-                                textAlign: "right",
-                                padding: "12px 8px",
-                              }}
-                            >
-                              Created At
-                            </th>
-                            <th
-                              style={{
-                                textAlign: "center",
-                                padding: "12px 8px",
-                                width: 48,
-                              }}
-                            ></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {users.map((u) => (
-                            <tr
-                              key={u.id}
-                              onClick={() => setSelectedUserId(u.id)}
-                              style={{
-                                cursor: "pointer",
-                                background:
-                                  selectedUserId === u.id
-                                    ? "rgba(3,48,80,0.04)"
-                                    : "transparent",
-                              }}
-                            >
-                              <td
-                                style={{
-                                  padding: "12px 8px",
-                                  borderBottom: "1px solid #eef2f6",
-                                  fontWeight: 700,
-                                }}
-                              >
-                                {u.name}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "12px 8px",
-                                  borderBottom: "1px solid #eef2f6",
-                                                                   color: "#6b7280",
-                                }}
-                              >
-                                {u.email}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "12px 8px",
-                                  borderBottom: "1px solid #eef2f6",
-                                }}
-                              >
-                                {u.role}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "12px 8px",
-                                  borderBottom: "1px solid #eef2f6",
-                                  textAlign: "center",
-                                }}
-                              >
-                                <span
-                                  style={{
-                                    background: "#bbf7d0",
-                                    color: "#065f46",
-                                    padding: "4px 8px",
-                                    borderRadius: 8,
-                                    fontSize: 12,
-                                  }}
-                                >
-                                  {u.status}
-                                </span>
-                              </td>
-                              <td
-                                style={{
-                                  padding: "12px 8px",
-                                  borderBottom: "1px solid #eef2f6",
-                                  color: "#6b7280",
-                                }}
-                              >
-                                {u.createdBy}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "12px 8px",
-                                  borderBottom: "1px solid #eef2f6",
-                                  textAlign: "right",
-                                  color: "#6b7280",
-                                }}
-                              >
-                                {u.createdAt}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "12px 8px",
-                                  borderBottom: "1px solid #eef2f6",
-                                  textAlign: "center",
-                                }}
-                              >
-                                <button
-                                  title="Delete user"
-                                  onClick={(e) => {
-                                    e.stopPropagation(); /* placeholder */
-                                  }}
-                                  style={{
-                                    background: "transparent",
-                                    border: "none",
-                                    cursor: "pointer",
-                                    color: "#9ca3af",
-                                  }}
-                                >
-                                  <FaTrash />
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                          {users.length === 0 && !usersLoading && (
-                            <tr>
-                              <td
-                                colSpan={7}
-                                style={{
-                                  padding: "16px 8px",
-                                  textAlign: "center",
-                                  color: "#94a3b8",
-                                }}
-                              >
-                                No users found.
-                              </td>
-                            </tr>
-                          )}
-                          {usersLoading && (
-                            <tr>
-                              <td
-                                colSpan={7}
-                                style={{
-                                  padding: "16px 8px",
-                                  textAlign: "center",
-                                  color: "#94a3b8",
-                                }}
-                              >
-                                Loading users...
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        justifyContent: "flex-end",
-                        padding: "12px 16px",
-                        borderTop: "1px solid #eef2f6",
-                      }}
-                    >
-                      <div style={{ color: "#94a3b8", fontSize: 13 }}>
-                        Rows per page: 5
-                      </div>
-                      <div style={{ color: "#94a3b8", fontSize: 13 }}>
-                        1–{users.length} of {users.length}
-                      </div>
-                      <div style={{ marginLeft: 8, display: "flex", gap: 8 }}>
-                        <button
-                          style={{
-                            padding: "8px 12px",
-                            borderRadius: 8,
-                            border: "1px solid #e6eef2",
-                            background: "#fff",
-                            color: "#6b7280",
-                          }}
-                          disabled
-                        >
-                          Edit
-                        </button>
-                        <button
-                          style={{
-                            padding: "8px 12px",
-                            borderRadius: 8,
-                            border: "1px solid #e6eef2",
-                            background: "#fff",
-                            color: "#6b7280",
-                          }}
-                          disabled={!selectedUserId || userActionLoading}
-                          onClick={handleResetUserPassword}
-                        >
-                          {userActionLoading ? "Resetting..." : "Reset Password"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Missions page: search, create button and table */}
-              {rightPage === "missions" && (
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 12 }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 8 }}
-                    >
-                      <label
-                        style={{
-                          fontSize: 13,
-                          color: "#475569",
-                          fontWeight: 600,
-                        }}
-                      >
-                        Search Mission By
-                      </label>
-                      <select style={{ padding: "6px 8px" }}>
-                        <option>Name</option>
-                        <option>Owner</option>
-                        <option>Status</option>
-                      </select>
-                      <input
-                        placeholder="Search mission..."
-                        style={{
-                          padding: "8px 10px",
-                          borderRadius: 8,
-                          border: "1px solid #e6eef2",
-                          minWidth: 220,
-                        }}
-                      />
-                    </div>
-
-                    <button
-                      style={{
-                        background: "#0b74d1",
-                        color: "#fff",
-                        padding: "10px 14px",
-                        borderRadius: 8,
-                        border: "none",
-                        cursor: "pointer",
-                      }}
-                      onClick={() => setMissionFormOpen((v) => !v)}
-                    >
-                      + Create Mission
-                    </button>
-                  </div>
-
-                  {missionFormOpen && (
-                    <div className="mission-form">
-                      <div className="zone-form-row">
-                        <label>
-                          Name
-                          <input
-                            value={missionForm.name}
-                            onChange={(e) =>
-                              setMissionForm((prev) => ({
-                                ...prev,
-                                name: e.target.value,
-                              }))
-                            }
-                            placeholder="Mission name"
-                          />
-                        </label>
-                        <label>
-                          Owner
-                          <input
-                            value={missionForm.owner}
-                            onChange={(e) =>
-                              setMissionForm((prev) => ({
-                                ...prev,
-                                owner: e.target.value,
-                              }))
-                            }
-                            placeholder="Owner or department"
-                          />
-                        </label>
-                        <label>
-                          Status
-                          <select
-                            value={missionForm.status}
-                            onChange={(e) =>
-                              setMissionForm((prev) => ({
-                                ...prev,
-                                status: e.target.value,
-                              }))
-                            }
-                          >
-                            <option value="Draft">Draft</option>
-                            <option value="Scheduled">Scheduled</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="Completed">Completed</option>
-                          </select>
-                        </label>
-                      </div>
-                      <label>
-                        Notes
-                        <textarea
-                          value={missionForm.notes}
-                          onChange={(e) =>
-                            setMissionForm((prev) => ({
-                              ...prev,
-                              notes: e.target.value,
-                            }))
-                          }
-                          placeholder="Mission objectives, constraints, etc."
-                          className="mission-notes"
-                        />
-                      </label>
-                      <div
-                        className="zone-form-actions"
-                        style={{ marginLeft: "auto" }}
-                      >
-                        <button
-                          className="ghost-btn"
-                          type="button"
-                          onClick={() => {
-                            setMissionFormOpen(false);
-                            setMissionForm({
-                              name: "",
-                              owner: "",
-                              status: "Draft",
-                              notes: "",
-                            });
-                          }}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          className="primary-btn"
-                          type="button"
-                          onClick={async () => {
-                            if (!missionForm.name.trim()) {
-                              toast.error("Mission name required");
-                              return;
-                            }
-                            if (!missionForm.owner.trim()) {
-                              toast.error("Mission owner required");
-                              return;
-                            }
-                            const payload = {
-                              name: missionForm.name.trim(),
-                              owner: missionForm.owner.trim(),
-                              status: missionForm.status,
-                              notes: missionForm.notes,
-                            };
-                            try {
-                              const response = await requestV1("/missions", {
-                                method: "POST",
-                                body: JSON.stringify(payload),
-                              });
-                              const createdMission = response.item || payload;
-                              setMissions((prev) => [createdMission, ...prev]);
-                              setSelectedMissionId(createdMission.id);
-                              setMissionForm({
-                                name: "",
-                                owner: "",
-                                status: "Draft",
-                                notes: "",
-                              });
-                              setMissionFormOpen(false);
-                              toast.success("Mission saved");
-                            } catch (error) {
-                              console.error("Mission create error", error);
-                              toast.error(
-                                error.message || "Failed to create mission",
-                              );
-                            }
-                          }}
-                        >
-                          Save Mission
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  <div
-                    style={{ borderTop: "1px solid #e6eef2", marginTop: 4 }}
-                  />
-
-                  <div
-                    style={{
-                      background: "#fff",
-                      borderRadius: 8,
-                      boxShadow: "0 1px 3px rgba(2,6,23,0.06)",
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
-                      style={{
-                        padding: "12px 16px",
-                        borderBottom: "1px solid #eef2f6",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                      }}
-                    >
-                      <div
-                        style={{ flex: 1, fontWeight: 700, color: "#0f172a" }}
-                      >
-                        Missions
-                      </div>
-                      <div style={{ color: "#94a3b8", fontSize: 13 }}>
-                        Rows per page: 10
-                      </div>
-                    </div>
-                    <div style={{ padding: "8px 16px" }}>
-                      <table
-                        style={{ width: "100%", borderCollapse: "collapse" }}
-                      >
-                        <thead
-                          style={{
-                            background: "#fafafa",
-                            color: "#475569",
-                            fontSize: 13,
-                          }}
-                        >
-                          <tr>
-                            <th
-                              style={{ textAlign: "left", padding: "12px 8px" }}
-                            >
-                              Name
-                            </th>
-                            <th
-                              style={{ textAlign: "left", padding: "12px 8px" }}
-                            >
-                              Owner
-                            </th>
-                            <th
-                              style={{
-                                textAlign: "center",
-                                padding: "12px 8px",
-                              }}
-                            >
-                              Status
-                            </th>
-                            <th
-                              style={{
-                                textAlign: "right",
-                                padding: "12px 8px",
-                              }}
-                            >
-                              Created At
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {missions.map((m) => (
-                            <tr
-                              key={m.id}
-                              onClick={() => handleSelectMission(m.id)}
-                              style={{
-                                cursor: "pointer",
-                                background:
-                                  selectedMissionId === m.id
-                                    ? "rgba(3,48,80,0.04)"
-                                    : "transparent",
-                              }}
-                            >
-                              <td
-                                style={{
-                                  padding: "12px 8px",
-                                  borderBottom: "1px solid #eef2f6",
-                                  fontWeight: 700,
-                                }}
-                              >
-                                {m.name}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "12px 8px",
-                                  borderBottom: "1px solid #eef2f6",
-                                  color: "#6b7280",
-                                }}
-                              >
-                                {m.owner}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "12px 8px",
-                                  borderBottom: "1px solid #eef2f6",
-                                  textAlign: "center",
-                                }}
-                              >
-                                <span
-                                  style={{
-                                    background:
-                                      m.status === "Completed"
-                                        ? "#bbf7d0"
-                                        : "#fee2e2",
-                                    color:
-                                      m.status === "Completed"
-                                        ? "#065f46"
-                                        : "#9b1b1b",
-                                    padding: "4px 8px",
-                                    borderRadius: 8,
-                                    fontSize: 12,
-                                  }}
-                                >
-                                  {m.status}
-                                </span>
-                              </td>
-                              <td
-                                style={{
-                                  padding: "12px 8px",
-                                  borderBottom: "1px solid #eef2f6",
-                                  textAlign: "right",
-                                  color: "#6b7280",
-                                }}
-                              >
-                                {m.createdAt}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {/* mission details */}
-                  <div
-                    style={{
-                      background: "#fff",
-                      borderRadius: 8,
-                      padding: 12,
-                      boxShadow: "0 1px 3px rgba(2,6,23,0.06)",
-                    }}
-                  >
-                    {selectedMissionId ? (
-                      (() => {
-                        const m = missions.find(
-                          (x) => x.id === selectedMissionId,
-                        );
-                        if (!m)
-                          return (
-                            <div style={{ color: "#94a3b8" }}>
-                              Mission not found.
-                            </div>
-                          );
-
-
-                        return (
-                          <div>
-                            <div style={{ fontWeight: 800, fontSize: 16 }}>
-                              {m.name}
-                            </div>
-                            <div style={{ marginTop: 8, color: "#6b7280" }}>
-                              <strong>Owner:</strong> {m.owner}
-                            </div>
-                            <div style={{ marginTop: 6, color: "#6b7280" }}>
-                              <strong>Status:</strong> {m.status}
-                            </div>
-                            <div style={{ marginTop: 6, color: "#6b7280" }}>
-                              <strong>Created At:</strong> {m.createdAt}
-                            </div>
-                            <div style={{ marginTop: 10, color: "#475569" }}>
-                              {m.notes || "No notes."}
-                            </div>
-                          </div>
-                        );
-                      })()
-                    ) : (
-                      <div style={{ color: "#94a3b8" }}>
-                        Select a mission to see details.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {rightPage === "analytics" && (
-                <div className="analytics-pane">
-                  <div className="analytics-kpis">
-                    {analyticsSummary.map((card) => (
-                      <div key={card.label} className="kpi-card">
-                        <span className="kpi-label">{card.label}</span>
-                        <strong>{card.value}</strong>
-                        <span className="kpi-trend">{card.trend}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="analytics-chart-card">
-                    <div className="stats-card-header">
-                      <div>
-                        <h4>Cycle Throughput</h4>
-                        <p>Rolling seven-day view</p>
-                      </div>
-                    </div>
-                    <svg
-                      width={analyticsChartSize.width}
-                      height={analyticsChartSize.height}
-                      className="analytics-chart"
-                    >
-                      <polyline
-                        points={analyticsPath}
-                        fill="none"
-                        strokeWidth="3"
-                        className="analytics-line"
-                      />
-                    </svg>
-                  </div>
-                  <div className="analytics-alerts">
-                    {analyticsAlerts.map((alert) => (
-                      <div key={alert.id} className="alert-card">
-                        <strong>{alert.title}</strong>
-                        <p>{alert.detail}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {rightPage === "diagnostics" && (
-                <div className="diagnostics-pane">
-                  {diagnosticsPanels.map((panel) => (
-                    <div key={panel.id} className="diag-card">
-                      <h4>{panel.title}</h4>
-                      <div className="diag-value">{panel.value}</div>
-                      <span className="diag-status">{panel.status}</span>
-                      <p>{panel.detail}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {rightPage === "logs" && (
-                <div className="logs-pane">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Time</th>
-                        <th>Component</th>
-                        <th>Message</th>
-                        <th>Level</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {logEvents.map((event) => (
-                        <tr key={event.id}>
-                          <td>{event.ts}</td>
-                          <td>{event.system}</td>
-                          <td>{event.message}</td>
-                          <td>
-                            <span className={`log-pill ${event.level}`}>
-                              {event.level}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {rightPage === "mission-logs" && (
-                <div className="mission-log-pane">
-                  {missionHistory.map((entry) => (
-                    <div key={entry.id} className="timeline-card">
-                      <div className="timeline-header">
-                        <strong>{entry.mission}</strong>
-                        <span>{entry.window}</span>
-                      </div>
-                      <div
-                        className={`timeline-status ${entry.outcome === "Completed" ? "success" : "warn"}`}
-                      >
-                        {entry.outcome}
-                      </div>
-                      <p>{entry.notes}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {rightPage === "robot-bags" && (
-                <div className="bags-pane">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Filename</th>
-                        <th>Duration</th>
-                        <th>Size</th>
-                        <th>Status</th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bagFiles.map((bag) => (
-                        <tr key={bag.id}>
-                          <td>{bag.name}</td>
-                          <td>{bag.duration}</td>
-                          <td>{bag.size}</td>
-                          <td>
-                            <span
-                              className={`bag-pill ${bag.status.toLowerCase()}`}
-                            >
-                              {bag.status}
-                            </span>
-                          </td>
-                          <td>
-                            <button className="ghost-btn">Download</button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {rightPage === "robot-settings" && (
-                <div className="settings-pane">
-                  {Object.entries(robotSettingsState).map(([key, value]) => (
-                    <label key={key} className="toggle-row">
-                      <input
-                        type="checkbox"
-                        checked={value}
-                        onChange={() => toggleRobotSetting(key)}
-                      />
-                      <div>
-                        <strong>{key.replace(/([A-Z])/g, " $1")}</strong>
-                        <p>{value ? "Enabled" : "Disabled"}</p>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              )}
-
-              {rightPage === "account" && (
-                <div className="account-pane">
-                  <label>
-                    Name
-                    <input
-                      value={accountProfile.fullName}
-                      onChange={(e) =>
-                        handleAccountChange("fullName", e.target.value)
-                      }
-                    />
-                  </label>
-                  <label>
-                    Email
-                    <input
-                      value={accountProfile.email}
-                      onChange={(e) =>
-                        handleAccountChange("email", e.target.value)
-                      }
-                    />
-                  </label>
-                  <label>
-                    Team
-                    <input
-                      value={accountProfile.team}
-                      onChange={(e) =>
-                        handleAccountChange("team", e.target.value)
-                      }
-                    />
-                  </label>
-                  <label>
-                    Shift Window
-                    <input
-                      value={accountProfile.shift}
-                      onChange={(e) =>
-                        handleAccountChange("shift", e.target.value)
-                      }
-                    />
-                  </label>
-                  {profileError && (
-                    <p style={{ color: "red" }}>{profileError}</p>
-                  )}
-                  {profileSuccess && (
-                    <p style={{ color: "green" }}>{profileSuccess}</p>
-                  )}
-                  <button
-                    className="primary-btn"
-                    type="button"
-                    onClick={handleSaveProfile}
-                    disabled={profileSaving}
-                  >
-                    {profileSaving ? "Saving..." : "Save Profile"}
-                  </button>
-                </div>
-              )}
-
-              {rightPage === "appearance" && (
-                <div className="appearance-pane">
-                  {[
-                    { id: "light", label: "Light" },
-                    { id: "dark", label: "Dark" },
-                    { id: "system", label: "Match System" },
-                  ].map((theme) => (
-                    <button
-                      key={theme.id}
-                      className={`theme-card ${selectedTheme === theme.id ? "active" : ""}`}
-                      onClick={() => setSelectedTheme(theme.id)}
-                    >
-                      <strong>{theme.label}</strong>
-                      <span>
-                        {selectedTheme === theme.id ? "Selected" : "Use theme"}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {rightPage === "security" && (
-                <div className="security-pane">
-                  <div className="security-toggles">
-                    {Object.entries(securityPreferences).map(([key, value]) => (
-                      <label key={key} className="toggle-row">
-                        <input
-                          type="checkbox"
-                          checked={value}
-                          onChange={() => toggleSecurityPref(key)}
-                        />
-                        <div>
-                          <strong>{key.replace(/([A-Z])/g, " $1")}</strong>
-                          <p>{value ? "Enabled" : "Disabled"}</p>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                  <table className="security-table">
-                    <thead>
-                      <tr>
-                        <th>Time</th>
-                        <th>Actor</th>
-                        <th>Action</th>
-                        <th>Context</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {securityEvents.map((evt) => (
-                        <tr key={evt.id}>
-                          <td>{evt.ts}</td>
-                          <td>{evt.actor}</td>
-                          <td>{evt.action}</td>
-                          <td>{evt.context}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {rightPage === "integrations" && (
-                <div className="integrations-pane">
-                  {integrationItems.map((integration) => (
-                    <div key={integration.id} className="integration-card">
-                      <div>
-                        <strong>{integration.name}</strong>
-                        <p>{integration.description}</p>
-                      </div>
-                      <div className="integration-meta">
-                        <span
-                          className={`integration-status ${integration.status === "Connected" ? "ok" : "off"}`}
-                        >
-                          {integration.status}
-                        </span>
-                        <button
-                          className="ghost-btn"
-                          onClick={() =>
-                            toggleIntegrationStatus(integration.id)
-                          }
-                        >
-                          {integration.status === "Connected"
-                            ? "Disconnect"
-                            : "Connect"}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {rightPage === "stats" && (
-                <div className="stats-pane">
-                  <div className="stats-status-row">
-                    {statsLoading && (
-                      <span className="stats-status">
-                        Refreshing telemetry…
-                      </span>
-                    )}
-                    {statsError && (
-                      <span className="stats-error">{statsError}</span>
-                    )}
-                  </div>
-                  <div className="stats-summary">
-                    <div className="stats-card">
-                      <span className="stats-label">Total Moving Distance</span>
-                      <h3>{overview.totalKm.toFixed(1)} km</h3>
-                      <p>+{overviewDeltaLabel} km vs previous day</p>
-                    </div>
-                    <div className="stats-card">
-                      <span className="stats-label">Missions Completed</span>
-                      <h3>{overview.missionsCompleted}</h3>
-                      <p>{overview.missionSuccessRate}% success over 7 days</p>
-                    </div>
-                    <div className="stats-card">
-                      <span className="stats-label">Average Speed</span>
-                      <h3>{overview.avgSpeed.toFixed(1)} m/s</h3>
-                      <p>Within safe corridor</p>
-                    </div>
-                    <div className="stats-card">
-                      <span className="stats-label">Operating Hours</span>
-                      <h3>{overview.operatingHours} h</h3>
-                      <p>Last maintenance at 300 h</p>
-                    </div>
-                  </div>
-
-                  <div className="movement-card">
-                    <div className="stats-card-header">
-                      <div>
-                        <h4>Monthly Movement</h4>
-                        <p>Distance travelled per month</p>
-                      </div>
-                    </div>
-                    <div className="movement-summary">
-                      <div>
-                        <span className="movement-label">Total</span>
-                        <strong>{totalMonthlyKm.toFixed(1)} km</strong>
-                      </div>
-                      <div>
-                        <span className="movement-label">Average / month</span>
-                        <strong>{avgMonthlyKm} km</strong>
-                      </div>
-                    </div>
-                    <div className="movement-bars">
-                      {monthlyMovement.map((entry) => (
-                        <div key={entry.month} className="movement-bar">
-                          <div
-                            className="movement-bar-fill"
-                            style={{
-                              height: `${(entry.km / (monthlyMaxKm || 1)) * 100}%`,
-                            }}
-                            title={`${entry.km} km`}
-                          />
-                          <span>{entry.month}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="stats-grid">
-                    <div className="stats-chart-card">
-                      <div className="stats-card-header">
-                        <div>
-                          <h4>Battery Voltage & Power</h4>
-                          <p>Live pack telemetry</p>
-                        </div>
-                        <div className="stats-legend">
-                          <span className="legend-dot voltage" /> Voltage
-                          <span className="legend-dot power" /> Power
-                        </div>
-                      </div>
-                      <div className="line-chart">
-                        <svg
-                          width={lineChartSize.width}
-                          height={lineChartSize.height}
-                          role="img"
-                          aria-label="Battery voltage and power line plot"
-                        >
-                          {[0.25, 0.5, 0.75, 1].map((ratio) => (
-                            <line
-                              key={ratio}
-                              x1="0"
-                              x2={lineChartSize.width}
-                              y1={lineChartSize.height * ratio}
-                              y2={lineChartSize.height * ratio}
-                              className="chart-grid-line"
-                            />
-                          ))}
-                          <polyline
-                            points={batteryVoltagePath}
-                            className="line-voltage"
-                            fill="none"
-                            strokeWidth="3"
-                          />
-                          <polyline
-                            points={batteryPowerPath}
-                            className="line-power"
-                            fill="none"
-                            strokeWidth="2"
-                          />
-                        </svg>
-                        <div className="chart-x-axis">
-                          {batterySeries.map((point) => (
-                            <span key={point.time}>{point.time}</span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="turn-card">
-                      <div className="stats-card-header">
-                        <div>
-                          <h4>Turn Distribution</h4>
-                          <p>Number of left/right turns this shift</p>
-                        </div>
-                      </div>
-                      <div className="turn-count-row">
-                        <span>Left turns</span>
-                        <strong>{turns.left}</strong>
-                      </div>
-                      <div className="turn-bar">
-                        <div
-                          className="turn-bar-left"
-                          style={{ width: `${leftTurnPercent}%` }}
-                        />
-                      </div>
-                      <div className="turn-count-row">
-                        <span>Right turns</span>
-                        <strong>{turns.right}</strong>
-                      </div>
-                      <div className="turn-bar">
-                        <div
-                          className="turn-bar-right"
-                          style={{ width: `${rightTurnPercent}%` }}
-                        />
-                      </div>
-                      <div className="turn-footer">
-                        Left {leftTurnPercent}% · Right {rightTurnPercent}%
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="trend-card">
-                    <div className="stats-card-header">
-                      <div>
-                        <h4>Mission Trend</h4>
-                        <p>Completion vs incidents</p>
-                      </div>
-                    </div>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Day</th>
-                          <th>Completed</th>
-                          <th>Incidents</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {missionTrend.map((row) => (
-                          <tr key={row.label}>
-                            <td>{row.label}</td>
-                            <td>{row.completed}</td>
-                            <td>{row.incidents}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-              {/* Chat page */}
-              {rightPage === "chat" && (
-                <div className="chat-pane">
-                  <div className="chat-header">
-                    <div>
-                      <h2>Assistant Link</h2>
-                      <p>
-                        Last sync at{" "}
-                        {latestMessage
-                          ? formatTimestamp(latestMessage.timestamp)
-                          : "--:--"}{" "}
-                        ·{" "}
-                        {
-                          chatMessages.filter((m) => m.sender === "human")
-                            .length
-                        }{" "}
-                        operator prompts today
-                      </p>
-                    </div>
-                    <div className="chat-status-pill">Robot Online</div>
-                  </div>
-                  <div className="chat-subheader">
-                    <span>Channel: Operations Support</span>
-                    <span>
-                      Voice input {isRecording ? "recording…" : "idle"}
-                    </span>
-                  </div>
-
-                  <div className="chat-messages" ref={chatContainerRef}>
-                    {chatMessages.map((message) => {
-                      const isRobot = message.sender === "robot";
-                      return (
-                        <div
-                          key={message.id}
-                          className={`chat-row ${isRobot ? "robot" : "human"}`}
-                        >
-                          <div
-                            className={`chat-bubble ${isRobot ? "robot" : "human"}`}
-                          >
-                            <div className="chat-meta">
-                              <span>{isRobot ? "Robot" : "You"}</span>
-                              <span>{formatTimestamp(message.timestamp)}</span>
-                            </div>
-                            <p>{message.text}</p>
-                            {!isRobot && (
-                              <span className="chat-status">
-                                {message.status || "Sent"}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {isTyping && (
-                      <div className="chat-row robot">
-                        <div className="chat-bubble robot typing">
-                          <span className="typing-dot" />
-                          <span className="typing-dot" />
-                          <span className="typing-dot" />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="chat-quick-replies">
-                    {chatQuickPrompts.map((prompt) => (
-                      <button
-                        key={prompt}
-                        type="button"
-                        className="chat-chip"
-                        onClick={() => handleSuggestionClick(prompt)}
-                      >
-                        {prompt}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="chat-input-row">
-                    <textarea
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      placeholder="Type a request or update…"
-                      className="chat-textarea"
-                      rows={1}
-                    />
-                    <button
-                      onClick={handleMicClick}
-                      type="button"
-                      className={`chat-icon-btn ${isRecording ? "recording" : ""}`}
-                      title={isRecording ? "Stop recording" : "Start recording"}
-                    >
-                      <FaMicrophone />
-                    </button>
-                    <button
-                      onClick={() => handleSendMessage()}
-                      disabled={!chatInput.trim()}
-                      type="button"
-                      className="chat-send-btn"
-                      title="Send message"
-                    >
-                      <FaPaperPlane />
-                    </button>
-                  </div>
-                  <div className="chat-hint">
-                    Press Enter to send · Shift + Enter for a newline
-                  </div>
-                </div>
-              )}
-              {/* fallback */}
-              {![
-                "maps",
-                "zones",
-                "waypoints",
-                "missions",
-                "users",
-                "analytics",
-                "diagnostics",
-                "logs",
-                "mission-logs",
-                "robot-bags",
-                "robot-settings",
-                "account",
-                "appearance",
-                "security",
-                "integrations",
-                "chat",
-              ].includes(rightPage) && <div>{rightPage}</div>}
-            </div>
-          </aside>
+          <RightPane
+            rightPage={rightPage}
+            setRightPage={setRightPage}
+            // maps
+            mapsList={mapsList}
+            setMapsList={setMapsList}
+            selectedMap={selectedMap}
+            setSelectedMap={setSelectedMap}
+            createNewMapImmediate={createNewMapImmediate}
+            handleActivateMap={handleActivateMap}
+            handleMapAction={handleMapAction}
+            mapSearchField={mapSearchField}
+            setMapSearchField={setMapSearchField}
+            mapSearchTerm={mapSearchTerm}
+            setMapSearchTerm={setMapSearchTerm}
+            requestV1={requestV1}
+            toast={toast}
+            // zones
+            zones={getFilteredZones()}
+            zoneFormOpen={zoneFormOpen}
+            setZoneFormOpen={setZoneFormOpen}
+            zoneForm={zoneForm}
+            setZoneForm={setZoneForm}
+            setZones={setZones}
+            zoneSearchField={zoneSearchField}
+            setZoneSearchField={setZoneSearchField}
+            zoneSearchTerm={zoneSearchTerm}
+            setZoneSearchTerm={setZoneSearchTerm}
+            // waypoints
+            waypoints={getFilteredWaypoints()}
+            setWaypoints={setWaypoints}
+            waypointFormOpen={waypointFormOpen}
+            setWaypointFormOpen={setWaypointFormOpen}
+            waypointForm={waypointForm}
+            setWaypointForm={setWaypointForm}
+            handleSelectWaypoint={handleSelectWaypoint}
+            setSelectedWaypointId={setSelectedWaypointId}
+            // users
+            users={users}
+            setUsers={setUsers}
+            usersLoading={usersLoading}
+            usersError={usersError}
+            loadUsers={loadUsers}
+            selectedUserId={selectedUserId}
+            setSelectedUserId={setSelectedUserId}
+            userActionLoading={userActionLoading}
+            handleResetUserPassword={handleResetUserPassword}
+            // missions
+            missions={getFilteredMissions()}
+            missionFormOpen={missionFormOpen}
+            setMissionFormOpen={setMissionFormOpen}
+            missionForm={missionForm}
+            setMissionForm={setMissionForm}
+            selectedMissionId={selectedMissionId}
+            setSelectedMissionId={setSelectedMissionId}
+            handleSelectMission={handleSelectMission}
+            setMissions={setMissions}
+            // analytics / diagnostics / logs / mission history / bags
+            analyticsSummary={analyticsSummary}
+            analyticsSeries={analyticsSeries}
+            analyticsAlerts={analyticsAlerts}
+            diagnosticsPanels={diagnosticsPanels}
+            logEvents={logEvents}
+            missionHistory={missionHistory}
+            bagFiles={bagFiles}
+            // settings / account / appearance / security / integrations
+            robotSettingsState={robotSettingsState}
+            toggleRobotSetting={toggleRobotSetting}
+            accountProfile={accountProfile}
+            handleAccountChange={handleAccountChange}
+            profileError={profileError}
+            profileSuccess={profileSuccess}
+            profileSaving={profileSaving}
+            handleSaveProfile={handleSaveProfile}
+            selectedTheme={selectedTheme}
+            setSelectedTheme={setSelectedTheme}
+            securityPreferences={securityPreferences}
+            toggleSecurityPref={toggleSecurityPref}
+            securityEvents={securityEvents}
+            integrationItems={integrationItems}
+            toggleIntegrationStatus={toggleIntegrationStatus}
+            // stats
+            overview={overview}
+            missionTrend={missionTrend}
+            monthlyMovement={monthlyMovement}
+            batterySeries={batterySeries}
+            batteryStatus={batteryStatus}
+            turns={turns}
+            statsLoading={statsLoading}
+            statsError={statsError}
+            lineChartSize={lineChartSize}
+            buildLinePath={buildLinePath}
+            buildSimplePath={buildSimplePath}
+            analyticsChartSize={analyticsChartSize}
+            analyticsPath={analyticsPath}
+            // chat
+            chatMessages={chatMessages}
+            chatInput={chatInput}
+            setChatInput={setChatInput}
+            handleSendMessage={handleSendMessage}
+            handleKeyPress={handleKeyPress}
+            isRecording={isRecording}
+            handleMicClick={handleMicClick}
+            isTyping={isTyping}
+            handleSuggestionClick={handleSuggestionClick}
+            chatQuickPrompts={chatQuickPrompts}
+            chatContainerRef={chatContainerRef}
+            formatTimestamp={formatTimestamp}
+            latestMessage={latestMessage}
+          />
         )}
 
         <main className={`map-area ${minimizedMain ? "minimized" : ""}`}>
@@ -3888,8 +2191,17 @@ const MainPage = () => {
                 cursor: zoomLevel > 0 ? "zoom-out" : "zoom-in",
               }}
             >
-              {/* intentionally render nothing in the center */}
-              <div style={{ width: "100%", height: "100%" }} aria-hidden="true" />
+              {/* render selected map image if available, otherwise empty white area */}
+              {selectedMap?.image ? (
+                <img
+                  src={selectedMap.image}
+                  alt={selectedMap.name || "Map preview"}
+                  style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+                />
+              ) : (
+
+                <div style={{ width: "100%", height: "100%" }} aria-hidden="true" />
+              )}
             </div>
 
             <div className="map-overlays">
@@ -3987,148 +2299,6 @@ const MainPage = () => {
           </div>
         </div>
       )}
-
-      {/* Lock overlay: shown when isLocked is true — covers full viewport including header */}
-      {isLocked && (
-        <div
-          className="lock-overlay"
-          role="button"
-          aria-label="Locked overlay"
-          tabIndex={0}
-          onClick={(e) => {
-            e.stopPropagation();
-            showLockedAttemptToast();
-          }}
-          onMouseDown={(e) => {
-            e.stopPropagation();
-            showLockedAttemptToast();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              showLockedAttemptToast();
-            }
-          }}
-        >
-          {/* Visible hint so operators know how to unlock (Escape) */}
-          <div className="unlock-hint" aria-hidden="true">
-            Screen locked — press Esc to unlock
-          </div>
-        </div>
-      )}
-
-      {/* Fixed lock/unlock control that remains clickable when everything else is locked */}
-      {isLocked && (
-        <button
-          type="button"
-          className="lock-toggle-fixed"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleToggleLock();
-          }}
-          onMouseDown={(e) => e.preventDefault()}
-          aria-pressed={isLocked}
-          aria-label="Unlock console"
-          title="Unlock console (Esc)"
-        >
-          {isLocked ? <FaLock /> : <FaUnlock />}
-        </button>
-      )}
-
-      {mapModalOpen && (
-          <div className="modal-backdrop" onClick={closeMapModal}>
-            <div
-              className="battery-modal"
-              onClick={(e) => e.stopPropagation()}
-              role="dialog"
-              aria-modal="true"
-              aria-label={mapModalMode === "edit" ? "Edit map" : "Create map"}
-            >
-              <div className="battery-modal-header">
-                <h3>{mapModalMode === "edit" ? "Edit Map" : "Create Map"}</h3>
-                <button
-                  className="right-pane-close"
-                  type="button"
-                  onClick={closeMapModal}
-                  aria-label="Close map modal"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="battery-modal-body">
-                <div style={{ display: "grid", gap: 10 }}>
-                  <label>
-                    Name
-                    <input
-                      value={mapForm.name}
-                      onChange={(e) =>
-                        setMapForm((prev) => ({ ...prev, name: e.target.value }))
-                      }
-                      placeholder="Map name"
-                    />
-                  </label>
-                  <label>
-                    Created By
-                    <input
-                      value={mapForm.createdBy}
-                      onChange={(e) =>
-                        setMapForm((prev) => ({ ...prev, createdBy: e.target.value }))
-                      }
-                      placeholder="Creator"
-                    />
-                  </label>
-                  <label>
-                    Status
-                    <input
-                      value={mapForm.status}
-                      onChange={(e) =>
-                        setMapForm((prev) => ({ ...prev, status: e.target.value }))
-                      }
-                      placeholder="Active / Inactive / Draft"
-                    />
-                  </label>
-                  <label>
-                    Category
-                    <input
-                      value={mapForm.category}
-                      onChange={(e) =>
-                        setMapForm((prev) => ({ ...prev, category: e.target.value }))
-                      }
-                      placeholder="Optional category"
-                    />
-                  </label>
-                  <label>
-                    Image (URL or path)
-                    <input
-                      value={mapForm.image}
-                      onChange={(e) =>
-                        setMapForm((prev) => ({ ...prev, image: e.target.value }))
-                      }
-                      placeholder="/images/maps/example.png"
-                    />
-                  </label>
-                </div>
-
-                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 12 }}>
-                  <button
-                    className="ghost-btn"
-                    type="button"
-                    onClick={closeMapModal}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    className="primary-btn"
-                    type="button"
-                    onClick={saveMapFromForm}
-                  >
-                    {mapModalMode === "edit" ? "Save Changes" : "Create Map"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
     </div>
   );
 };

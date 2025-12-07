@@ -1,11 +1,12 @@
+/* Sidebar adopts theme variables for background and border */
 .sidebar {
   position: fixed;
   left: 0;
   top: 0;
   height: 100vh;
   width: 72px;
-  background-color: #87ceeb; /* sky blue rail */
-  color: #052034;
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text, var(--text-color));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -22,6 +23,7 @@
     Roboto,
     "Helvetica Neue",
     Arial;
+  border-right: 1px solid var(--sidebar-border);
 }
 
 /* overlay adapted for light rail */
@@ -131,7 +133,7 @@
   align-items: center;
   gap: 6px;
   padding: 8px 6px;
-  color: #052034;
+  color: var(--sidebar-text, var(--text-color));
   cursor: pointer;
   border-radius: 10px;
   margin: 6px 0;
@@ -149,7 +151,7 @@
   background: rgba(0, 0, 0, 0.04);
 }
 
-/* icon background (circle better on sky background) */
+/* icon background */
 .icon-bg {
   width: 52px;
   height: 52px;
@@ -157,7 +159,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.15); /* semi-transparent white works on both sky blue and dark */
+  color: var(--sidebar-text, #ffffff);
   transition:
     background 160ms ease,
     box-shadow 160ms ease,
@@ -165,24 +168,24 @@
   z-index: 22;
 }
 .icon-bg .icon-inner {
-  color: #03627a;
+  color: var(--sidebar-text, #ffffff);
   font-size: 22px;
 }
 
-/* active icon bg */
+/* active icon bg - bright gradient that stands out on both themes */
 .icon-bg.visible {
-  background: linear-gradient(180deg, #7fc6ff, #1e90ff);
-  box-shadow: 0 8px 18px rgba(30, 144, 255, 0.18);
+  background: linear-gradient(180deg, #60a5fa, #3b82f6);
+  box-shadow: 0 8px 18px rgba(59, 130, 246, 0.4);
 }
 .icon-bg.visible .icon-inner {
-  color: #052034;
+  color: #ffffff; /* bright white icon when active */
 }
 
 /* label under icon */
 .label {
   font-size: 13px;
   font-weight: 600;
-  color: #052034;
+  color: var(--sidebar-text, #ffffff);
   opacity: 0;
   transform: translateY(6px);
   transition:
@@ -254,7 +257,7 @@
 .chev-btn {
   background: transparent;
   border: none;
-  color: #052034;
+  color: var(--sidebar-text, #ffffff);
   width: 36px;
   height: 36px;
   border-radius: 6px;
@@ -265,19 +268,19 @@
   transition: background 120ms ease;
 }
 .chev-btn:hover {
-  background: rgba(0, 0, 0, 0.04);
-  color: #052034;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--sidebar-text, #ffffff);
 }
 
-/* active left indicator if still used */
+/* active left indicator */
 .sidebar-item.active .active-indicator {
   position: absolute;
   left: -16px;
   width: 10px;
   height: 40px;
-  background: linear-gradient(180deg, #7fc6ff, #1e90ff);
+  background: linear-gradient(180deg, #60a5fa, #3b82f6);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(30, 144, 255, 0.12);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
 }
 
 /* ensure layering */
@@ -544,8 +547,9 @@
   flex-direction: column;
   gap: 10px;
   /* sky-blue vertical gradient matching the left rail (top → bottom) */
-  background: linear-gradient(180deg, #bfefff 0%, #87ceeb 50%, #66c3e4 100%);
-  color: #052034; /* same readable text color as left rail */
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text, var(--text-color));
+  border: 1px solid var(--sidebar-border);
   border-radius: 0 12px 12px 0;
   box-shadow: 4px 8px 24px rgba(2, 12, 22, 0.18);
   z-index: 90;
@@ -565,7 +569,7 @@
   background: transparent;
   border: none;
   border-radius: 8px;
-  color: #052034; /* text color on sky-blue panel */
+  color: var(--sidebar-text, var(--text-color));
   font-weight: 700;
   cursor: pointer;
   transition:
@@ -573,10 +577,10 @@
     transform 140ms ease;
 }
 
-/* panel item default icon color to match sidebar icon tone */
+/* panel item default icon color */
 .right-create-item .right-sub-icon {
   background: transparent;
-  color: #03627a; /* same icon color as left rail */
+  color: var(--sidebar-text, #ffffff);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -593,26 +597,25 @@
 /* --- CHANGES START --- */
 /* on hover: make icon & label white (match sidebar icon appearance) */
 .right-create-item:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.1);
   transform: translateX(-4px);
-  color: #fff; /* label becomes white */
+  color: var(--sidebar-text, #fff);
 }
 .right-create-item:hover .right-sub-icon {
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff; /* icon becomes white */
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--sidebar-text, #fff);
 }
 
-/* when an option is active, keep the icon gradient but make icon white */
+/* when an option is active */
 .right-create-item.active .right-sub-icon {
-  background: linear-gradient(180deg, #7fc6ff, #1e90ff);
-  box-shadow: 0 6px 14px rgba(30, 144, 255, 0.18);
-  color: #fff; /* changed to white */
+  background: linear-gradient(180deg, #60a5fa, #3b82f6);
+  box-shadow: 0 6px 14px rgba(59, 130, 246, 0.4);
+  color: #ffffff;
 }
 
-/* active button background and text color */
 .right-create-item.active {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
 }
 /* --- CHANGES END --- */
 
