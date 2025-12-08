@@ -36,56 +36,132 @@ class FrontendDataStore:
     def _new_id(self, prefix: str) -> str:
         return f"{prefix}_{uuid4().hex[:8]}"
 
+    def _new_object_id(self) -> str:
+        """Generate a 24-char hex string similar to MongoDB ObjectId."""
+        return uuid4().hex[:24]
+
     def _default_state(self) -> Dict[str, Any]:
         return {
             "maps": [
                 {
-                    "id": "cfl_gf",
+                    "id": "63660bcc15d4c31b0f42afb3",
+                    "_id": "63660bcc15d4c31b0f42afb3",
                     "name": "CFL_GF",
                     "createdBy": "CNDE IITM",
                     "status": "Active",
+                    "isActive": True,
                     "createdAt": "2025-11-12T08:30:00Z",
                     "previewImage": "",
+                    "properties": {
+                        "origin": {
+                            "position": {"x": 0.005012, "y": 0.005012, "z": 0.005012},
+                            "orientation": {"x": 0.005012, "y": 0.005012, "z": 0.005012, "w": 0.005012},
+                        },
+                        "width": 420,
+                        "height": 1260,
+                        "resolution": 0.005012,
+                        "previewUrl": "",
+                    },
                 },
                 {
-                    "id": "shobot_arena",
+                    "id": "6365025662a66cbf3123562e",
+                    "_id": "6365025662a66cbf3123562e",
                     "name": "shobot_arena",
-                    "createdBy": "ANSCER ADMIN",
+                    "createdBy": "CNDE IITM",
                     "status": "",
+                    "isActive": False,
                     "createdAt": "2025-11-10T05:12:00Z",
                     "previewImage": "/images/maps/shobot_arena.png",
+                    "properties": {
+                        "origin": {
+                            "position": {"x": 0.005012, "y": 0.005012, "z": 0.005012},
+                            "orientation": {"x": 0.005012, "y": 0.005012, "z": 0.005012, "w": 0.005012},
+                        },
+                        "width": 420,
+                        "height": 1260,
+                        "resolution": 0.005012,
+                        "previewUrl": "https://localhost:5000/previewMap1",
+                    },
                 },
                 {
-                    "id": "shobot_arena2",
+                    "id": "63621a320e8f3ea6b22dd668",
+                    "_id": "63621a320e8f3ea6b22dd668",
                     "name": "shobot_arena2",
-                    "createdBy": "ANSCER ADMIN",
+                    "createdBy": "CNDE IITM",
                     "status": "",
+                    "isActive": True,
                     "createdAt": "2025-11-09T18:44:00Z",
                     "previewImage": "/images/maps/shobot_arena2.png",
+                    "properties": {
+                        "origin": {
+                            "position": {"x": 0.005012, "y": 0.005012, "z": 0.005012},
+                            "orientation": {"x": 0.005012, "y": 0.005012, "z": 0.005012, "w": 0.005012},
+                        },
+                        "width": 420,
+                        "height": 1260,
+                        "resolution": 0.005012,
+                        "previewUrl": "https://localhost:5000/previewMap1",
+                    },
                 },
                 {
-                    "id": "zones",
+                    "id": "6360b98e80dccb699a18fbd6",
+                    "_id": "6360b98e80dccb699a18fbd6",
                     "name": "Zones",
-                    "createdBy": "ANSCER ADMIN",
+                    "createdBy": "CNDE IITM",
                     "status": "",
+                    "isActive": False,
                     "createdAt": "2025-11-09T18:40:00Z",
                     "previewImage": "",
+                    "properties": {
+                        "origin": {
+                            "position": {"x": 0.005015, "y": 0.005012, "z": 0.005012},
+                            "orientation": {"x": 0.005012, "y": 0.005012, "z": 0.005012, "w": 0.005012},
+                        },
+                        "width": 420,
+                        "height": 1260,
+                        "resolution": 0.005012,
+                        "previewUrl": "https://localhost:5000/previewMap2",
+                    },
                 },
                 {
-                    "id": "waypoints",
+                    "id": "63660bcc15d4c31b0f42afb5",
+                    "_id": "63660bcc15d4c31b0f42afb5",
                     "name": "Waypoints",
-                    "createdBy": "ANSCER ADMIN",
+                    "createdBy": "CNDE IITM",
                     "status": "",
+                    "isActive": False,
                     "createdAt": "2025-11-09T18:41:00Z",
                     "previewImage": "",
+                    "properties": {
+                        "origin": {
+                            "position": {"x": 0.005012, "y": 0.005012, "z": 0.005012},
+                            "orientation": {"x": 0.005012, "y": 0.005012, "z": 0.005012, "w": 0.005012},
+                        },
+                        "width": 420,
+                        "height": 1260,
+                        "resolution": 0.005012,
+                        "previewUrl": "",
+                    },
                 },
                 {
-                    "id": "users",
+                    "id": "6365025662a66cbf31235630",
+                    "_id": "6365025662a66cbf31235630",
                     "name": "Users",
-                    "createdBy": "ANSCER ADMIN",
+                    "createdBy": "CNDE IITM",
                     "status": "",
+                    "isActive": False,
                     "createdAt": "2025-11-09T18:42:00Z",
                     "previewImage": "",
+                    "properties": {
+                        "origin": {
+                            "position": {"x": 0.005012, "y": 0.005012, "z": 0.005012},
+                            "orientation": {"x": 0.005012, "y": 0.005012, "z": 0.005012, "w": 0.005012},
+                        },
+                        "width": 420,
+                        "height": 1260,
+                        "resolution": 0.005012,
+                        "previewUrl": "",
+                    },
                 },
             ],
             "zones": [
@@ -116,57 +192,81 @@ class FrontendDataStore:
             ],
             "waypoints": [
                 {
-                    "id": "wp1",
-                    "name": "WP_A",
-                    "category": "Nav",
-                    "active": True,
-                    "geom": "Point(12 34)",
-                    "createdAt": "2025-11-17",
-                    "notes": "First waypoint",
+                    "id": "wp_63660bcc15d4c31b0f42aaa1",
+                    "_id": "63660bcc15d4c31b0f42aaa1",
+                    "name": "Dock A",
+                    "category": "CHARGE",
+                    "isActive": True,
+                    "createdBy": "CNDE IITM",
+                    "createdAt": "2025-11-17T09:00:00Z",
+                    "notes": "Primary dock",
+                    "coordinate": {
+                        "position": {"x": 1.0, "y": 2.0, "z": 0.0},
+                        "orientation": {"x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0},
+                    },
                 },
                 {
-                    "id": "wp2",
-                    "name": "WP_B",
-                    "category": "Inspect",
-                    "active": False,
-                    "geom": "Point(98 76)",
-                    "createdAt": "2025-11-17",
-                    "notes": "Inspection point",
+                    "id": "wp_6365025662a66cbf31230001",
+                    "_id": "6365025662a66cbf31230001",
+                    "name": "Zone A Entry",
+                    "category": "NAV",
+                    "isActive": True,
+                    "createdBy": "CNDE IITM",
+                    "createdAt": "2025-11-17T09:05:00Z",
+                    "notes": "Entry to Zone A",
+                    "coordinate": {
+                        "position": {"x": 5.4, "y": -1.2, "z": 0.0},
+                        "orientation": {"x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0},
+                    },
                 },
                 {
-                    "id": "wp3",
-                    "name": "WP_C",
-                    "category": "Charge",
-                    "active": True,
-                    "geom": "Point(44 55)",
-                    "createdAt": "2025-11-16",
-                    "notes": "Charging pad",
+                    "id": "wp_63621a320e8f3ea6b22dd001",
+                    "_id": "63621a320e8f3ea6b22dd001",
+                    "name": "Inspection P1",
+                    "category": "INSPECT",
+                    "isActive": False,
+                    "createdBy": "CNDE IITM",
+                    "createdAt": "2025-11-16T14:20:00Z",
+                    "notes": "Manual inspection point",
+                    "coordinate": {
+                        "position": {"x": -2.0, "y": 3.5, "z": 0.0},
+                        "orientation": {"x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0},
+                    },
                 },
             ],
             "missions": [
                 {
-                    "id": "m1",
+                    "id": "63660bcc15d4c31b0f42b001",
+                    "_id": "63660bcc15d4c31b0f42b001",
                     "name": "Inspect Zone A",
-                    "owner": "CNDE",
+                    "owner": "CNDE IITM",
                     "status": "Draft",
-                    "createdAt": "2025-11-17",
+                    "createdAt": "2025-11-17T09:30:00Z",
                     "notes": "Routine inspection",
+                    "mapId": "63621a320e8f3ea6b22dd668",
+                    "waypoints": ["wp_6365025662a66cbf31230001"],
                 },
                 {
-                    "id": "m2",
+                    "id": "6365025662a66cbf3123b002",
+                    "_id": "6365025662a66cbf3123b002",
                     "name": "Delivery Route 3",
-                    "owner": "ANSCER ADMIN",
+                    "owner": "CNDE IITM",
                     "status": "Scheduled",
-                    "createdAt": "2025-11-16",
+                    "createdAt": "2025-11-16T08:10:00Z",
                     "notes": "Delivery to docks",
+                    "mapId": "6365025662a66cbf3123562e",
+                    "waypoints": ["wp_63660bcc15d4c31b0f42aaa1"],
                 },
                 {
-                    "id": "m3",
+                    "id": "63621a320e8f3ea6b22dd003",
+                    "_id": "63621a320e8f3ea6b22dd003",
                     "name": "Battery Check",
-                    "owner": "CNDE",
+                    "owner": "CNDE IITM",
                     "status": "Completed",
-                    "createdAt": "2025-11-15",
+                    "createdAt": "2025-11-15T18:45:00Z",
                     "notes": "Post-run check",
+                    "mapId": "6360b98e80dccb699a18fbd6",
+                    "waypoints": ["wp_63621a320e8f3ea6b22dd001"],
                 },
             ],
             "users": [
@@ -426,13 +526,29 @@ class FrontendDataStore:
 
     def create_map(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         with self._lock:
+            object_id = payload.get("_id") or self._new_object_id()
             new_map = {
-                "id": payload.get("id") or self._new_id("map"),
+                "id": payload.get("id") or object_id,
+                "_id": object_id,
                 "name": payload.get("name", "Unnamed Map"),
-                "createdBy": payload.get("createdBy", "Unknown"),
+                "createdBy": payload.get("createdBy", "CNDE IITM"),
                 "status": payload.get("status", "Draft"),
+                "isActive": payload.get("isActive", False),
                 "previewImage": payload.get("previewImage", ""),
                 "createdAt": payload.get("createdAt", _utc_ts()),
+                "properties": payload.get(
+                    "properties",
+                    {
+                        "origin": {
+                            "position": {"x": 0.0, "y": 0.0, "z": 0.0},
+                            "orientation": {"x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0},
+                        },
+                        "width": 0,
+                        "height": 0,
+                        "resolution": 0.05,
+                        "previewUrl": "",
+                    },
+                ),
             }
             self._state["maps"].append(new_map)
             return _clone(new_map)
@@ -469,12 +585,17 @@ class FrontendDataStore:
 
     def create_zone(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         with self._lock:
+            object_id = payload.get("_id") or self._new_object_id()
             zone = {
-                "id": payload.get("id") or self._new_id("zone"),
+                "id": payload.get("id") or object_id,
+                "_id": object_id,
                 "name": payload.get("name", "New Zone"),
-                "category": payload.get("category", "Safe"),
-                "geometry": payload.get("geometry", ""),
-                "active": bool(payload.get("active", True)),
+                "category": payload.get("category", "restricted"),
+                "geometry": payload.get("geometry", {}),
+                "properties": payload.get("properties", {}),
+                "mapId": payload.get("mapId"),
+                "isActive": bool(payload.get("isActive", True)),
+                "createdBy": payload.get("createdBy", "CNDE IITM"),
                 "createdAt": payload.get("createdAt", _utc_ts()),
             }
             self._state["zones"].append(zone)
@@ -500,13 +621,23 @@ class FrontendDataStore:
 
     def create_waypoint(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         with self._lock:
+            object_id = payload.get("_id") or self._new_object_id()
             wp = {
-                "id": payload.get("id") or self._new_id("wp"),
+                "id": payload.get("id") or object_id,
+                "_id": object_id,
                 "name": payload.get("name", "Waypoint"),
-                "category": payload.get("category", "Nav"),
-                "geom": payload.get("geom", "Point(0 0)"),
-                "active": bool(payload.get("active", True)),
+                "category": payload.get("category", "NAV"),
+                "coordinate": payload.get(
+                    "coordinate",
+                    {
+                        "position": {"x": 0.0, "y": 0.0, "z": 0.0},
+                        "orientation": {"x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0},
+                    },
+                ),
+                "mapId": payload.get("mapId"),
+                "isActive": bool(payload.get("isActive", True)),
                 "notes": payload.get("notes", ""),
+                "createdBy": payload.get("createdBy", "CNDE IITM"),
                 "createdAt": payload.get("createdAt", _utc_ts()),
             }
             self._state["waypoints"].append(wp)
@@ -532,12 +663,17 @@ class FrontendDataStore:
 
     def create_mission(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         with self._lock:
+            object_id = payload.get("_id") or self._new_object_id()
             mission = {
-                "id": payload.get("id") or self._new_id("mission"),
+                "id": payload.get("id") or object_id,
+                "_id": object_id,
                 "name": payload.get("name", "New Mission"),
-                "owner": payload.get("owner", "Unknown"),
+                "owner": payload.get("owner", "CNDE IITM"),
                 "status": payload.get("status", "Draft"),
                 "notes": payload.get("notes", ""),
+                "mapId": payload.get("mapId"),
+                "waypoints": payload.get("waypoints", []),
+                "isActive": bool(payload.get("isActive", True)),
                 "createdAt": payload.get("createdAt", _utc_ts()),
             }
             self._state["missions"].append(mission)
