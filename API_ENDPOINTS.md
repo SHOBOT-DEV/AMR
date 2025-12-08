@@ -699,6 +699,27 @@ ROS Bridge allows web clients to interact with ROS via WebSocket using JSON mess
 
 ---
 
+## 4b. ROS2 Node Interfaces (this workspace)
+
+ROS2 nodes in `SHOBOT_AMR_ws/src` expose these topics/services/actions by default (all parameters can be remapped):
+
+- **shobot_navigation**: subscribes `goal_topic` (`/goal_pose`); publishes `status_topic` (`/navigation_status`) and `feedback_topic` (`/navigation_feedback`); service `cancel_navigation` (`std_srvs/Trigger`); forwards to Nav2 `navigate_to_pose` action.
+- **shobot_navigation_server**: service `shobot_navigation_server/navigate` (`shobot_navigation_server/Navigate` with `request_id` + `PoseStamped`); publishes `/navigation_server/status`.
+- **shobot_mission_handler**: subscribes `/mission_command` (JSON missions); publishes `/mission_queue`; service `clear_missions` (`std_srvs/Trigger`); status on `/mission_handler_status`.
+- **shobot_mission_control**: subscribes `/mission_queue` (JSON); publishes `/mission_status`; service `cancel_mission` (`std_srvs/Trigger`); sends Nav2 NavigateToPose actions and optional `dock` action (`shobot_docking/Dock`).
+- **shobot_docking**: action server `dock` (`shobot_docking/Dock` goal `start: bool`); publishes `/dock_status`; uses `/cmd_vel` + `/odom`.
+- **shobot_twist_mux**: subscribes `/cmd_vel/safety`, `/cmd_vel/teleop`, `/cmd_vel/nav`; publishes muxed `output_topic` (`/cmd_vel`); listens to `/safety_stop` to zero output.
+- **shobot_costmap_safety_layer**: subscribes `/scan`; publishes `/safety_stop` (`std_msgs/Bool`) when ranges under threshold.
+- **shobot_trajectory_controller**: subscribes `/cmd_vel_raw`; publishes smoothed `/cmd_vel` with accel limits.
+- **shobot_local_planner**: subscribes `/plan` (`nav_msgs/Path`) and `/odom`; publishes `/cmd_vel` toward next waypoint.
+- **shobot_costmap_plugins (CostmapBuilder)**: subscribes `/obstacles` (`PointCloud2`); publishes occupancy grid `/shobot_costmap`.
+- **shobot_pointcloud_assembler**: subscribes `input_topics` (default `/points_filtered` list); publishes combined `/points_assembled`.
+- **shobot_yolo_detection (DepthDetector)**: publishes `/detection_info` (JSON detections with `depth_m`) and `detection_image` (annotated); reads RealSense directly or subscribes `color_topic`/`depth_topic`.
+- **shobot_rosbridge_suite (RosbridgeAnnouncer)**: publishes `/rosbridge/info` with `{host, port, ws_url}` heartbeat for clients.
+- **Motor control samples (`ROS package/`)**: `motor_controll.py`, `teleop_motor.py`, and `depth.py` subscribe `/cmd_vel`, `/scan`, `/camera/*` depth/rgb, publish `/detection_info`, encoder topics, and command serial motor drivers with stop/resume safety.
+
+---
+
 ## 5. ROS Actions API
 
 ROS Actions are long-running tasks that can be monitored. Accessible via ROS Bridge or direct ROS clients.
@@ -864,4 +885,3 @@ rosservice call /waypoint_infos "type: 'general'"
 - **Service Definitions**: `catkin_ws/src/shobot_systems/shobot_msgs/srv/`
 - **Message Definitions**: `catkin_ws/src/shobot_systems/shobot_msgs/msg/`
 - **Action Definitions**: `catkin_ws/src/shobot_systems/shobot_msgs/action/`
-

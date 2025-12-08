@@ -84,6 +84,7 @@ const MainPage = () => {
   const mapRef = useRef(null);
   const layoutRef = useRef(null);
   const chatContainerRef = useRef(null);
+  const bridgeBase = process.env.REACT_APP_AMR_BRIDGE_BASE || "http://localhost:8000";
 
   // Chat state
   const [chatMessages, setChatMessages] = useState([
@@ -103,6 +104,7 @@ const MainPage = () => {
     "Return to docking station",
     "Begin perimeter scan",
     "Share latest sensor alerts",
+    "Start recording telemetry for 5 minutes",
   ];
 
   useEffect(() => {
@@ -175,10 +177,12 @@ const MainPage = () => {
     latest: null,
     lastUpdated: null,
     error: "",
+    endpoint: bridgeBase,
   });
   const bridgeConnRef = useRef({ send: null, close: null });
   const bridgeConnectedRef = useRef(false);
   const lastCmdSentRef = useRef(0);
+  const reconnectRef = useRef(null);
 
   // handler passed to JoyStick so component receives events (stick or keyboard)
   const handleJoystickMove = useCallback((data) => {
@@ -222,11 +226,15 @@ const MainPage = () => {
   }, []);
 
   // Connect to AMR bridge (FastAPI/ROS2) via WebSocket with HTTP poll fallback
-  useEffect(() => {
+  const startBridgeConnection = useCallback(() => {
+    // Close previous socket if any
+    bridgeConnRef.current?.close?.();
+
     const conn = connectBridgeSocket({
+      baseUrl: bridgeBase,
       onOpen: () => {
         bridgeConnectedRef.current = true;
-        setBridgeStatus((prev) => ({ ...prev, connected: true, error: "" }));
+        setBridgeStatus((prev) => ({ ...prev, connected: true, error: "", endpoint: bridgeBase }));
       },
       onStatus: (data) => {
         bridgeConnectedRef.current = true;
@@ -235,46 +243,62 @@ const MainPage = () => {
           latest: data || {},
           lastUpdated: Date.now(),
           error: "",
+          endpoint: bridgeBase,
         });
       },
       onError: (err) => {
         setBridgeStatus((prev) => ({
           ...prev,
           error: err?.message || "Bridge WebSocket error",
+          endpoint: bridgeBase,
         }));
       },
       onClose: () => {
         bridgeConnectedRef.current = false;
-        setBridgeStatus((prev) => ({ ...prev, connected: false }));
+        setBridgeStatus((prev) => ({ ...prev, connected: false, endpoint: bridgeBase }));
       },
     });
 
     bridgeConnRef.current = conn;
+  }, [bridgeBase]);
+
+  useEffect(() => {
+    startBridgeConnection();
 
     const pollInterval = setInterval(async () => {
       if (bridgeConnectedRef.current) return;
       try {
-        const status = await fetchBridgeStatus();
+        const status = await fetchBridgeStatus(bridgeBase);
         setBridgeStatus((prev) => ({
           ...prev,
           connected: status?.status === "online",
           latest: status?.latest_status || prev.latest,
           lastUpdated: Date.now(),
           error: "",
+          endpoint: bridgeBase,
         }));
       } catch (err) {
         setBridgeStatus((prev) => ({
           ...prev,
           error: err?.message || "Bridge status fetch failed",
+          endpoint: bridgeBase,
         }));
+        // auto retry after short backoff to avoid sticky offline state
+        if (!reconnectRef.current) {
+          reconnectRef.current = setTimeout(() => {
+            reconnectRef.current = null;
+            startBridgeConnection();
+          }, 4000);
+        }
       }
     }, 5000);
 
     return () => {
-      conn?.close?.();
+      bridgeConnRef.current?.close?.();
       clearInterval(pollInterval);
+      if (reconnectRef.current) clearTimeout(reconnectRef.current);
     };
-  }, []);
+  }, [startBridgeConnection, bridgeBase]);
 
   // Send joystick vectors as cmd_vel (throttled) to the bridge
   useEffect(() => {
@@ -1123,8 +1147,13 @@ const MainPage = () => {
             ? { ...msg, status: data.message?.status || "Delivered" }
             : msg,
         );
-        return data.reply ? [...updated, data.reply] : updated;
+        const next = data.reply ? [...updated, data.reply] : updated;
+        return next;
       });
+      if (Array.isArray(data.actions) && data.actions.length) {
+        const actionNames = data.actions.map((a) => a.action || a.description).join(", ");
+        toast.success(`Agent planned: ${actionNames}`);
+      }
     } catch (error) {
       console.error("Chat send error", error);
       setChatMessages((prev) =>
@@ -1690,8 +1719,8 @@ const MainPage = () => {
               bridgeStatus.error
                 ? `Bridge: ${bridgeStatus.error}`
                 : bridgeStatus.connected
-                ? "Connected to AMR bridge"
-                : "Bridge offline"
+                ? `Connected to AMR bridge (${bridgeStatus.endpoint})`
+                : `Bridge offline (${bridgeStatus.endpoint})`
             }
           >
             <span className="bridge-dot" />
@@ -1699,8 +1728,20 @@ const MainPage = () => {
               <div className="bridge-chip-label">AMR Bridge</div>
               <div className="bridge-chip-sub">
                 {bridgeStatus.connected ? "Connected" : "Offline"}
+                {bridgeStatus.endpoint ? ` · ${bridgeStatus.endpoint}` : ""}
               </div>
             </div>
+            <button
+              type="button"
+              className="bridge-retry-btn"
+              onClick={() => {
+                toast.dismiss("bridge-retry");
+                toast.success("Retrying bridge connection…", { id: "bridge-retry", duration: 1500 });
+                startBridgeConnection();
+              }}
+            >
+              Retry
+            </button>
           </div>
         </div>
 
@@ -3886,6 +3927,7 @@ const MainPage = () => {
                   <div className="chat-messages" ref={chatContainerRef}>
                     {chatMessages.map((message) => {
                       const isRobot = message.sender === "robot";
+                      const meta = message.metadata || {};
                       return (
                         <div
                           key={message.id}
@@ -3897,12 +3939,25 @@ const MainPage = () => {
                             <div className="chat-meta">
                               <span>{isRobot ? "Robot" : "You"}</span>
                               <span>{formatTimestamp(message.timestamp)}</span>
+                              {message.status && (
+                                <span className="chat-status">{message.status}</span>
+                              )}
                             </div>
                             <p>{message.text}</p>
-                            {!isRobot && (
-                              <span className="chat-status">
-                                {message.status || "Sent"}
-                              </span>
+                            {meta.intent && (
+                              <div className="chat-intent-chip">
+                                Intent: {meta.intent}
+                                {meta.source ? ` (${meta.source})` : ""}
+                              </div>
+                            )}
+                            {Array.isArray(meta.actions) && meta.actions.length > 0 && (
+                              <div className="chat-actions-list">
+                                {meta.actions.map((act, idx) => (
+                                  <span key={idx} className="chat-chip">
+                                    {act.description || act.action || "Action"}
+                                  </span>
+                                ))}
+                              </div>
                             )}
                           </div>
                         </div>

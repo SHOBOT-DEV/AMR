@@ -12,7 +12,7 @@ from __future__ import annotations
 from copy import deepcopy
 from datetime import datetime
 from threading import Lock
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from uuid import uuid4
 
 
@@ -777,7 +777,7 @@ class FrontendDataStore:
         with self._lock:
             return _clone(self._state["chat_messages"])
 
-    def add_chat_message(self, sender: str, text: str) -> Dict[str, Any]:
+    def add_chat_message(self, sender: str, text: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         with self._lock:
             message = {
                 "id": self._new_id("msg"),
@@ -786,6 +786,8 @@ class FrontendDataStore:
                 "timestamp": _utc_ts(),
                 "status": "Delivered" if sender == "robot" else "Sent",
             }
+            if metadata:
+                message["metadata"] = metadata
             self._state["chat_messages"].append(message)
             return _clone(message)
 

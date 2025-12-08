@@ -204,8 +204,27 @@ class MotorControlNode(Node):
             self.get_logger().error(f"Error in image callback: {e}")
 
     def depth_callback(self, msg):
-        # Similar processing can be added for depth data if needed.
-        pass
+        """Update closest camera depth from raw depth images."""
+        try:
+            cv_depth = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
+            depth_array = np.array(cv_depth, dtype=np.float32)
+
+            # Depth cameras often publish uint16 in millimeters; scale if needed.
+            if depth_array.dtype == np.uint16:
+                depth_array = depth_array * 0.001
+
+            finite_vals = depth_array[np.isfinite(depth_array)]
+            if finite_vals.size == 0:
+                self.camera_closest_distance = float('inf')
+                return
+
+            min_depth = float(np.min(finite_vals))
+            self.camera_closest_distance = min_depth
+            detection_info = json.dumps({"Depth": f"{min_depth:.2f}m"})
+            self.detection_pub.publish(String(data=detection_info))
+            self.check_obstacle()
+        except Exception as e:
+            self.get_logger().error(f"Error in depth callback: {e}")
 
     def check_obstacle(self):
         """Stop motors if LiDAR or camera see an obstacle below thresholds."""

@@ -2,6 +2,7 @@
 """Very simple local planner that follows waypoints as a velocity stream."""
 from collections import deque
 from typing import Deque, List
+import math
 
 import rclpy
 from geometry_msgs.msg import PoseStamped, Twist
