@@ -323,6 +323,34 @@ const Sidebar = (props) => {
               e.preventDefault();
               setShowMonitorSub(false);
               setMonitorPos(null);
+              if (onSelect) onSelect("camera");
+            }}
+          >
+            <FaLayerGroup className="right-sub-icon" />
+            <span>Camera</span>
+          </button>
+          <button
+            type="button"
+            className="right-create-item"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              setShowMonitorSub(false);
+              setMonitorPos(null);
+              if (onSelect) onSelect("bridge");
+            }}
+          >
+            <FaLayerGroup className="right-sub-icon" />
+            <span>AMR Bridge</span>
+          </button>
+          <button
+            type="button"
+            className="right-create-item"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              setShowMonitorSub(false);
+              setMonitorPos(null);
               if (onSelect) onSelect("diagnostics");
             }}
           >

@@ -27,6 +27,9 @@ import {
 import "./MainPage.css";
 
 const API_V1_BASE = `${API_BASE}/api/v1`;
+const DEFAULT_CAMERA_URL =
+  process.env.REACT_APP_CAMERA_URL ||
+  `${process.env.REACT_APP_AMR_BRIDGE_BASE || "http://localhost:8000"}/api/camera/stream`;
 
 const FALLBACK_STATS = {
   overview: {
@@ -520,6 +523,16 @@ const MainPage = () => {
     status: "Draft",
     notes: "",
   });
+  const [cameraUrl, setCameraUrl] = useState(DEFAULT_CAMERA_URL);
+  const bridgeApiLayers = [
+    { layer: "Control", purpose: "Teleop, localization, PLC", ids: "9001, 9002, 9003" },
+    { layer: "Push", purpose: "Live robot position", ids: "8001" },
+    { layer: "Mapping", purpose: "Start/stop mapping, map data", ids: "9102, 9103, 9101" },
+    { layer: "Task Manager", purpose: "Missions & PLC IO", ids: "8766, 8767, 8768" },
+    { layer: "Status", purpose: "Lidar, odom, path, PLC inputs", ids: "7001–7008" },
+    { layer: "WiFi", purpose: "Setup network", ids: "4001–4003" },
+    { layer: "Navigation", purpose: "Autonomous motion", ids: "3001–3003" },
+  ];
 
   // users data + selection (fixes eslint no-undef)
   const [users, setUsers] = useState([]);
@@ -3518,6 +3531,96 @@ const MainPage = () => {
                       <p>{panel.detail}</p>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {rightPage === "bridge" && (
+                <div className="analytics-pane">
+                  <div className="analytics-kpis" style={{ gap: 12 }}>
+                    <div className="kpi-card" style={{ flex: 1 }}>
+                      <span className="kpi-label">AMR Bridge</span>
+                      <strong>{bridgeStatus.connected ? "Connected" : "Offline"}</strong>
+                      <span className="kpi-trend">
+                        {bridgeStatus.endpoint || "—"}{" "}
+                        {bridgeStatus.error ? ` · ${bridgeStatus.error}` : ""}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="analytics-chart-card">
+                    <div className="stats-card-header">
+                      <div>
+                        <h4>Bridge Layers</h4>
+                        <p>Expected IDs by layer</p>
+                      </div>
+                    </div>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr style={{ textAlign: "left", borderBottom: "1px solid #e5e7eb" }}>
+                          <th style={{ padding: "10px 8px" }}>Layer</th>
+                          <th style={{ padding: "10px 8px" }}>Purpose</th>
+                          <th style={{ padding: "10px 8px" }}>API IDs</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bridgeApiLayers.map((row) => (
+                          <tr key={row.layer} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                            <td style={{ padding: "10px 8px", fontWeight: 700 }}>{row.layer}</td>
+                            <td style={{ padding: "10px 8px", color: "#475569" }}>{row.purpose}</td>
+                            <td style={{ padding: "10px 8px", color: "#0f172a" }}>{row.ids}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {rightPage === "camera" && (
+                <div className="pane-wrapper">
+                  <div className="pane-controls">
+                    <h4>AMR Camera</h4>
+                    <input
+                      type="text"
+                      value={cameraUrl}
+                      onChange={(e) => setCameraUrl(e.target.value)}
+                      placeholder="http://camera-host/stream.mjpg"
+                      className="pane-input"
+                      aria-label="Camera stream URL"
+                    />
+                    <div className="pane-meta">
+                      {cameraUrl ? "Stream configured" : "No URL set"}
+                      {cameraUrl ? ` · ${cameraUrl}` : ""}
+                    </div>
+                  </div>
+                  <div className="pane-card">
+                    {cameraUrl ? (
+                      cameraUrl.toLowerCase().includes("mjpg") ||
+                      cameraUrl.toLowerCase().includes("multipart") ||
+                      cameraUrl.toLowerCase().includes("stream") ? (
+                        <img
+                          key={cameraUrl}
+                          src={cameraUrl}
+                          alt="AMR camera stream"
+                          style={{ width: "100%", maxHeight: 480, objectFit: "contain", background: "#000" }}
+                        />
+                      ) : (
+                        <video
+                          key={cameraUrl}
+                          src={cameraUrl}
+                          controls
+                          autoPlay
+                          muted
+                          style={{ width: "100%", maxHeight: 480, background: "#000" }}
+                        >
+                          Your browser does not support the video tag.
+                        </video>
+                      )
+                    ) : (
+                      <div style={{ color: "#94a3b8" }}>
+                        Enter a camera stream URL to view video.
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
