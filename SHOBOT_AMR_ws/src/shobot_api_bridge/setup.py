@@ -9,9 +9,12 @@ setup(
     data_files=[
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
         ("share/" + package_name, ["package.xml"]),
-        ("share/" + package_name + "/launch", ["launch/api_bridge_launch.py"]),
+        (
+            "share/" + package_name + "/launch",
+            ["launch/api_bridge_launch.py", "launch/mission_api_bridge_launch.py"],
+        ),
     ],
-    install_requires=["setuptools", "flask", "flask-cors"],
+    install_requires=["setuptools", "flask", "flask-cors", "requests"],
     zip_safe=True,
     maintainer="SHOBOT",
     maintainer_email="todo@example.com",
@@ -21,6 +24,7 @@ setup(
     entry_points={
         "console_scripts": [
             "api_bridge = shobot_api_bridge.api_bridge:main",
+            "mission_api_bridge = shobot_api_bridge.mission_api_bridge:main",
         ],
     },
 )

@@ -720,6 +720,28 @@ ROS2 nodes in `SHOBOT_AMR_ws/src` expose these topics/services/actions by defaul
 
 ---
 
+## 4c. Backend REST API (ANSER/ANYA-style)
+
+Base prefix: `/api/v1` (set header `Authorization: Bearer <token>`; POST/PUT bodies as JSON). Total unique patterns: 56.
+
+- **Auth**: `POST /auth`
+- **Users**: `POST /users`, `GET /users`, `GET /users/{userId}`, `GET /users/me`, `PUT /users/{userId}`, `DELETE /users/{userId}`, `POST /users/reset-password/{userId}`
+- **Maps**: `GET /maps`, `GET /maps/{mapId}`, `GET /maps/preview/{mapId}`, `GET /maps/data`, `POST /maps`, `PUT /maps/{mapId}`, `PUT /maps/edit/{mapId}?saveAsNew=true`, `DELETE /maps/{mapId}`, `POST /maps/load/{mapId}`
+- **Waypoints**: `GET /waypoints`, `GET /waypoints/{id}`, `POST /waypoints`, `PUT /waypoints/{id}?updatePose=true`, `DELETE /waypoints/{id}`
+- **Missions**: `GET /missions`, `GET /missions/{missionId}`, `POST /missions`, `POST /missions/initiate/{missionId}`, `PUT /missions/{missionId}`, `DELETE /missions/{missionId}`
+- **Mission logs**: `GET /missions/logs`, `GET /missions/logs/{logId}/progress`
+- **Robot bags**: `GET /robot/bags/files`, `GET /robot/bags/downloads/utils/point.js`, `GET /robot/bags/file`, `GET /robot/bags/list`
+- **Robot goals**: `POST /robot/quickgoal`, `POST /robot/quickgoal/{waypointId}`
+- **Zones**: `GET /zones`, `GET /zones/{zoneId}`, `POST /zones`, `PUT /zones/{zoneId}`, `DELETE /zones/{zoneId}`
+- **Graphs**: `GET /graphs`, `GET /graphs/{graphId}`, `POST /graphs`, `PUT /graphs/{graphId}`, `DELETE /graphs/{graphId}`
+- **Logs**: `GET /logs?from&to`, `GET /logs/export?from&to`, `POST /logs`
+- **Analytics**: `GET /analytics/battery?from&to`
+- **Registers**: `GET /registers`
+- **Downloads**: `GET /downloads?from&to`, `GET /downloads/{filename}`
+- **Root**: `GET /`, `GET /v1/abc`
+
+---
+
 ## 5. ROS Actions API
 
 ROS Actions are long-running tasks that can be monitored. Accessible via ROS Bridge or direct ROS clients.

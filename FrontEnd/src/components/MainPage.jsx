@@ -511,6 +511,7 @@ const MainPage = () => {
   ];
   const [missions, setMissions] = useState(initialMissions);
   const [selectedMissionId, setSelectedMissionId] = useState(null);
+  const [missionActionLoading, setMissionActionLoading] = useState(false);
   const handleSelectMission = (id) => setSelectedMissionId(id);
   const [missionFormOpen, setMissionFormOpen] = useState(false);
   const [missionForm, setMissionForm] = useState({
@@ -1059,6 +1060,8 @@ const MainPage = () => {
         }
         return data;
       } catch (error) {
+        // Bubble an explicit marker so mission flows can decide to retry/notify
+        error.isApiError = true;
         if (error.message === "No access token available") {
           clearAuthTokens();
           navigate("/");
@@ -1067,6 +1070,44 @@ const MainPage = () => {
       }
     },
     [navigate],
+  );
+
+  // Convenience wrapper for mission actions to ensure we capture errors in UI
+  const missionRequest = useCallback(
+    async (path, options = {}) => {
+      return requestV1(path, options);
+    },
+    [requestV1],
+  );
+
+  const handleInitiateMission = useCallback(
+    async (missionId) => {
+      if (!missionId) {
+        toast.error("Select a mission first");
+        return;
+      }
+      setMissionActionLoading(true);
+      try {
+        const response = await missionRequest(`/missions/${missionId}/initiate`, {
+          method: "POST",
+        });
+        const updated = response.item;
+        if (updated) {
+          setMissions((prev) =>
+            prev.map((m) => (m.id === missionId ? { ...m, ...updated } : m)),
+          );
+          toast.success("Mission dispatched to robot");
+        } else {
+          toast.success("Mission dispatched");
+        }
+      } catch (error) {
+        console.error("Mission initiate error", error);
+        toast.error(error.message || "Failed to dispatch mission");
+      } finally {
+        setMissionActionLoading(false);
+      }
+    },
+    [missionRequest],
   );
 
   const loadUsers = useCallback(async () => {
@@ -3193,10 +3234,10 @@ const MainPage = () => {
                               notes: missionForm.notes,
                             };
                             try {
-                              const response = await requestV1("/missions", {
-                                method: "POST",
-                                body: JSON.stringify(payload),
-                              });
+                          const response = await missionRequest("/missions", {
+                            method: "POST",
+                            body: JSON.stringify(payload),
+                          });
                               const createdMission = response.item || payload;
                               setMissions((prev) => [createdMission, ...prev]);
                               setSelectedMissionId(createdMission.id);
@@ -3403,6 +3444,15 @@ const MainPage = () => {
                             </div>
                             <div style={{ marginTop: 10, color: "#475569" }}>
                               {m.notes || "No notes."}
+                            </div>
+                            <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
+                              <button
+                                className="primary-btn"
+                                onClick={() => handleInitiateMission(m.id)}
+                                disabled={missionActionLoading}
+                              >
+                                {missionActionLoading ? "Dispatching..." : "Initiate Mission"}
+                              </button>
                             </div>
                           </div>
                         );

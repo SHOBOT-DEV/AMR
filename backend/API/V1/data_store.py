@@ -40,6 +40,39 @@ class FrontendDataStore:
         """Generate a 24-char hex string similar to MongoDB ObjectId."""
         return uuid4().hex[:24]
 
+    def _current_user_info(self) -> Dict[str, str]:
+        """Lightweight helper to pull the mock 'logged-in' user profile."""
+        account = self._state.get("account", {})
+        return {
+            "name": account.get("fullName", "System"),
+            "email": account.get("email", ""),
+        }
+
+    def _normalize_mission(self, mission: Dict[str, Any]) -> Dict[str, Any]:
+        """Ensure missions always include ownership metadata derived from the user profile."""
+        current_user = self._current_user_info()
+        raw_created_by = mission.get("createdBy")
+        created_by = (
+            raw_created_by
+            if isinstance(raw_created_by, dict)
+            else {"name": current_user["name"], "email": current_user["email"]}
+        )
+        owner_email = (
+            mission.get("email")
+            or mission.get("ownerEmail")
+            or created_by.get("email")
+            or current_user["email"]
+        )
+        normalized = {
+            **mission,
+            "owner": mission.get("owner") or created_by.get("name") or current_user["name"],
+            "email": owner_email,
+            "createdBy": created_by,
+            "createdAt": mission.get("createdAt") or _utc_ts(),
+            "status": mission.get("status") or ("Active" if mission.get("isActive", True) else "Inactive"),
+        }
+        return normalized
+
     def _default_state(self) -> Dict[str, Any]:
         return {
             "maps": [
@@ -163,6 +196,28 @@ class FrontendDataStore:
                         "previewUrl": "",
                     },
                 },
+                {
+                    "id": "6371a9ca8a134c1047891d21",
+                    "_id": "6371a9ca8a134c1047891d21",
+                    "name": "WAKANDA",
+                    "createdBy": "6371a6778a134c1047891cfd",
+                    "status": "",
+                    "isActive": False,
+                    "createdAt": "2022-11-14T02:36:58.827Z",
+                    "previewImage": "https://localhost:5000/previewMap1",
+                    "properties": {
+                        "origin": {
+                            "position": {"x": 0.005012, "y": 0.005012, "z": 0.005012},
+                            "orientation": {"x": 0.005012, "y": 0.005012, "z": 0.005012, "w": 0.005012},
+                            "_id": "6371a9ca8a134c1047891d23",
+                        },
+                        "width": 420,
+                        "height": 1260,
+                        "resolution": 0.005012,
+                        "previewUrl": "https://localhost:5000/previewMap1",
+                        "_id": "6371a9ca8a134c1047891d22",
+                    },
+                },
             ],
             "zones": [
                 {
@@ -236,37 +291,221 @@ class FrontendDataStore:
             ],
             "missions": [
                 {
-                    "id": "63660bcc15d4c31b0f42b001",
-                    "_id": "63660bcc15d4c31b0f42b001",
-                    "name": "Inspect Zone A",
-                    "owner": "CNDE IITM",
-                    "status": "Draft",
-                    "createdAt": "2025-11-17T09:30:00Z",
-                    "notes": "Routine inspection",
-                    "mapId": "63621a320e8f3ea6b22dd668",
-                    "waypoints": ["wp_6365025662a66cbf31230001"],
+                    "id": "635acf02c53974c5497949da",
+                    "_id": "635acf02c53974c5497949da",
+                    "name": "Wakanda",
+                    "email": "wakanda@anscer.com",
+                    "role": "admin",
+                    "createdBy": None,
+                    "createdAt": "2022-10-27T18:33:38.718Z",
+                    "updatedAt": "2022-11-12T06:37:30.021Z",
+                    "__v": 0,
+                    "updatedBy": {
+                        "_id": "635d2b7628b2f98a00580803",
+                        "name": "Ashwanee Kumar Gupta",
+                        "email": "ashwanee@anscer.com",
+                    },
+                    "isActive": True,
                 },
                 {
-                    "id": "6365025662a66cbf3123b002",
-                    "_id": "6365025662a66cbf3123b002",
-                    "name": "Delivery Route 3",
-                    "owner": "CNDE IITM",
-                    "status": "Scheduled",
-                    "createdAt": "2025-11-16T08:10:00Z",
-                    "notes": "Delivery to docks",
-                    "mapId": "6365025662a66cbf3123562e",
-                    "waypoints": ["wp_63660bcc15d4c31b0f42aaa1"],
+                    "id": "635d47031975c4da01c1f498",
+                    "_id": "635d47031975c4da01c1f498",
+                    "name": "abcd abcd",
+                    "email": "abcd@anscer.com",
+                    "role": "admin",
+                    "createdBy": {
+                        "_id": "635acf02c53974c5497949da",
+                        "name": "Wakanda",
+                        "email": "wakanda@anscer.com",
+                    },
+                    "createdAt": "2022-10-29T15:30:11.125Z",
+                    "updatedAt": "2022-11-07T11:39:15.677Z",
+                    "__v": 0,
+                    "updatedBy": {
+                        "_id": "635d2b7628b2f98a00580803",
+                        "name": "Ashwanee Kumar Gupta",
+                        "email": "ashwanee@anscer.com",
+                    },
+                    "isActive": False,
                 },
                 {
-                    "id": "63621a320e8f3ea6b22dd003",
-                    "_id": "63621a320e8f3ea6b22dd003",
-                    "name": "Battery Check",
-                    "owner": "CNDE IITM",
-                    "status": "Completed",
-                    "createdAt": "2025-11-15T18:45:00Z",
-                    "notes": "Post-run check",
-                    "mapId": "6360b98e80dccb699a18fbd6",
-                    "waypoints": ["wp_63621a320e8f3ea6b22dd001"],
+                    "id": "6368ed66fe89e2cbc83fa9bd",
+                    "_id": "6368ed66fe89e2cbc83fa9bd",
+                    "name": "Ashwanee",
+                    "email": "ashwanee@gmail.com",
+                    "isActive": True,
+                    "role": "admin",
+                    "createdBy": {
+                        "_id": "635d2b7628b2f98a00580803",
+                        "name": "Ashwanee Kumar Gupta",
+                        "email": "ashwanee@anscer.com",
+                    },
+                    "createdAt": "2022-11-07T11:35:02.754Z",
+                    "updatedAt": "2022-11-12T10:20:57.006Z",
+                    "__v": 0,
+                    "updatedBy": {
+                        "_id": "635d2b7628b2f98a00580803",
+                        "name": "Ashwanee Kumar Gupta",
+                        "email": "ashwanee@anscer.com",
+                    },
+                },
+                {
+                    "id": "636a883208adc339b8a8c0c8",
+                    "_id": "636a883208adc339b8a8c0c8",
+                    "name": "Ashwanee",
+                    "email": "ashwanee2001gupta@gmail.com",
+                    "isActive": True,
+                    "role": "admin",
+                    "createdBy": {
+                        "_id": "635d2b7628b2f98a00580803",
+                        "name": "Ashwanee Kumar Gupta",
+                        "email": "ashwanee@anscer.com",
+                    },
+                    "createdAt": "2022-11-08T16:47:46.262Z",
+                    "updatedAt": "2022-11-08T16:47:46.262Z",
+                    "__v": 0,
+                },
+                {
+                    "id": "636f1212dcf1275db2c6afba",
+                    "_id": "636f1212dcf1275db2c6afba",
+                    "name": "WhiteWolf",
+                    "email": "whitewolf@anscer.com",
+                    "isActive": True,
+                    "role": "admin",
+                    "createdBy": {
+                        "_id": "635d2b7628b2f98a00580803",
+                        "name": "Ashwanee Kumar Gupta",
+                        "email": "ashwanee@anscer.com",
+                    },
+                    "createdAt": "2022-11-12T03:25:06.626Z",
+                    "updatedAt": "2022-11-12T03:25:06.626Z",
+                    "__v": 0,
+                },
+                {
+                    "id": "635ad9430c89aac7fd5b8968",
+                    "_id": "635ad9430c89aac7fd5b8968",
+                    "name": "Test User 2",
+                    "email": "test4@anscer.com",
+                    "role": "developer",
+                    "createdBy": {
+                        "_id": "635acf02c53974c5497949da",
+                        "name": "Wakanda",
+                        "email": "wakanda@anscer.com",
+                    },
+                    "createdAt": "2022-10-27T19:17:23.934Z",
+                    "updatedAt": "2022-10-29T14:00:08.081Z",
+                    "__v": 0,
+                    "updatedBy": None,
+                    "isActive": True,
+                },
+                {
+                    "id": "635d2b7628b2f98a00580803",
+                    "_id": "635d2b7628b2f98a00580803",
+                    "name": "Ashwanee Kumar Gupta",
+                    "email": "ashwanee@anscer.com",
+                    "role": "developer",
+                    "createdAt": "2022-10-29T13:32:38.770Z",
+                    "updatedAt": "2022-10-29T13:32:38.770Z",
+                    "__v": 0,
+                    "isActive": True,
+                },
+                {
+                    "id": "636a6c7c08adc339b8a80553",
+                    "_id": "636a6c7c08adc339b8a80553",
+                    "name": "Raghu V",
+                    "email": "raghu@anscer.com",
+                    "isActive": True,
+                    "role": "developer",
+                    "createdBy": {
+                        "_id": "635d2b7628b2f98a00580803",
+                        "name": "Ashwanee Kumar Gupta",
+                        "email": "ashwanee@anscer.com",
+                    },
+                    "createdAt": "2022-11-08T14:49:32.790Z",
+                    "updatedAt": "2022-11-08T14:49:32.790Z",
+                    "__v": 0,
+                },
+                {
+                    "id": "635ac64ffec0c050435623ee",
+                    "_id": "635ac64ffec0c050435623ee",
+                    "name": "Test User 2",
+                    "email": "test2@anscer.com",
+                    "role": "user",
+                    "createdBy": None,
+                    "createdAt": "2022-10-27T17:56:31.223Z",
+                    "updatedAt": "2022-10-29T18:01:57.727Z",
+                    "__v": 0,
+                    "updatedBy": {
+                        "_id": "635acf02c53974c5497949da",
+                        "name": "Wakanda",
+                        "email": "wakanda@anscer.com",
+                    },
+                    "isActive": True,
+                },
+                {
+                    "id": "635ad24655bc671e40735dc6",
+                    "_id": "635ad24655bc671e40735dc6",
+                    "name": "BlaBla Bla",
+                    "email": "blablabla@anscer.com",
+                    "role": "user",
+                    "createdBy": {
+                        "_id": "635acf02c53974c5497949da",
+                        "name": "Wakanda",
+                        "email": "wakanda@anscer.com",
+                    },
+                    "createdAt": "2022-10-27T18:47:34.208Z",
+                    "updatedAt": "2022-10-29T14:24:52.115Z",
+                    "__v": 0,
+                    "updatedBy": None,
+                    "isActive": True,
+                },
+                {
+                    "id": "636b4c7b08adc339b8a8c28d",
+                    "_id": "636b4c7b08adc339b8a8c28d",
+                    "name": "Website",
+                    "email": "website@gmail.com",
+                    "isActive": True,
+                    "role": "user",
+                    "createdBy": {
+                        "_id": "635d2b7628b2f98a00580803",
+                        "name": "Ashwanee Kumar Gupta",
+                        "email": "ashwanee@anscer.com",
+                    },
+                    "createdAt": "2022-11-09T06:45:15.565Z",
+                    "updatedAt": "2022-11-09T06:45:15.565Z",
+                    "__v": 0,
+                },
+                {
+                    "id": "636f73badcf1275db2c6b022",
+                    "_id": "636f73badcf1275db2c6b022",
+                    "name": "New User",
+                    "email": "newuser@abc.com",
+                    "isActive": True,
+                    "role": "user",
+                    "createdBy": {
+                        "_id": "635d2b7628b2f98a00580803",
+                        "name": "Ashwanee Kumar Gupta",
+                        "email": "ashwanee@anscer.com",
+                    },
+                    "createdAt": "2022-11-12T10:21:46.946Z",
+                    "updatedAt": "2022-11-12T10:21:46.946Z",
+                    "__v": 0,
+                },
+                {
+                    "id": "6371a6778a134c1047891cfd",
+                    "_id": "6371a6778a134c1047891cfd",
+                    "name": "Ashwanee",
+                    "email": "ashwanee@abc.com",
+                    "isActive": True,
+                    "role": "user",
+                    "createdBy": {
+                        "_id": "635d2b7628b2f98a00580803",
+                        "name": "Ashwanee Kumar Gupta",
+                        "email": "ashwanee@anscer.com",
+                    },
+                    "createdAt": "2022-11-14T02:22:47.669Z",
+                    "updatedAt": "2022-11-14T02:22:47.669Z",
+                    "__v": 0,
                 },
             ],
             "users": [
@@ -659,16 +898,25 @@ class FrontendDataStore:
     # Missions
     def list_missions(self) -> List[Dict[str, Any]]:
         with self._lock:
-            return _clone(self._state["missions"])
+            missions = [_clone(self._normalize_mission(m)) for m in self._state["missions"]]
+            return missions
 
     def create_mission(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         with self._lock:
+            current_user = self._current_user_info()
+            created_by = payload.get("createdBy") or {
+                "name": current_user["name"],
+                "email": current_user["email"],
+            }
+            owner_email = payload.get("email") or payload.get("ownerEmail") or created_by.get("email")
             object_id = payload.get("_id") or self._new_object_id()
             mission = {
                 "id": payload.get("id") or object_id,
                 "_id": object_id,
                 "name": payload.get("name", "New Mission"),
-                "owner": payload.get("owner", "CNDE IITM"),
+                "owner": payload.get("owner") or created_by.get("name") or current_user["name"],
+                "email": owner_email,
+                "createdBy": created_by,
                 "status": payload.get("status", "Draft"),
                 "notes": payload.get("notes", ""),
                 "mapId": payload.get("mapId"),
@@ -676,13 +924,14 @@ class FrontendDataStore:
                 "isActive": bool(payload.get("isActive", True)),
                 "createdAt": payload.get("createdAt", _utc_ts()),
             }
-            self._state["missions"].append(mission)
-            return _clone(mission)
+            normalized = self._normalize_mission(mission)
+            self._state["missions"].append(normalized)
+            return _clone(normalized)
 
     def update_mission(self, mission_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         with self._lock:
             idx, item = self._collection_index("missions", mission_id)
-            updated = {**item, **payload, "id": mission_id}
+            updated = self._normalize_mission({**item, **payload, "id": mission_id})
             self._state["missions"][idx] = updated
             return _clone(updated)
 
@@ -694,7 +943,9 @@ class FrontendDataStore:
     def initiate_mission(self, mission_id: str) -> Dict[str, Any]:
         with self._lock:
             idx, item = self._collection_index("missions", mission_id)
-            updated = {**item, "status": "Running", "startedAt": _utc_ts()}
+            updated = self._normalize_mission(
+                {**item, "status": "Running", "startedAt": _utc_ts()}
+            )
             self._state["missions"][idx] = updated
             return _clone(updated)
 

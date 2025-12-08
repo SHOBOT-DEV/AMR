@@ -1,6 +1,6 @@
 # SHOBOT_AMR_ws (ROS 2 workspace)
 
-ROS 2 colcon workspace for the SHOBOT AMR stack. All packages are Python (`rclpy`) nodes; most are scaffolding placeholders to be filled in during the ROS 1 → ROS 2 port. `shobot_api_bridge` already exposes a small HTTP/WebSocket bridge for driving and status.
+ROS 2 colcon workspace for the SHOBOT AMR stack. All packages are Python (`rclpy`) nodes; most are scaffolding placeholders to be filled in during the ROS 1 → ROS 2 port. `shobot_api_bridge` already exposes a small HTTP/WebSocket bridge for driving and status, and now includes a mission bridge that syncs missions from the Flask API (`/api/v1/missions`) into the ROS mission queue.
 
 ## Layout
 - `src/` – ROS 2 packages (all `ament_cmake_python`)
@@ -8,12 +8,14 @@ ROS 2 colcon workspace for the SHOBOT AMR stack. All packages are Python (`rclpy
 - `launch/` folders inside each package provide basic launch files for the packaged node
 
 ## Packages at a glance
-- `shobot_api_bridge` – FastAPI + WebSocket bridge; publishes to `cmd_vel` and mirrors the latest status message from `status_topic` to connected clients.
+- `shobot_api_bridge`
+  - `api_bridge`: Flask HTTP/WebSocket bridge; publishes to `cmd_vel` and mirrors the latest status message from `status_topic` to connected clients.
+  - `mission_api_bridge`: polls `/api/v1/missions`, publishes dispatchable missions to `/mission_queue`, and updates mission status in the API.
 - Placeholders (spin a minimal node that only logs startup): `shobot_costmap_plugins`, `shobot_costmap_safety_layer`, `shobot_docking`, `shobot_laser_filters`, `shobot_local_planner`, `shobot_mission_control`, `shobot_mission_handler`, `shobot_navigation`, `shobot_navigation_server`, `shobot_pointcloud_assembler`, `shobot_pointcloud_filter`, `shobot_pointcloud_to_laserscan`, `shobot_robot_localization`, `shobot_robot_pose_publisher`, `shobot_rosbridge_suite`, `shobot_scan_merger`, `shobot_status_aggregator`, `shobot_teleop`, `shobot_trajectory_controller`, `shobot_twist_mux`, `shobot_yolo_detection`, `shobot_zone_management`.
 
 ## Prerequisites
 - ROS 2 distro (Humble or later), `colcon`, and `rosdep`
-- Python deps: `fastapi` and `uvicorn` for `shobot_api_bridge` (install via `rosdep` or `pip`)
+- Python deps for `shobot_api_bridge`: `flask`, `flask-cors`, `requests` (install via `rosdep` or `pip`)
 
 ## Build
 ```bash
@@ -30,6 +32,12 @@ source install/setup.bash
   ros2 launch shobot_api_bridge api_bridge_launch.py
   # Endpoints: GET /api/status, POST /api/cmd_vel, WS /ws
   # Parameters: cmd_vel_topic (/cmd_vel), status_topic (/status_text)
+  ```
+- Mission bridge (polls backend API and forwards missions to ROS):
+  ```bash
+  # Environment overrides: API_URL (default http://localhost:5000/api/v1), API_TOKEN (Bearer token if required)
+  ros2 launch shobot_api_bridge mission_api_bridge_launch.py api_url:=http://localhost:5000/api/v1 api_token:=<token>
+  # Parameters: mission_queue_topic (/mission_queue), poll_interval (seconds), api_url/api_token can be set as params or env
   ```
 - Placeholder nodes follow the same pattern; for any package `shobot_<name>`, use:
   ```bash
