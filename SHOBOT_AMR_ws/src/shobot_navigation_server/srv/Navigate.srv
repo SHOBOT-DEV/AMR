@@ -1,0 +1,6 @@
+# Simple navigation request: caller provides an ID and a target pose.
+string request_id
+geometry_msgs/PoseStamped pose
+---
+bool success
+string message

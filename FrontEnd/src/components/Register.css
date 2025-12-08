@@ -1,0 +1,63 @@
+.register-container {
+  font-family: "Poppins", sans-serif;
+}
+
+.auth-box {
+  background-color: #fff;
+  padding: 3rem;
+  border-radius: 12px;
+  box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.auth-box h1 {
+  margin-bottom: 1.5rem;
+  font-size: 2rem;
+  text-align: center;
+  color: #333;
+}
+
+.auth-box form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.auth-box input,
+.auth-box select {
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.auth-box button {
+  padding: 0.75rem;
+  background-color: #0056d2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.auth-box button:hover {
+  background-color: #003f9e;
+}
+
+.auth-logo {
+  display: block;
+  margin: 0 auto 1rem;
+  width: 80px;
+}
+
+.login-message {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.login-message span {
+  color: #0056d2;
+  cursor: pointer;
+  font-weight: 600;
+}
