@@ -1,29 +1,33 @@
 # SHOBOT Workspace (ROS2)
 
-This workspace contains SHOBOT ROS2 nodes for teleop, navigation, safety, perception, and utilities. Key packages and entry points:
+ROS 2 workspace for SHOBOT navigation, safety, perception, teleop, and integration nodes. Use this as the entry point for building and launching the robot stack.
 
-- **shobot_teleop**: Keyboard teleoperation publishing `cmd_vel/teleop`.
-- **shobot_twist_mux**: Priority mux (`safety` > `teleop` > `nav`) to produce `cmd_vel_raw`.
-- **shobot_trajectory_controller**: Acceleration-limited smoothing from `cmd_vel_raw` to `cmd_vel`.
-- **shobot_costmap_safety_layer**: Generates `safety_stop` from LaserScan thresholds.
-- **shobot_laser_filters**: Range clamp / NaN handling for LaserScan.
-- **shobot_navigation**: Nav2 NavigateToPose client (goal subscriber, status/feedback publishers).
-- **shobot_navigation_server**: Service wrapper to send Nav2 goals.
-- **shobot_local_planner**: Simple waypoint follower publishing `cmd_vel`.
-- **shobot_mission_control / shobot_mission_handler**: Mission queue execution and command normalization; optional docking via `shobot_docking`.
-- **shobot_docking**: Minimal docking action server using odom and cmd_vel.
-- **shobot_yolo_detection**: YOLOv10 detections with RealSense or ROS image topics; publishes JSON + annotated images.
-- **shobot_pointcloud_assembler / shobot_pointcloud_to_laserscan**: Point cloud utilities (merge clouds, project to LaserScan).
-- **shobot_costmap_plugins**: PointCloud-to-OccupancyGrid builder for costmap layering.
-- **shobot_status_aggregator**: Combines status topics into a JSON summary.
-- **shobot_rosbridge_suite**: Announces rosbridge endpoint info.
+## Workspace layout
+- Navigation and planning: `shobot_navigation`, `shobot_navigation_server`, `shobot_local_planner` (DWA, path-based/predetermined navigation), `shobot_trajectory_controller`
+- Perception and sensing: `shobot_laser_filters`, `shobot_scan_merger`, `shobot_pointcloud_assembler`, `shobot_pointcloud_filter`, `shobot_pointcloud_to_laserscan`, `shobot_yolo_detection`, IMU, wheel encoder
+- Localization and mapping: `shobot_robot_localization`, `shobot_robot_pose_publisher`
+- Costmap and safety: `shobot_costmap_plugins`, `shobot_costmap_safety_layer`, `shobot_zone_management`
+- Mission control: `shobot_mission_control`, `shobot_mission_handler`
+- Specialized features: `shobot_docking`, `shobot_teleop`, `shobot_twist_mux`, `shobot_status_aggregator`
+- Communication and interface: `shobot_api_bridge`, `shobot_rosbridge_suite`, `web_video_server`
+
+## Build
+```bash
+colcon build --symlink-install
+source install/setup.bash
+```
+Build is required so generated actions/services (dock, navigate, etc.) exist for launch files.
 
 ## Quick bring-up (teleop + nav + safety)
-Launch a minimal stack (teleop, mux, smoothing, safety, nav client, YOLO optional):
+Minimal stack (teleop, mux, smoothing, safety, nav client, YOLO optional):
 ```bash
 ros2 launch shobot_navigation shobot_robot_bringup.py
 ```
-Adjust params/remaps in the launch file to match your topics.
+Switch planner mode (Nav2 DWA vs predetermined path -> final pose):
+```bash
+ros2 launch shobot_navigation shobot_robot_bringup.py planner_mode:=path path_goal_topic:=/plan_goal
+```
+In `planner_mode:=path`, a `nav_msgs/Path` on `path_goal_topic` is executed sequentially (each pose forwarded to Nav2). Adjust parameters and remaps in the launch file to match your topics and frame names.
 
 ## Common launches
 - `shobot_navigation/shobot_navigation_launch.py`: Nav2 client.
@@ -31,11 +35,11 @@ Adjust params/remaps in the launch file to match your topics.
 - `shobot_docking/shobot_docking_launch.py`: Dock action server.
 - `shobot_local_planner/shobot_local_planner_launch.py`: Waypoint follower.
 - `shobot_yolo_detection/shobot_yolo_detection_launch.py`: YOLOv10 detector.
-- `shobot_costmap_plugins/shobot_costmap_plugins_launch.py`: PointCloud → OccupancyGrid.
+- `shobot_costmap_plugins/shobot_costmap_plugins_launch.py`: PointCloud to OccupancyGrid.
 - `shobot_costmap_safety_layer/shobot_costmap_safety_layer_launch.py`: Safety stop from scans.
 - `shobot_laser_filters/shobot_laser_filters_launch.py`: LaserScan filtering.
 
 ## Notes
-- Ensure dependencies (e.g., `ultralytics`, `pyrealsense2`, `cv_bridge`, Nav2) are installed in your environment.
-- Build the workspace with `colcon build` so custom actions/services (Dock, Navigate) are generated.
-- Tune topics/parameters in each launch file to fit your robot’s configuration.
+- Install external deps required by specific nodes (examples: `ultralytics`, `pyrealsense2`, `cv_bridge`, Nav2).
+- Use `ros2 launch ... --show-args` to see configurable parameters for each launch file.
+- Tune topics, frames, and controller gains per robot configuration before field deployment.
