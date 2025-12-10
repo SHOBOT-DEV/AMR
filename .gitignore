@@ -62,3 +62,8 @@ backend/instance/users.db
 
 SHOBOT_AMR_ws/install
 SHOBOT_AMR_ws/build.env
+
+backend/instance/users.db
+
+SHOBOT_AMR_ws/install
+SHOBOT_AMR_ws/build.env
