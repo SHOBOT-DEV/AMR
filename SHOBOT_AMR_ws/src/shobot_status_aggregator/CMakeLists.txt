@@ -11,4 +11,12 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/config)
   install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 endif()
 
+# Install Python entrypoint so `ros2 run`/launch can find it
+install(
+  PROGRAMS
+    ${CMAKE_CURRENT_SOURCE_DIR}/shobot_status_aggregator/node.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME shobot_status_aggregator_node
+)
+
 ament_package()

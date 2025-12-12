@@ -11,6 +11,9 @@ ROS 2 colcon workspace for the SHOBOT AMR stack. All packages are Python (`rclpy
 - `shobot_api_bridge`
   - `api_bridge`: Flask HTTP/WebSocket bridge; publishes to `cmd_vel` and mirrors the latest status message from `status_topic` to connected clients.
   - `mission_api_bridge`: polls `/api/v1/missions`, publishes dispatchable missions to `/mission_queue`, and updates mission status in the API.
+- `shobot_log_recorder`: records configured topics (sensors, mission status, failures, errors) to rotating JSONL files and can play them back at original cadence.
+- `shobot_dynamic_param_server`: runtime-tunable parameters (speed limits, safety thresholds, costmap inflation, laser filters, Nav2 replanning) with optional propagation to other nodes.
+- `shobot_robot_diagnostics`: publishes `/diagnostics` summary of motor temperature, IMU/encoder errors, camera status, and network quality with stale detection.
 - Placeholders (spin a minimal node that only logs startup): `shobot_costmap_plugins`, `shobot_costmap_safety_layer`, `shobot_docking`, `shobot_laser_filters`, `shobot_local_planner`, `shobot_mission_control`, `shobot_mission_handler`, `shobot_navigation`, `shobot_navigation_server`, `shobot_pointcloud_assembler`, `shobot_pointcloud_filter`, `shobot_pointcloud_to_laserscan`, `shobot_robot_localization`, `shobot_robot_pose_publisher`, `shobot_rosbridge_suite`, `shobot_scan_merger`, `shobot_status_aggregator`, `shobot_teleop`, `shobot_trajectory_controller`, `shobot_twist_mux`, `shobot_yolo_detection`, `shobot_zone_management`.
 
 ## Prerequisites
@@ -38,6 +41,26 @@ source install/setup.bash
   # Environment overrides: API_URL (default http://localhost:5000/api/v1), API_TOKEN (Bearer token if required)
   ros2 launch shobot_api_bridge mission_api_bridge_launch.py api_url:=http://localhost:5000/api/v1 api_token:=<token>
   # Parameters: mission_queue_topic (/mission_queue), poll_interval (seconds), api_url/api_token can be set as params or env
+  ```
+- Log recorder:
+  ```bash
+  ros2 launch shobot_log_recorder log_recorder_launch.py \
+    output_dir:=~/.shobot/log_recorder \
+    sensor_topics:="[/scan:sensor_msgs.msg.LaserScan]" \
+    mission_topic:=/mission_status task_failure_topic:=/task_failures error_topic:=/system/errors
+  # Services: /start_playback and /stop_playback (std_srvs/Trigger); set playback_file param to target a specific log.
+  ```
+- Dynamic parameter server:
+  ```bash
+  ros2 launch shobot_dynamic_param_server dynamic_param_server_launch.py \
+    propagate_targets:="[/controller_server,/planner_server]"
+  # Tune live: ros2 param set /shobot_dynamic_param_server speed_limit_linear 0.8
+  ```
+- Robot diagnostics:
+  ```bash
+  ros2 launch shobot_robot_diagnostics robot_diagnostics_launch.py \
+    motor_temp_warn:=70.0 motor_temp_error:=85.0 network_warn:=40.0 network_error:=15.0
+  # Publishes diagnostic_msgs/DiagnosticArray on /diagnostics with stale detection.
   ```
 - Placeholder nodes follow the same pattern; for any package `shobot_<name>`, use:
   ```bash

@@ -1,0 +1,22 @@
+shobot_static_tf_publisher:
+  ros__parameters:
+    base_frame: base_link
+    laser_frame: laser
+    imu_frame: imu
+    camera_frame: camera_frame
+    map_frame: map
+    odom_frame: odom
+
+    # Offsets are in meters and radians.
+    base_to_laser_translation: [0.0, 0.0, 0.0]
+    base_to_laser_rpy: [0.0, 0.0, 0.0]
+
+    base_to_imu_translation: [0.0, 0.0, 0.0]
+    base_to_imu_rpy: [0.0, 0.0, 0.0]
+
+    base_to_camera_translation: [0.0, 0.0, 0.0]
+    base_to_camera_rpy: [0.0, 0.0, 0.0]
+
+    publish_map_to_odom: false
+    map_to_odom_translation: [0.0, 0.0, 0.0]
+    map_to_odom_rpy: [0.0, 0.0, 0.0]

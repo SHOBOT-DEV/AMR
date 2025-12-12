@@ -14,3 +14,4 @@ Key params:
 - IMU: `input_topic`, `output_topic`, `frame_id`, optional covariance arrays.
 - Encoders: `left_encoder_topic`, `right_encoder_topic`, `wheel_radius`, `wheelbase`, `ticks_per_rev`, `odom_topic`, `odom_frame`, `base_frame`.
 - Battery: `battery_topic`, `battery_status_topic`, `battery_low_topic`, `battery_low_threshold`, `battery_critical_threshold`.
+  - `/battery_status` publishes JSON string with `percentage`, `charging`, `current`, `temperature`, `state` (`OK`/`LOW`/`CRITICAL`).

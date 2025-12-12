@@ -14,7 +14,17 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   DEPENDENCIES geometry_msgs std_msgs
 )
 
-ament_python_install_package(${PROJECT_NAME})
+# Avoid duplicate target errors if this file is processed more than once
+if(NOT TARGET ament_cmake_python_symlink_${PROJECT_NAME})
+  ament_python_install_package(${PROJECT_NAME})
+endif()
+
+install(
+  PROGRAMS
+    ${PROJECT_SOURCE_DIR}/shobot_docking/node.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME shobot_docking_node
+)
 
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/config)

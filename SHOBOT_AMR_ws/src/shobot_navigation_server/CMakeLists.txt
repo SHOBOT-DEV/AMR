@@ -16,7 +16,17 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   DEPENDENCIES geometry_msgs std_msgs
 )
 
-ament_python_install_package(${PROJECT_NAME})
+# Avoid duplicate target errors if processed more than once
+if(NOT TARGET ament_cmake_python_symlink_${PROJECT_NAME})
+  ament_python_install_package(${PROJECT_NAME})
+endif()
+
+install(
+  PROGRAMS
+    ${PROJECT_SOURCE_DIR}/shobot_navigation_server/node.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME shobot_navigation_server_node
+)
 
 ament_export_dependencies(rosidl_default_runtime)
 ament_package()

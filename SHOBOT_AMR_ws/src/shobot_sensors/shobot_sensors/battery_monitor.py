@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Battery monitoring node: republish status and low-battery flag."""
+import json
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import BatteryState
@@ -41,7 +42,23 @@ class BatteryMonitor(Node):
             f"battery: {percentage*100:.1f}%, "
             f"charging: {charging}, current: {current:.2f}A, temp: {temperature:.1f}C"
         )
-        self.status_pub.publish(String(data=status_text))
+        state = "OK"
+        if percentage <= self.critical_threshold:
+            state = "CRITICAL"
+        elif percentage <= self.low_threshold:
+            state = "LOW"
+
+        status_json = {
+            "percentage": percentage,
+            "charging": charging,
+            "current": current,
+            "temperature": temperature,
+            "state": state,
+        }
+        self.status_pub.publish(String(data=json.dumps(status_json)))
+
+        # Human-readable log for quick debugging
+        self.get_logger().info(f"{status_text} state={state}")
 
         low = percentage <= self.low_threshold
         critical = percentage <= self.critical_threshold
