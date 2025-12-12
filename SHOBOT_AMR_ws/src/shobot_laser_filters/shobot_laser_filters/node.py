@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""Laser filter supporting range clipping and NaN replacement."""
-import math
+"""
+Laser filter supporting range clipping and NaN replacement.
+"""
 
+import math
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
@@ -12,6 +14,8 @@ class LaserFilterNode(Node):
 
     def __init__(self):
         super().__init__("shobot_laser_filters")
+
+        # ---------------- Parameters ----------------
         self.declare_parameter("input_topic", "/scan")
         self.declare_parameter("output_topic", "/scan_filtered")
         self.declare_parameter("range_min", 0.05)
@@ -24,13 +28,19 @@ class LaserFilterNode(Node):
         self.range_max = float(self.get_parameter("range_max").value)
         self.replace_invalid_with = float(self.get_parameter("replace_invalid_with").value)
 
+        # ---------------- ROS Interfaces ----------------
         self.publisher = self.create_publisher(LaserScan, output_topic, 10)
         self.create_subscription(LaserScan, input_topic, self.scan_callback, 10)
+
         self.get_logger().info(
-            f"Filtering LaserScan {input_topic} -> {output_topic} (clamp {self.range_min}-{self.range_max} m)"
+            f"LaserFilter active: {input_topic} → {output_topic} "
+            f"(range clamp {self.range_min}–{self.range_max} m)"
         )
 
+    # ----------------------------------------------------------------------
     def scan_callback(self, msg: LaserScan):
+
+        # Copy metadata
         filtered = LaserScan()
         filtered.header = msg.header
         filtered.angle_min = msg.angle_min
@@ -41,18 +51,24 @@ class LaserFilterNode(Node):
         filtered.range_min = self.range_min
         filtered.range_max = self.range_max
 
-        ranges = []
+        # Process ranges
+        out_ranges = []
         for r in msg.ranges:
             if math.isnan(r) or math.isinf(r):
-                ranges.append(self.replace_invalid_with)
+                out_ranges.append(self.replace_invalid_with)
             else:
-                ranges.append(max(self.range_min, min(self.range_max, r)))
-        filtered.ranges = ranges
-        filtered.intensities = msg.intensities
+                out_ranges.append(max(self.range_min, min(self.range_max, r)))
 
+        filtered.ranges = out_ranges
+
+        # Copy intensities safely
+        filtered.intensities = list(msg.intensities)
+
+        # Publish output
         self.publisher.publish(filtered)
 
 
+# ----------------------------------------------------------------------
 def main(args=None):
     rclpy.init(args=args)
     node = LaserFilterNode()

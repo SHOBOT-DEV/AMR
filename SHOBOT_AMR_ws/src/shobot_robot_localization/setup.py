@@ -20,6 +20,8 @@ setup(
     license="BSD-3-Clause",
     tests_require=["pytest"],
     entry_points={
-        "console_scripts": [],
+        "console_scripts": [
+            "localization_monitor_node = shobot_robot_localization.node:main",
+        ],
     },
 )

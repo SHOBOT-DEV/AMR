@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""YOLOv10 RealSense detector publishing JSON detections and annotated images."""
+"""
+Camera detection Node
+==========================================
+YOLOv10 RealSense detector publishing JSON detections and annotated images.
+"""
 import contextlib
 import io
 import json
@@ -27,6 +31,7 @@ class DepthDetector(Node):
         self.declare_parameter("annotated_topic", "detection_image")
         self.declare_parameter("frame_skip", 5)
         self.declare_parameter("score_threshold", 0.25)
+        self.declare_parameter("max_detections", 50)
         self.declare_parameter("use_display", False)
         self.declare_parameter("use_ros_camera", False)
         self.declare_parameter("color_topic", "/camera/color/image_raw")
@@ -37,6 +42,7 @@ class DepthDetector(Node):
         annotated_topic = self.get_parameter("annotated_topic").value
         self.frame_skip = int(self.get_parameter("frame_skip").value)
         self.score_threshold = float(self.get_parameter("score_threshold").value)
+        self.max_detections = int(self.get_parameter("max_detections").value)
         self.use_display = bool(self.get_parameter("use_display").value)
         self.use_ros_camera = bool(self.get_parameter("use_ros_camera").value)
         self.color_topic = self.get_parameter("color_topic").value
@@ -134,7 +140,8 @@ class DepthDetector(Node):
         depth_width = depth_frame.get_width()
         depth_height = depth_frame.get_height()
 
-        for box in results[0].boxes:
+        boxes = results[0].boxes[: self.max_detections] if self.max_detections > 0 else results[0].boxes
+        for box in boxes:
             conf = float(box.conf.item())
             if conf < self.score_threshold:
                 continue
@@ -161,7 +168,8 @@ class DepthDetector(Node):
         names = results[0].names
         h, w = depth_image.shape[:2]
         depth_scale = 0.001 if depth_image.dtype == np.uint16 else 1.0
-        for box in results[0].boxes:
+        boxes = results[0].boxes[: self.max_detections] if self.max_detections > 0 else results[0].boxes
+        for box in boxes:
             conf = float(box.conf.item())
             if conf < self.score_threshold:
                 continue
@@ -190,7 +198,8 @@ class DepthDetector(Node):
         depth_width = depth_frame.get_width()
         depth_height = depth_frame.get_height()
 
-        for box in results[0].boxes:
+        boxes = results[0].boxes[: self.max_detections] if self.max_detections > 0 else results[0].boxes
+        for box in boxes:
             conf = float(box.conf.item())
             if conf < self.score_threshold:
                 continue
@@ -220,7 +229,8 @@ class DepthDetector(Node):
         names = results[0].names
         h, w = depth_image.shape[:2]
         depth_scale = 0.001 if depth_image.dtype == np.uint16 else 1.0
-        for box in results[0].boxes:
+        boxes = results[0].boxes[: self.max_detections] if self.max_detections > 0 else results[0].boxes
+        for box in boxes:
             conf = float(box.conf.item())
             if conf < self.score_threshold:
                 continue

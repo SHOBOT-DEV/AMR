@@ -32,6 +32,10 @@ class MotorController(Node):
         self.WHEEL_RADIUS = 0.08
         self.WHEELBASE = 0.447967
         self.MAX_RPM = 3000
+        self.speed_scale = 1.0  # multiplicative scale for all speeds
+        self.SPEED_SCALE_MIN = 0.2
+        self.SPEED_SCALE_MAX = 1.5
+        self.SPEED_SCALE_STEP = 0.1
         self.LIDAR_THRESHOLD = 0.5
         self.CAMERA_THRESHOLD = 0.5
 
@@ -48,6 +52,8 @@ class MotorController(Node):
         self.create_subscription(Twist, '/cmd_vel', self.cmd_vel_callback, 10)
         self.create_subscription(LaserScan, '/scan', self.lidar_callback, 10)
         self.create_subscription(String, '/detection_info', self.camera_callback, 10)
+        # Simple speed scaling control: publish 'i' to increase, 'd' to decrease
+        self.create_subscription(String, '/motor_speed_scale', self.speed_scale_cb, 10)
 
         self.encoder_timer = self.create_timer(0.1, self.read_encoders)
 
@@ -116,6 +122,10 @@ class MotorController(Node):
         linear_rpm = (msg.linear.x * 60) / (2 * 3.14159 * self.WHEEL_RADIUS) * (1 / 0.0476)
         angular_rpm = (msg.angular.z * self.WHEELBASE * 60) / (2 * 3.14159 * self.WHEEL_RADIUS) * 10
 
+        # Apply user speed scaling
+        linear_rpm *= self.speed_scale
+        angular_rpm *= self.speed_scale
+
         left_motor_rpm = linear_rpm - angular_rpm
         right_motor_rpm = -(linear_rpm + angular_rpm)
 
@@ -128,6 +138,17 @@ class MotorController(Node):
         if not self.object_detected:
             self.set_motor_speed('left', self.previous_left_speed)
             self.set_motor_speed('right', self.previous_right_speed)
+
+    def speed_scale_cb(self, msg: String):
+        """Adjust overall speed scale; expects 'i' to increase, 'd' to decrease."""
+        data = msg.data.strip().lower()
+        if data == 'i':
+            self.speed_scale = min(self.speed_scale + self.SPEED_SCALE_STEP, self.SPEED_SCALE_MAX)
+        elif data == 'd':
+            self.speed_scale = max(self.speed_scale - self.SPEED_SCALE_STEP, self.SPEED_SCALE_MIN)
+        else:
+            return
+        self.get_logger().info(f"Speed scale set to {self.speed_scale:.2f}")
 
     def set_motor_speed(self, motor: str, speed: int):
         """Write a target RPM to the left or right motor register."""

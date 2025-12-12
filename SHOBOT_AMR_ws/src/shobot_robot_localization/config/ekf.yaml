@@ -16,6 +16,42 @@ odom0_config: [true, true, false,
 odom0_queue_size: 10
 odom0_nodelay: false
 
+odom1: /odom/wheel
+odom1_config: [true, true, false,
+               false, false, true,
+               false, false, false,
+               false, false, false,
+               false, false, false]
+odom1_queue_size: 10
+odom1_nodelay: false
+
+odom2: /rtabmap/odom
+odom2_config: [true, true, false,
+               false, false, true,
+               false, false, false,
+               false, false, false,
+               false, false, false]
+odom2_queue_size: 10
+odom2_nodelay: false
+
+odom3: /lidar_odom
+odom3_config: [true, true, false,
+               false, false, true,
+               false, false, false,
+               false, false, false,
+               false, false, false]
+odom3_queue_size: 10
+odom3_nodelay: false
+
+odom4: /vo
+odom4_config: [true, true, false,
+               false, false, true,
+               false, false, false,
+               false, false, false,
+               false, false, false]
+odom4_queue_size: 10
+odom4_nodelay: false
+
 imu0: /imu/data
 imu0_config: [false, false, false,
               false, false, true,

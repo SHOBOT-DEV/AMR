@@ -5,7 +5,7 @@ ROS 2 workspace for SHOBOT navigation, safety, perception, teleop, and integrati
 ## Workspace layout
 - Navigation and planning: `shobot_navigation`, `shobot_navigation_server`, `shobot_local_planner` (DWA, path-based/predetermined navigation), `shobot_trajectory_controller`
 - Perception and sensing: `shobot_laser_filters`, `shobot_scan_merger`, `shobot_pointcloud_assembler`, `shobot_pointcloud_filter`, `shobot_pointcloud_to_laserscan`, `shobot_yolo_detection`, IMU, wheel encoder
-- Localization and mapping: `shobot_robot_localization`, `shobot_robot_pose_publisher`
+- Localization and mapping: `shobot_robot_localization` (base odom layer + IMU layer + visual SLAM layer + LiDAR layer + camera layer), `shobot_robot_pose_publisher`
 - Costmap and safety: `shobot_costmap_plugins`, `shobot_costmap_safety_layer`, `shobot_zone_management`
 - Mission control: `shobot_mission_control`, `shobot_mission_handler`
 - Specialized features: `shobot_docking`, `shobot_teleop`, `shobot_twist_mux`, `shobot_status_aggregator`
@@ -38,8 +38,32 @@ In `planner_mode:=path`, a `nav_msgs/Path` on `path_goal_topic` is executed sequ
 - `shobot_costmap_plugins/shobot_costmap_plugins_launch.py`: PointCloud to OccupancyGrid.
 - `shobot_costmap_safety_layer/shobot_costmap_safety_layer_launch.py`: Safety stop from scans.
 - `shobot_laser_filters/shobot_laser_filters_launch.py`: LaserScan filtering.
+- `shobot_sensors/shobot_sensors_launch.py`: IMU republisher and wheel encoder odometry.
+- `shobot_robot_localization/ekf_launch.py`: EKF fusing /odom, /odom/wheel, /imu/data.
+- `shobot_mission_control/shobot_mission_control_launch.py`: Single-task input or batched missions.
+
+## Sensors (IMU + wheel encoder)
+- Republish IMU with consistent frame/covariance and compute wheel odometry:
+```bash
+ros2 launch shobot_sensors shobot_sensors_launch.py imu_input_topic:=/imu/raw left_encoder_topic:=/left_wheel_encoder right_encoder_topic:=/right_wheel_encoder
+```
+Tune `wheel_radius`, `wheelbase`, and `ticks_per_rev` to your hardware; odometry publishes on `/odom/wheel`.
+- Battery monitor (publishes `/battery_status` and `/battery_low`):
+```bash
+ros2 launch shobot_sensors shobot_sensors_launch.py battery_topic:=/battery_state battery_low_threshold:=0.2 battery_critical_threshold:=0.1
+```
+
+## Localization and mapping layers
+- Base layer: wheel odometry (`/odom/wheel`) and any fused `/odom` source.
+- IMU layer: `/imu/data` republished by `shobot_sensors`.
+- Visual SLAM layer: `/rtabmap/odom` (edit if your visual SLAM differs).
+- LiDAR layer: `/lidar_odom` (e.g., scan matching or lidar odom).
+- Camera layer: `/vo` (monocular/stereo visual odometry).
+Update `shobot_robot_localization/config/ekf.yaml` topic names and covariances for your stack before deployment.
 
 ## Notes
 - Install external deps required by specific nodes (examples: `ultralytics`, `pyrealsense2`, `cv_bridge`, Nav2).
 - Use `ros2 launch ... --show-args` to see configurable parameters for each launch file.
 - Tune topics, frames, and controller gains per robot configuration before field deployment.
+- Safety landmarks: `shobot_costmap_safety_layer` can also listen to a PoseArray `landmark_topic` and stop if any landmark is within `landmark_stop_radius`.
+- Mission control: publish single `PoseStamped` tasks to `/task_goal` (one at a time) or batch missions as JSON to `/mission_queue`. Only one mission/task executes at a time; incoming batches queue.
