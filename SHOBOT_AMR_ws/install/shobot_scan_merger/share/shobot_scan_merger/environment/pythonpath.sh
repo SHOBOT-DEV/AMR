@@ -1,0 +1,1 @@
+/home/shahbaz/Business/AMR/SHOBOT_AMR_ws/build/shobot_scan_merger/ament_cmake_environment_hooks/pythonpath.sh

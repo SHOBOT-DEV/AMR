@@ -1,0 +1,14 @@
+source;share/shobot_docking/hook/cmake_prefix_path.ps1
+source;share/shobot_docking/hook/cmake_prefix_path.dsv
+source;share/shobot_docking/hook/cmake_prefix_path.sh
+source;share/shobot_docking/hook/ld_library_path_lib.ps1
+source;share/shobot_docking/hook/ld_library_path_lib.dsv
+source;share/shobot_docking/hook/ld_library_path_lib.sh
+source;share/shobot_docking/hook/pythonpath.ps1
+source;share/shobot_docking/hook/pythonpath.dsv
+source;share/shobot_docking/hook/pythonpath.sh
+source;share/shobot_docking/local_setup.bash
+source;share/shobot_docking/local_setup.dsv
+source;share/shobot_docking/local_setup.ps1
+source;share/shobot_docking/local_setup.sh
+source;share/shobot_docking/local_setup.zsh

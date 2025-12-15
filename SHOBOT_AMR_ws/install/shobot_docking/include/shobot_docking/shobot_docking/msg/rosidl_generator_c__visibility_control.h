@@ -1,0 +1,1 @@
+/home/shahbaz/Business/AMR/SHOBOT_AMR_ws/build/shobot_docking/rosidl_generator_c/shobot_docking/msg/rosidl_generator_c__visibility_control.h

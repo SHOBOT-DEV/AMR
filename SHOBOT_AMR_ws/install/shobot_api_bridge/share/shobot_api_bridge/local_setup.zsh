@@ -1,0 +1,1 @@
+/home/shahbaz/Business/AMR/SHOBOT_AMR_ws/build/shobot_api_bridge/ament_cmake_environment_hooks/local_setup.zsh

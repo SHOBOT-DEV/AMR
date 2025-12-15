@@ -1,0 +1,1 @@
+/home/shahbaz/Business/AMR/SHOBOT_AMR_ws/build/shobot_yolo_detection/ament_cmake_core/shobot_yolo_detectionConfig-version.cmake

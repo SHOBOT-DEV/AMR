@@ -1,0 +1,1 @@
+/home/shahbaz/Business/AMR/SHOBOT_AMR_ws/build/shobot_docking/rosidl_typesupport_fastrtps_c/shobot_docking/msg/rosidl_typesupport_fastrtps_c__visibility_control.h

@@ -1,0 +1,11 @@
+source;share/shobot_pointcloud_filter/hook/cmake_prefix_path.ps1
+source;share/shobot_pointcloud_filter/hook/cmake_prefix_path.dsv
+source;share/shobot_pointcloud_filter/hook/cmake_prefix_path.sh
+source;share/shobot_pointcloud_filter/hook/pythonpath.ps1
+source;share/shobot_pointcloud_filter/hook/pythonpath.dsv
+source;share/shobot_pointcloud_filter/hook/pythonpath.sh
+source;share/shobot_pointcloud_filter/local_setup.bash
+source;share/shobot_pointcloud_filter/local_setup.dsv
+source;share/shobot_pointcloud_filter/local_setup.ps1
+source;share/shobot_pointcloud_filter/local_setup.sh
+source;share/shobot_pointcloud_filter/local_setup.zsh

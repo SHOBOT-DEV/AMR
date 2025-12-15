@@ -1,0 +1,11 @@
+source;share/shobot_recovery/hook/cmake_prefix_path.ps1
+source;share/shobot_recovery/hook/cmake_prefix_path.dsv
+source;share/shobot_recovery/hook/cmake_prefix_path.sh
+source;share/shobot_recovery/hook/pythonpath.ps1
+source;share/shobot_recovery/hook/pythonpath.dsv
+source;share/shobot_recovery/hook/pythonpath.sh
+source;share/shobot_recovery/local_setup.bash
+source;share/shobot_recovery/local_setup.dsv
+source;share/shobot_recovery/local_setup.ps1
+source;share/shobot_recovery/local_setup.sh
+source;share/shobot_recovery/local_setup.zsh

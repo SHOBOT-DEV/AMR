@@ -1,0 +1,1 @@
+/home/shahbaz/Business/AMR/SHOBOT_AMR_ws/build/shobot_navigation_server/rosidl_generator_cpp/shobot_navigation_server/srv/detail/navigate__traits.hpp

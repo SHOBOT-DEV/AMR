@@ -1,0 +1,1 @@
+/home/shahbaz/Business/AMR/SHOBOT_AMR_ws/build/shobot_docking/rosidl_cmake/rosidl_cmake-extras.cmake

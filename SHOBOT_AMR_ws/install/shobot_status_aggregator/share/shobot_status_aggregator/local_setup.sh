@@ -1,0 +1,1 @@
+/home/shahbaz/Business/AMR/SHOBOT_AMR_ws/build/shobot_status_aggregator/ament_cmake_environment_hooks/local_setup.sh

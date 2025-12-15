@@ -1,0 +1,11 @@
+source;share/shobot_costmap_plugins/hook/cmake_prefix_path.ps1
+source;share/shobot_costmap_plugins/hook/cmake_prefix_path.dsv
+source;share/shobot_costmap_plugins/hook/cmake_prefix_path.sh
+source;share/shobot_costmap_plugins/hook/pythonpath.ps1
+source;share/shobot_costmap_plugins/hook/pythonpath.dsv
+source;share/shobot_costmap_plugins/hook/pythonpath.sh
+source;share/shobot_costmap_plugins/local_setup.bash
+source;share/shobot_costmap_plugins/local_setup.dsv
+source;share/shobot_costmap_plugins/local_setup.ps1
+source;share/shobot_costmap_plugins/local_setup.sh
+source;share/shobot_costmap_plugins/local_setup.zsh
