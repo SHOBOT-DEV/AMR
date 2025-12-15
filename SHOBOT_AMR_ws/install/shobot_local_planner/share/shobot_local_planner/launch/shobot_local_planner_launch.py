@@ -1,1 +1,0 @@
-/home/shahbaz/Business/AMR/SHOBOT_AMR_ws/src/shobot_local_planner/launch/shobot_local_planner_launch.py

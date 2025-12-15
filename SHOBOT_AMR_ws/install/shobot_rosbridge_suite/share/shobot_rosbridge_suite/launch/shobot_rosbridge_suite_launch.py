@@ -1,1 +1,0 @@
-/home/shahbaz/Business/AMR/SHOBOT_AMR_ws/src/shobot_rosbridge_suite/launch/shobot_rosbridge_suite_launch.py

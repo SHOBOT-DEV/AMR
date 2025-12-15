@@ -1,1 +1,0 @@
-/home/shahbaz/Business/AMR/SHOBOT_AMR_ws/src/shobot_robot_pose_publisher/launch/shobot_robot_pose_publisher_launch.py

@@ -1,1 +1,0 @@
-/home/shahbaz/Business/AMR/SHOBOT_AMR_ws/src/shobot_pointcloud_to_laserscan/launch/shobot_pointcloud_to_laserscan_launch.py

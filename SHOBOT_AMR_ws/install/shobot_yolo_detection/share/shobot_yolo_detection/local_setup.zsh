@@ -1,1 +1,0 @@
-/home/shahbaz/Business/AMR/SHOBOT_AMR_ws/build/shobot_yolo_detection/ament_cmake_environment_hooks/local_setup.zsh

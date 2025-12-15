@@ -58,23 +58,12 @@ htmlcov/
 # instance/*.db
 # instance/*.sqlite
 
-AMR/backend/instance/users.db
+backend/instance/users.db
 
-AMR/SHOBOT_AMR_ws/install
-AMR/SHOBOT_AMR_ws/build.env
+SHOBOT_AMR_ws/install
+SHOBOT_AMR_ws/build.env
 
+backend/instance/users.db
 
-AMR/backend/instance/users.db
-
-AMR/SHOBOT_AMR_ws/install
-AMR/SHOBOT_AMR_ws/build.env
-
-AMR/backend/instance/users.db
-
-AMR/SHOBOT_AMR_ws/install
-AMR/SHOBOT_AMR_ws/build.env
-
-AMR/backend/instance/users.db
-
-AMR/SHOBOT_AMR_ws/install
-AMR/SHOBOT_AMR_ws/build.env
+SHOBOT_AMR_ws/install
+SHOBOT_AMR_ws/build.env

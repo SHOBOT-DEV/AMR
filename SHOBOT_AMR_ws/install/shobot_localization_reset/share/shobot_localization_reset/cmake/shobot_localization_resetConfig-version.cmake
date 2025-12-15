@@ -1,1 +1,0 @@
-/home/shahbaz/Business/AMR/SHOBOT_AMR_ws/build/shobot_localization_reset/ament_cmake_core/shobot_localization_resetConfig-version.cmake

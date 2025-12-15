@@ -1,1 +1,0 @@
-/home/shahbaz/Business/AMR/SHOBOT_AMR_ws/build/shobot_navigation_server/rosidl_generator_c/shobot_navigation_server/srv/detail/navigate__functions.h

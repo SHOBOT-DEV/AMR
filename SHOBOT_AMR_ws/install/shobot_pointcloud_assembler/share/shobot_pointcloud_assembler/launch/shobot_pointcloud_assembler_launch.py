@@ -1,1 +1,0 @@
-/home/shahbaz/Business/AMR/SHOBOT_AMR_ws/src/shobot_pointcloud_assembler/launch/shobot_pointcloud_assembler_launch.py

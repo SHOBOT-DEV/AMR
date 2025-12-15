@@ -1,1 +1,0 @@
-/home/shahbaz/Business/AMR/SHOBOT_AMR_ws/src/shobot_navigation_server/launch/shobot_navigation_server_launch.py

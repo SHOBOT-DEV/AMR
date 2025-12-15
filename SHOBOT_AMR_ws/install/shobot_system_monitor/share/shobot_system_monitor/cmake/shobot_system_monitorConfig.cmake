@@ -1,1 +1,0 @@
-/home/shahbaz/Business/AMR/SHOBOT_AMR_ws/build/shobot_system_monitor/ament_cmake_core/shobot_system_monitorConfig.cmake

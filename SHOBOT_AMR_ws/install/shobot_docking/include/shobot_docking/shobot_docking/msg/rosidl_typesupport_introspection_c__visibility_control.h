@@ -1,1 +1,0 @@
-/home/shahbaz/Business/AMR/SHOBOT_AMR_ws/build/shobot_docking/rosidl_typesupport_introspection_c/shobot_docking/msg/rosidl_typesupport_introspection_c__visibility_control.h

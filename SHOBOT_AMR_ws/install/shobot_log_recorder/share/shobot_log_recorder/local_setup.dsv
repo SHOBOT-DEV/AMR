@@ -1,3 +1,0 @@
-source;share/shobot_log_recorder/environment/ament_prefix_path.sh
-source;share/shobot_log_recorder/environment/path.sh
-source;share/shobot_log_recorder/environment/pythonpath.sh
