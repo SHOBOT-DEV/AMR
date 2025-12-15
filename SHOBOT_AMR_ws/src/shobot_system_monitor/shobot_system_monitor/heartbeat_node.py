@@ -18,8 +18,8 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from rclpy.time import Time
-from rclpy.any_msg import AnyMsg
 from std_msgs.msg import String
+from rosidl_runtime_py.utilities import get_message
 
 try:
     import psutil
@@ -46,11 +46,11 @@ class HeartbeatNode(Node):
         self.declare_parameter("rate_hz", 1.0)
         self.declare_parameter(
             "sensor_topics",
-            [],  # list of "name:topic:timeout_sec"
+            [],  # list of "name:topic:timeout_sec[:type]" (type optional)
         )
         self.declare_parameter(
             "node_topics",
-            [],  # list of "name:topic:timeout_sec"
+            [],  # list of "name:topic:timeout_sec[:type]" (type optional)
         )
 
         self.heartbeat_topic = self.get_parameter("heartbeat_topic").value
@@ -70,8 +70,9 @@ class HeartbeatNode(Node):
 
         # Subscriptions for sensors/nodes (Any type)
         for watch in self.sensor_watch + self.node_watch:
+            msg_type = self._resolve_type(getattr(watch, "type_str", "std_msgs/msg/String"))
             self.create_subscription(
-                msg_type=AnyMsg,  # accept any message type for heartbeat checking
+                msg_type=msg_type,
                 topic=watch.topic,
                 callback=self._make_cb(watch),
                 qos_profile=qos,
@@ -92,17 +93,18 @@ class HeartbeatNode(Node):
 
     # ------------------------------------------------------------------ #
     def _parse_watch_list(self, entries, param_name: str) -> List[WatchConfig]:
-        """Parse list like ['laser:/scan:1.0', 'imu:/imu/data:1.0'] or YAML string."""
+        """Parse list like ['laser:/scan:1.0', 'imu:/imu/data:1.0:std_msgs/msg/String'] or YAML string."""
         normalized = self._normalize_entries(entries)
         result: List[WatchConfig] = []
         for raw in normalized:
             parts = str(raw).split(":")
-            if len(parts) != 3:
+            if len(parts) not in (3, 4):
                 self.get_logger().warn(
-                    f"{param_name}: '{raw}' should be 'name:topic:timeout_sec'; skipping."
+                    f"{param_name}: '{raw}' should be 'name:topic:timeout_sec[:type]'; skipping."
                 )
                 continue
-            name, topic, timeout = parts
+            name, topic, timeout = parts[:3]
+            type_str = parts[3] if len(parts) == 4 else "std_msgs/msg/String"
             try:
                 timeout_val = float(timeout)
             except ValueError:
@@ -110,7 +112,9 @@ class HeartbeatNode(Node):
                     f"{param_name}: timeout '{timeout}' invalid; skipping '{raw}'."
                 )
                 continue
-            result.append(WatchConfig(name=name, topic=topic, timeout_sec=timeout_val))
+            cfg = WatchConfig(name=name, topic=topic, timeout_sec=timeout_val)
+            cfg.type_str = type_str  # type: ignore[attr-defined]
+            result.append(cfg)
         return result
 
     def _normalize_entries(self, entries) -> List[str]:
@@ -127,6 +131,16 @@ class HeartbeatNode(Node):
             if text:
                 return [text]
         return []
+
+    def _resolve_type(self, type_str: str):
+        """Load ROS message class from a type string like std_msgs/msg/String."""
+        try:
+            return get_message(type_str)
+        except Exception as exc:
+            self.get_logger().warn(
+                f"Could not load message type '{type_str}', falling back to std_msgs/msg/String ({exc})"
+            )
+            return String
 
     def _make_cb(self, watch: WatchConfig):
         def _cb(_msg):

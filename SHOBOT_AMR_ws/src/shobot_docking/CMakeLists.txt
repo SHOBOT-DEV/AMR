@@ -8,6 +8,7 @@ find_package(rclpy REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/Dock.action"
@@ -24,6 +25,12 @@ install(
     ${PROJECT_SOURCE_DIR}/shobot_docking/node.py
   DESTINATION lib/${PROJECT_NAME}
   RENAME shobot_docking_node
+)
+
+install(
+  FILES
+    ${PROJECT_SOURCE_DIR}/shobot_docking/node.py
+  DESTINATION ${Python3_SITEARCH}/shobot_docking
 )
 
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
