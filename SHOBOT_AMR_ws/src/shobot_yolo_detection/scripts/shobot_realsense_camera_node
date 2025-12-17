@@ -1,0 +1,8 @@
+#!/usr/bin/env python3
+"""Entry point to run the shared RealSense camera publisher."""
+
+from shobot_yolo_detection.node import run_camera
+
+
+if __name__ == "__main__":
+    run_camera()

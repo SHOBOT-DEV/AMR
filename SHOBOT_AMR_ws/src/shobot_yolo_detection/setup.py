@@ -1,0 +1,38 @@
+import os
+from glob import glob
+
+from setuptools import setup
+
+package_name = "shobot_yolo_detection"
+share_dir = os.path.join("share", package_name)
+
+setup(
+    name=package_name,
+    version="0.1.0",
+    packages=[package_name],
+    data_files=[
+        ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
+        (share_dir, ["package.xml"]),
+        (os.path.join(share_dir, "launch"), ["launch/shobot_yolo_detection_launch.py"]),
+        (os.path.join(share_dir, "weights"), glob("weights/*.pt")),
+    ],
+    install_requires=[
+        "setuptools",
+        "ultralytics>=8.2.0",
+        "opencv-python",
+        "numpy",
+        "pyrealsense2",
+    ],
+    zip_safe=True,
+    maintainer="SHOBOT",
+    maintainer_email="todo@example.com",
+    description="YOLOv10-based detector publishing JSON detections.",
+    license="BSD-3-Clause",
+    tests_require=["pytest"],
+    entry_points={
+        "console_scripts": [
+            "shobot_yolo_detection_node = shobot_yolo_detection.node:run_detector",
+            "shobot_realsense_camera_node = shobot_yolo_detection.node:run_camera",
+        ],
+    },
+)

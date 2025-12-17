@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+from shobot_api_bridge.api_bridge import main
+
+
+if __name__ == "__main__":
+  main()

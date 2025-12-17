@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>shobot_navigation</name>
+  <version>0.1.0</version>
+  <description>Nav2 NavigateToPose action client for SHOBOT navigation goals.</description>
+  <maintainer email="todo@example.com">SHOBOT</maintainer>
+  <license>BSD-3-Clause</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+  <build_depend>rclpy</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>nav2_msgs</build_depend>
+  <build_depend>std_srvs</build_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>nav2_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

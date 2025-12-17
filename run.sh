@@ -162,4 +162,4 @@ fi
 export REACT_APP_API_URL="${REACT_APP_API_URL:-http://127.0.0.1:$FLASK_PORT}"
 echo "REACT_APP_API_URL=${REACT_APP_API_URL}"
 echo "Starting React app (Ctrl+C to stop)..."
-npm start
+npm run dev

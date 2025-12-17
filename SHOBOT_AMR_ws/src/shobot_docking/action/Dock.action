@@ -1,0 +1,6 @@
+# Request: start docking when goal accepted (bool flag for future use)
+bool start
+---
+bool success
+---
+float32 progress

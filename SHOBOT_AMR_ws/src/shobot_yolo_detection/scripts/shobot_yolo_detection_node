@@ -1,0 +1,8 @@
+#!/usr/bin/env python3
+"""Entry point to run the YOLO detection ROS 2 node."""
+
+from shobot_yolo_detection.node import run_detector
+
+
+if __name__ == "__main__":
+    run_detector()
