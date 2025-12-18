@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./SideBar";
-import JoyStick from "./JoyStick";
+import JoyStick from "./JoyStick.jsx";
 import {
   FaBatteryHalf,
   FaPlay,

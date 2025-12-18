@@ -1,62 +1,53 @@
-// import React from "react";
-// import { useEffect, useRef } from "react";
-import "./RightPanel.css";
+import React from "react";
 
-import { useEffect, useRef } from "react";
-import nipplejs from "nipplejs";
-
-const joystickPanelStyle = {
-  position: "fixed",
-  top: "50%",
-  right: 20,
-  transform: "translateY(-50%)",
-  width: 180,
-  height: 180,
-  backgroundColor: "#222",
-  borderRadius: "20px",
-  boxShadow: "0 0 15px rgba(0,0,0,0.7)",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  zIndex: 1000,
-};
-
-function Joystick() {
-  const joystickRef = useRef(null);
-
-  useEffect(() => {
-    const joystick = nipplejs.create({
-      zone: joystickRef.current,
-      mode: "static",
-      position: { top: "50%", left: "50%" },
-      color: "#888",
-      size: 120,
-    });
-
-    joystick.on("move", (evt, data) => {
-      // Handle move data
-      console.log("Direction:", data.direction);
-      console.log("Distance:", data.distance);
-    });
-
-    joystick.on("end", () => {
-      console.log("Joystick released");
-    });
-
-    return () => {
-      joystick.destroy();
-    };
-  }, []);
-
-  return (
-    <div style={joystickPanelStyle}>
-      <div
-        ref={joystickRef}
-        className="joystick-zone"
-        style={{ width: 150, height: 150 }}
-      />
-    </div>
-  );
+interface RightPanelProps {
+  pos: { left: number; top: number };
+  children: React.ReactNode;
 }
 
-export default Joystick;
+const RightPanel: React.FC<RightPanelProps> = ({ pos, children }) => (
+  <div
+    style={{ left: pos.left, top: pos.top }}
+    className="
+      fixed z-[90]
+      w-[220px]
+      p-3
+      flex flex-col gap-2
+      rounded-r-xl
+      bg-gradient-to-b from-sky-200 via-sky-300 to-sky-400
+      shadow-[4px_8px_24px_rgba(2,12,22,0.18)]
+      border-l border-white/20
+    "
+  >
+    {children}
+  </div>
+);
+
+interface PanelItemProps {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  onClick?: () => void;
+}
+
+export const PanelItem: React.FC<PanelItemProps> = ({
+  icon: Icon,
+  label,
+  onClick,
+}) => (
+  <button
+    onClick={onClick}
+    className="
+      group flex items-center gap-3
+      px-3 py-2
+      rounded-lg font-semibold
+      text-slate-900
+      hover:bg-white/20 hover:text-white
+      transition
+    "
+  >
+    <Icon className="text-sky-800 group-hover:text-white" />
+    <span>{label}</span>
+  </button>
+);
+
+export default RightPanel;
