@@ -8,8 +8,8 @@ import {
 import { Toaster } from "react-hot-toast";
 import Login from "./components/login";
 import Register from "./components/Register";
-import AdminLogin from "./components/AdminLogin";
-import Admin from "./components/Admin"; // Admin dashboard page
+import AdminLogin from "./components/AdminLogin.tsx";
+import Admin from "./pages/Admin.tsx"; // Admin dashboard page
 import MainPage from "./components/MainPage";
 
 function AppRoutes() {
