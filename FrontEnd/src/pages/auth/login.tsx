@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
-import LeftImage from "../assets/Shobot_Img.png";
-import IITLogo from "../assets/IIT_Logo.png";
-import { storeAuthTokens, API_BASE } from "../utils/auth";
+import LeftImage from "../../assets/Shobot_Img.png";
+import IITLogo from "../../assets/IIT_Logo.png";
+import { storeAuthTokens, API_BASE } from "../../utils/auth";
 
 interface LoginProps {
   onLogin: () => void;

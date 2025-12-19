@@ -1,8 +1,8 @@
 import React, { useState, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import LeftImage from "../assets/Shobot_WBg.png";
-import IITLogo from "../assets/IIT_Logo.png";
-import { storeAuthTokens, API_BASE } from "../utils/auth";
+import LeftImage from "../../assets/Shobot_WBg.png";
+import IITLogo from "../../assets/IIT_Logo.png";
+import { storeAuthTokens, API_BASE } from "../../utils/auth";
 
 const API_URL = API_BASE || "http://127.0.0.1:5000";
 

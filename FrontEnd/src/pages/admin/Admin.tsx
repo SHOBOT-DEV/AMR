@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchWithAuth, clearAuthTokens, API_BASE } from "../utils/auth";
+import { fetchWithAuth, clearAuthTokens, API_BASE } from "../../utils/auth";
 
 const API_URL = API_BASE || "http://127.0.0.1:5000";
 

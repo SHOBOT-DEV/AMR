@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
-import LeftImage from "../assets/Shobot_Img.png";
-import IITLogo from "../assets/IIT_Logo.png";
+import LeftImage from "../../assets/Shobot_Img.png";
+import IITLogo from "../../assets/IIT_Logo.png";
 
 interface RegisterProps {
   onRegister: () => void;

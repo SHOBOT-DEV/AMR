@@ -6,11 +6,11 @@ import {
   useNavigate,
 } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import Login from "./pages/login.tsx";
-import Register from "./pages/Register.tsx";
-import AdminLogin from "./pages/AdminLogin.tsx"; // Admin dashboard page
-import Admin from "./pages/Admin.tsx"; 
-import MainPage from "./components/MainPage";
+import MainPage from "./layout/DashboardLayout.jsx";
+import Admin from "./pages/admin/Admin.tsx"; 
+import AdminLogin from "./pages/auth/AdminLogin.tsx";
+import Login from "./pages/auth/login.tsx";
+import Register from "./pages/auth/Register.tsx";
 
 function AppRoutes() {
   const navigate = useNavigate();
