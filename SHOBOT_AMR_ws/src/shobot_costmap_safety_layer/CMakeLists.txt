@@ -11,4 +11,11 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/config)
   install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 endif()
 
+install(
+  PROGRAMS
+    ${PROJECT_SOURCE_DIR}/shobot_costmap_safety_layer/node.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME shobot_costmap_safety_layer_node
+)
+
 ament_package()

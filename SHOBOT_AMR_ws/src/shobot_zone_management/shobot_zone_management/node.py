@@ -22,15 +22,15 @@ class ZoneManagementNode(Node):
         # -------------------- Parameters --------------------
         self.declare_parameter("pose_topic", "/robot_pose")
         self.declare_parameter("zone_topic", "/zone_status")
-        self.declare_parameter("zones", [
-            {"name": "zone_a", "x": 0.0, "y": 0.0, "r": 1.0}
-        ])
+        # Zones are provided as a YAML/JSON string for portability across ROS param types.
+        self.declare_parameter(
+            "zones_yaml",
+            "",
+        )
 
         pose_topic = self.get_parameter("pose_topic").value
         zone_topic = self.get_parameter("zone_topic").value
-        self.zones = self._validate_zones(
-            self.get_parameter("zones").value
-        )
+        self.zones = self._load_zones(self.get_parameter("zones_yaml").value)
 
         # -------------------- QoS Setup --------------------
         pose_qos = QoSProfile(
@@ -58,7 +58,20 @@ class ZoneManagementNode(Node):
     # ----------------------------------------------------------
     # Validate and sanitize zone definitions
     # ----------------------------------------------------------
-    def _validate_zones(self, zones):
+    def _load_zones(self, zones_yaml: str):
+        if not zones_yaml:
+            # Default zone if none provided
+            zones = [{"name": "zone_a", "x": 0.0, "y": 0.0, "r": 1.0}]
+        else:
+            try:
+                import yaml
+
+                zones = yaml.safe_load(zones_yaml)
+                if zones is None:
+                    zones = []
+            except Exception as exc:  # noqa: BLE001
+                self.get_logger().error(f"Failed to parse zones_yaml: {exc}")
+                zones = []
         valid = []
         for z in zones:
             try:

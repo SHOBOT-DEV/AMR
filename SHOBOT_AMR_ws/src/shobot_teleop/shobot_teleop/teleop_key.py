@@ -77,6 +77,10 @@ class TeleopNode(Node):
         self.declare_parameter("teleop_topic", "/joy/cmd_vel")
         self.declare_parameter("rate_hz", 20.0)
 
+        if not sys.stdin.isatty():
+            self.get_logger().error("teleop_key requires a TTY stdin (run in a terminal). Exiting.")
+            raise SystemExit(1)
+
         topic = self.get_parameter("teleop_topic").value
         self.publisher_ = self.create_publisher(Twist, topic, 10)
         self.model = self.get_parameter("model").value

@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>shobot_bringup</name>
+  <version>0.0.1</version>
+  <description>Unified bringup for SHOBOT ROS 2 stack.</description>
+  <maintainer email="todo@example.com">TODO</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>shobot_tf_static</exec_depend>
+  <exec_depend>shobot_sensors</exec_depend>
+  <exec_depend>shobot_laser_filters</exec_depend>
+  <exec_depend>shobot_costmap_safety_layer</exec_depend>
+  <exec_depend>shobot_twist_mux</exec_depend>
+  <exec_depend>shobot_navigation</exec_depend>
+  <exec_depend>shobot_navigation_server</exec_depend>
+  <exec_depend>shobot_api_bridge</exec_depend>
+  <exec_depend>shobot_rl_agent</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

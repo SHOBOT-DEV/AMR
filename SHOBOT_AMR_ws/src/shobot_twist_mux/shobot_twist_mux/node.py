@@ -4,6 +4,7 @@ Priority-based Twist multiplexer with timeouts and safety stop.
 """
 from dataclasses import dataclass
 from functools import partial
+import json
 from typing import Dict, Optional
 
 import rclpy
@@ -29,23 +30,27 @@ class TwistMux(Node):
 
         # ---------------- Parameters ----------------
         self.declare_parameter("sources", ["safety", "teleop", "nav"])
-        self.declare_parameter("priorities",
-                               {"safety": 100, "teleop": 50, "nav": 10})
-        self.declare_parameter("timeouts",
-                               {"safety": 0.5, "teleop": 0.5, "nav": 1.0})
-        self.declare_parameter("topics",
-                               {"safety": "/cmd_vel/safety",
-                                "teleop": "/cmd_vel/teleop",
-                                "nav": "/cmd_vel/nav"})
+        self.declare_parameter(
+            "priorities_json",
+            '{"safety": 100, "teleop": 50, "nav": 10}',
+        )
+        self.declare_parameter(
+            "timeouts_json",
+            '{"safety": 0.5, "teleop": 0.5, "nav": 1.0}',
+        )
+        self.declare_parameter(
+            "topics_json",
+            '{"safety": "/cmd_vel/safety", "teleop": "/cmd_vel/teleop", "nav": "/cmd_vel/nav"}',
+        )
 
         self.declare_parameter("output_topic", "/cmd_vel")
         self.declare_parameter("rate_hz", 20.0)
         self.declare_parameter("safety_stop_topic", "/safety_stop")
 
         names = self.get_parameter("sources").value
-        priorities = self.get_parameter("priorities").value
-        timeouts = self.get_parameter("timeouts").value
-        topics = self.get_parameter("topics").value
+        priorities = self._load_map("priorities_json")
+        timeouts = self._load_map("timeouts_json")
+        topics = self._load_map("topics_json")
 
         self.output_topic = self.get_parameter("output_topic").value
         rate_hz = float(self.get_parameter("rate_hz").value)
@@ -84,6 +89,21 @@ class TwistMux(Node):
         self.get_logger().info(
             f"Twist Mux online → output={self.output_topic}, sources={list(self.sources.keys())}"
         )
+
+    # -------------------------------------------------
+    def _load_map(self, param_name: str) -> Dict[str, object]:
+        """Parse JSON map from a string parameter with a safe fallback."""
+        raw = self.get_parameter(param_name).value
+        if isinstance(raw, str):
+            try:
+                parsed = json.loads(raw)
+                if isinstance(parsed, dict):
+                    return parsed
+            except json.JSONDecodeError:
+                self.get_logger().warn(
+                    f"Parameter '{param_name}' is not valid JSON; using defaults."
+                )
+        return {}
 
     # -------------------------------------------------
     def _cb(self, msg: Twist, name: str):

@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+from shobot_robot_pose_publisher.node import main
+
+
+if __name__ == "__main__":
+    main()

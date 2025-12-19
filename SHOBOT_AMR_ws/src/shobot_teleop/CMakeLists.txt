@@ -11,4 +11,18 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/config)
   install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 endif()
 
+install(
+  PROGRAMS
+    ${PROJECT_SOURCE_DIR}/shobot_teleop/teleop_key.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME teleop_key
+)
+
+install(
+  PROGRAMS
+    ${PROJECT_SOURCE_DIR}/shobot_teleop/motor_controller_node.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME motor_controller_node
+)
+
 ament_package()

@@ -10,5 +10,9 @@ install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/config)
   install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 endif()
+install(PROGRAMS
+  scripts/shobot_zone_management_node
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 ament_package()
