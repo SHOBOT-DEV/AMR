@@ -26,7 +26,7 @@ const Dashboard = () => {
   // --- Global State ---
   const [isLocked, setIsLocked] = useState(false);
   const [emergencyClicked, setEmergencyClicked] = useState(false);
-  const [batteryModalOpen, setBatteryModalOpen] = useState(false);
+  // const [batteryModalOpen, setBatteryModalOpen] = useState(false);
   const [batteryLevel, setBatteryLevel] = useState(100);
   const [rightPage, setRightPage] = useState(null);
   
@@ -75,7 +75,7 @@ const Dashboard = () => {
         isLocked={isLocked}
         setIsLocked={setIsLocked}
         batteryLevel={batteryLevel}
-        setBatteryModalOpen={setBatteryModalOpen}
+        // setBatteryModalOpen={setBatteryModalOpen}
         layoutRef={layoutRef}
       />
 
@@ -125,12 +125,12 @@ const Dashboard = () => {
       </div>
 
       {/* Modals */}
-      {batteryModalOpen && (
+      {/* {batteryModalOpen && (
         <BatteryModal 
           status={statsData.batteryStatus || {}} 
           onClose={() => setBatteryModalOpen(false)} 
         />
-      )}
+      )} */}
 
       {/* Lock Screen Overlay */}
       {isLocked && (
@@ -139,7 +139,7 @@ const Dashboard = () => {
           onClick={() => toast.error("Screen is locked")}
         >
           <div className="text-center">
-            <div className="text-6xl mb-4 text-white opacity-80"><FaLock /></div>
+            {/* <div className="text-6xl mb-4 text-white opacity-80"><FaLock /></div> */}
             <div className="bg-white/10 text-white px-8 py-3 rounded-full font-bold backdrop-blur-xl border border-white/20 shadow-2xl">
               Console Locked — Press Esc to Unlock
             </div>
@@ -149,7 +149,7 @@ const Dashboard = () => {
             className="absolute top-6 right-6 z-[10001] bg-white/10 hover:bg-white/20 text-white p-3 rounded-full pointer-events-auto transition-all"
             onClick={(e) => { e.stopPropagation(); setIsLocked(false); }}
           >
-            <FaUnlock />
+            {/* <FaUnlock /> */}
           </button>
         </div>
       )}

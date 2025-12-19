@@ -123,27 +123,27 @@ const Sidebar = ({ onSelect, onBack }) => {
       )}
 
       {activePanel === "monitor" && panelPos && (
-        <RightPanel pos={panelPos}>
+        <FloatingMenu pos={panelPos}>
           <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-sky-800/60">Monitor</div>
-          <PanelItem icon={FaChartBar} label="Analytics" onClick={() => handleSubSelect("analytics")} />
-          <PanelItem icon={FaEye} label="Camera" onClick={() => handleSubSelect("camera")} />
-          <PanelItem icon={FaLayerGroup} label="AMR Bridge" onClick={() => handleSubSelect("bridge")} />
-          <PanelItem icon={FaComments} label="Diagnostics" onClick={() => handleSubSelect("diagnostics")} />
-          <PanelItem icon={FaFileAlt} label="Logs" onClick={() => handleSubSelect("logs")} />
-          <PanelItem icon={FaClipboardList} label="Mission Logs" onClick={() => handleSubSelect("mission-logs")} />
-          <PanelItem icon={FaArchive} label="Robot Bags" onClick={() => handleSubSelect("robot-bags")} />
-        </RightPanel>
+          <MenuItem icon={FaChartBar} label="Analytics" onClick={() => handleSubSelect("analytics")} />
+          <MenuItem icon={FaEye} label="Camera" onClick={() => handleSubSelect("camera")} />
+          <MenuItem icon={FaLayerGroup} label="AMR Bridge" onClick={() => handleSubSelect("bridge")} />
+          <MenuItem icon={FaComments} label="Diagnostics" onClick={() => handleSubSelect("diagnostics")} />
+          <MenuItem icon={FaFileAlt} label="Logs" onClick={() => handleSubSelect("logs")} />
+          <MenuItem icon={FaClipboardList} label="Mission Logs" onClick={() => handleSubSelect("mission-logs")} />
+          <MenuItem icon={FaArchive} label="Robot Bags" onClick={() => handleSubSelect("robot-bags")} />
+        </FloatingMenu>
       )}
 
       {activePanel === "settings" && panelPos && (
-        <RightPanel pos={panelPos}>
+        <FloatingMenu pos={panelPos}>
           <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-sky-800/60">Settings</div>
-          <PanelItem icon={FaUserCog} label="Robot" onClick={() => handleSubSelect("robot-settings")} />
-          <PanelItem icon={FaUser} label="Account" onClick={() => handleSubSelect("account")} />
-          <PanelItem icon={FaPalette} label="Appearance" onClick={() => handleSubSelect("appearance")} />
-          <PanelItem icon={FaShieldAlt} label="Security" onClick={() => handleSubSelect("security")} />
-          <PanelItem icon={FaPlug} label="Integrations" onClick={() => handleSubSelect("integrations")} />
-        </RightPanel>
+          <MenuItem icon={FaUserCog} label="Robot" onClick={() => handleSubSelect("robot-settings")} />
+          <MenuItem icon={FaUser} label="Account" onClick={() => handleSubSelect("account")} />
+          <MenuItem icon={FaPalette} label="Appearance" onClick={() => handleSubSelect("appearance")} />
+          <MenuItem icon={FaShieldAlt} label="Security" onClick={() => handleSubSelect("security")} />
+          <MenuItem icon={FaPlug} label="Integrations" onClick={() => handleSubSelect("integrations")} />
+        </FloatingMenu>
       )}
     </>
   );
