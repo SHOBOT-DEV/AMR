@@ -1,0 +1,324 @@
+/* Header and related UI styles (moved from MainPage.css) */
+
+.mp-header {
+  height: 56px;
+  background: #87ceeb;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  --header-height: 56px;
+  z-index: 1100;
+}
+
+.bridge-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  min-width: 150px;
+  transition: transform 120ms ease, background 120ms ease;
+}
+.bridge-chip.ok {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.5);
+}
+.bridge-chip.warn {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+.bridge-chip:hover {
+  transform: translateY(-1px);
+}
+.bridge-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.08);
+}
+.bridge-chip.ok .bridge-dot {
+  color: #10b981;
+}
+.bridge-chip.warn .bridge-dot {
+  color: #ef4444;
+}
+.bridge-chip-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+.bridge-retry-btn {
+  margin-left: 6px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
+}
+.bridge-retry-btn:hover {
+  border-color: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+.bridge-chip-label {
+  font-size: 12px;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+.bridge-chip-sub {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* ensure header becomes non-interactive while locked (single authoritative rule) */
+.is-locked .mp-header {
+  pointer-events: none;
+  opacity: 0.8;
+  filter: blur(0.2px);
+}
+
+/* remove the rule that kept header interactive so the header becomes locked too */
+.is-locked .mp-header {
+  pointer-events: auto;
+}
+
+.lock-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 8px;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.12);
+  color: #fff;
+  cursor: pointer;
+  z-index: 1110;
+}
+.lock-toggle-btn:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.6);
+  border-radius: 8px;
+}
+.lock-toggle-btn > span {
+  display: none;
+}
+
+/* dropdown */
+.dropdown-wrap {
+  margin-left: 8px;
+  position: relative;
+}
+.dropdown-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+}
+.play-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  cursor: pointer;
+  padding: 0;
+}
+.play-btn.playing {
+  background: rgba(255, 255, 255, 0.18);
+}
+.caret {
+  margin-left: 6px;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 260px;
+  background: #fff;
+  color: #111;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  z-index: 50;
+}
+.dropdown-title {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.dropdown-body {
+  font-size: 13px;
+}
+
+/* header right: battery + fullscreen */
+.header-right {
+  margin-left: auto;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.battery {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  padding: 0;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  box-shadow: none;
+}
+.battery:focus {
+  outline: 2px solid rgba(11,116,209,0.18);
+  border-radius: 8px;
+}
+.battery-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+.battery-percent {
+  color: #fff;
+  font-weight: 700;
+  min-width: 36px;
+  text-align: right;
+}
+
+.fullscreen-btn {
+  margin-left: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #fff;
+  box-shadow: 0 25px 70px rgba(15, 23, 42, 0.5);
+  padding: 0;
+}
+.fullscreen-btn:focus {
+  outline: 2px solid rgba(11,116,209,0.18);
+  border-radius: 8px;
+}
+.fullscreen-btn:hover,
+.battery:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.battery-red .battery-icon {
+  color: #ff4d4d;
+}
+.battery-yellow .battery-icon {
+  color: #f59e0b;
+}
+.battery-green .battery-icon {
+  color: #10b981;
+}
+.battery-orange .battery-icon {
+  color: #f97316;
+}
+
+.header-center-emergency {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  pointer-events: auto;
+}
+.header-emergency-btn {
+  background: #f1c40f;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  color: #111;
+  font-size: 13px;
+}
+.header-emergency-btn .header-emergency-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 14px;
+  background: #d92b2b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.header-emergency-btn .header-emergency-dot-inner {
+  width: 6px;
+  height: 6px;
+  border-radius: 6px;
+  background: #fff;
+}
+.header-emergency-btn.clicked {
+  background: linear-gradient(180deg, #d92b2b, #a10f0f);
+  color: #fff;
+}
+.header-emergency-btn.clicked .header-emergency-dot {
+  background: #7a0f0f;
+}
+
+/* logout button */
+.logout-btn {
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  padding: 0;
+  background: rgba(0, 0, 0, 0.12);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: none;
+  z-index: 1110;
+}
+.logout-btn:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.6);
+  border-radius: 8px;
+}
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.logout-btn svg {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  fill: currentColor;
+}

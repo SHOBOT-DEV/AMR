@@ -3,14 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { toast, Toaster } from "react-hot-toast";
 
 // Components
-import Sidebar from "../components/layout/SideBar";
-import Header from "../components/layout/Header";
-import MapArea from "../components/map/MapArea";
-import RightPane from "../components/layout/RightPane";
+import Sidebar from "./SideBar";
+import Header from "./Header.jsx";
+import MapArea from "../map/MapArea";
+import RightPane from "./RightPane";
 // import BatteryModal from "../components/common/BatteryModal"; // Ensure this exists
 
 // Utils
-import { fetchWithAuth, clearAuthTokens, API_BASE } from "../utils/auth";
+import { fetchWithAuth, clearAuthTokens, API_BASE } from "../../utils/auth";
 // import { connectBridgeSocket, fetchBridgeStatus } from "../utils/amrBridge";
 
 const API_V1_BASE = `${API_BASE}/api/v1`;
