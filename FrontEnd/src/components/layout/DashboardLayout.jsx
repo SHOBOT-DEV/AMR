@@ -4,7 +4,7 @@ import { toast, Toaster } from "react-hot-toast";
 
 // Components
 import Sidebar from "./SideBar";
-import Header from "./Header.jsx";
+import Header from "../test/Header.jsx";
 import MapArea from "../map/MapArea";
 import RightPane from "./RightPane";
 // import BatteryModal from "../components/common/BatteryModal"; // Ensure this exists
