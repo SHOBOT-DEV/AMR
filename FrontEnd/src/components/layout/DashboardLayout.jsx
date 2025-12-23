@@ -3,15 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { toast, Toaster } from "react-hot-toast";
 
 // Components
-import Sidebar from "./SideBar";
+import Sidebar from "../test/SideBar";
 import Header from "./Header.tsx";
 import MapArea from "../map/MapArea";
 import RightPane from "./RightPane";
-// import BatteryModal from "../components/common/BatteryModal"; // Ensure this exists
 
 // Utils
 import { fetchWithAuth, clearAuthTokens, API_BASE } from "../../utils/auth";
-// import { connectBridgeSocket, fetchBridgeStatus } from "../utils/amrBridge";
 
 const API_V1_BASE = `${API_BASE}/api/v1`;
 const FALLBACK_STATS = {
@@ -29,6 +27,13 @@ const Dashboard = () => {
   // const [batteryModalOpen, setBatteryModalOpen] = useState(false);
   const [batteryLevel, setBatteryLevel] = useState(100);
   const [rightPage, setRightPage] = useState(null);
+  // minimize main center (map) and joystick when right pane opens
+  const [minimizedMain, setMinimizedMain] = useState(false);
+  useEffect(() => {
+    setMinimizedMain(!!rightPage);
+  }, [rightPage]);
+  // joystick state (optional): keep last vector if needed elsewhere
+  const [joystickState, setJoystickState] = useState({ x: 0, y: 0, force: 0, angle: 0, type: null });
 
   // --- Data State ---
   const [mapsList, setMapsList] = useState([]);
@@ -58,6 +63,19 @@ const Dashboard = () => {
     clearAuthTokens();
     navigate("/");
   }, [navigate]);
+
+  const handleJoystickMove = useCallback((data) => {
+    // forward to MapArea and keep local state (data shape from nipplejs / joystick)
+    setJoystickState({
+      x: data.x ?? 0,
+      y: data.y ?? 0,
+      force: data.force ?? 0,
+      angle: data.angle ?? 0,
+      type: data.type || "joystick",
+    });
+    // additional handling: send to backend or robot adapter here if required
+    // console.debug("Joystick:", data);
+  }, []);
 
   return (
     <div
@@ -104,11 +122,13 @@ const Dashboard = () => {
         <div className="flex-1 ml-16 relative flex overflow-hidden">
 
           <MapArea
-            minimized={!!rightPage}
+            minimized={minimizedMain}
             isLocked={isLocked}
             emergencyClicked={emergencyClicked}
-            onJoystickMove={(data) => console.log(data)}
+            onJoystickMove={handleJoystickMove}
           />
+
+          {/* MapArea handles its own joystick and will minimize/move when `minimized` is true */}
 
           {/* 5. Right Pane (Drawer) */}
           {/* Rendered conditionally inside flex container to push map or overlay */}

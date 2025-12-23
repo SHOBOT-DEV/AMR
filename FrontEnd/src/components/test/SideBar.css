@@ -1,0 +1,635 @@
+/* Sidebar adopts theme variables for background and border */
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  width: 72px;
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text, var(--text-color));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 12px;
+  box-sizing: border-box;
+  transition: width 160ms ease;
+  z-index: 60;
+  overflow: visible;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial;
+  border-right: 1px solid var(--sidebar-border);
+}
+
+/* overlay adapted for light rail */
+.sidebar::after {
+  content: "";
+  position: absolute;
+  left: 72px;
+  top: 0;
+  width: 168px;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    rgba(135, 206, 235, 0.95),
+    rgba(200, 240, 255, 0.98)
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease;
+  border-left: 1px solid rgba(5, 32, 52, 0.06);
+  z-index: 10;
+}
+
+/* triangle at top (keep accent but subtle on sky background) */
+.top-triangle {
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-bottom: 10px solid #0369a1;
+  margin-bottom: 6px;
+}
+
+/* top area: emergency button centered */
+.sidebar-top {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 0 8px 0;
+  z-index: 20;
+  cursor: default;
+}
+.emergency-btn {
+  margin-top: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #ff4d4d, #d92b2b);
+  color: #fff;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(217, 43, 43, 0.28);
+  cursor: pointer;
+}
+.emergency-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* center the menu vertically */
+.menu-center {
+  width: 100%;
+  margin-top: auto;
+  margin-bottom: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* emergency button container (centered above the menu list) */
+.emergency-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 10px;
+  z-index: 30;
+  pointer-events: auto;
+}
+
+/* center the menu vertically */
+.menu-center {
+  width: 100%;
+  margin-top: auto;
+  margin-bottom: auto;
+  display: flex;
+  justify-content: center;
+}
+
+/* menu items as vertical stack, each item column (icon above label) */
+.sidebar-menu {
+  list-style: none;
+  padding: 6px 6px;
+  margin: 0;
+  width: 100%;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.sidebar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 6px;
+  color: var(--sidebar-text, var(--text-color));
+  cursor: pointer;
+  border-radius: 10px;
+  margin: 6px 0;
+  position: relative;
+  min-width: 56px;
+  min-height: 72px;
+  transition:
+    transform 120ms ease,
+    background 120ms ease;
+}
+
+/* hover */
+.sidebar-item:hover {
+  transform: translateY(-4px);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* icon background */
+.icon-bg {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.15); /* semi-transparent white works on both sky blue and dark */
+  color: var(--sidebar-text, #ffffff);
+  transition:
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 120ms ease;
+  z-index: 22;
+}
+.icon-bg .icon-inner {
+  color: var(--sidebar-text, #ffffff);
+  font-size: 22px;
+}
+
+/* active icon bg - bright gradient that stands out on both themes */
+.icon-bg.visible {
+  background: linear-gradient(180deg, #60a5fa, #3b82f6);
+  box-shadow: 0 8px 18px rgba(59, 130, 246, 0.4);
+}
+.icon-bg.visible .icon-inner {
+  color: #ffffff; /* bright white icon when active */
+}
+
+/* label under icon */
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sidebar-text, #ffffff);
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+  pointer-events: none;
+}
+
+/* show labels on expand */
+.sidebar:hover .label {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* badge position (top-right of icon) */
+.badge {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  background: #ff6b6b;
+  color: #fff;
+  font-size: 12px;
+  padding: 3px 7px;
+  border-radius: 12px;
+  z-index: 24;
+}
+
+/* tooltip when collapsed */
+.sidebar:not(:hover) .label {
+  display: none;
+}
+.sidebar:not(:hover) .sidebar-item .label-tooltip {
+  display: block;
+  position: absolute;
+  left: 84px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  z-index: 120;
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(2, 8, 23, 0.5);
+  opacity: 0;
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+.sidebar:not(:hover) .sidebar-item:hover .label-tooltip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(6px);
+}
+.sidebar:hover .label-tooltip {
+  display: none;
+}
+
+/* bottom chevron */
+.sidebar-bottom {
+  margin-top: auto;
+  width: 100%;
+  padding: 12px 8px;
+  display: flex;
+  justify-content: center;
+  z-index: 20;
+}
+.chev-btn {
+  background: transparent;
+  border: none;
+  color: var(--sidebar-text, #ffffff);
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+.chev-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--sidebar-text, #ffffff);
+}
+
+/* active left indicator */
+.sidebar-item.active .active-indicator {
+  position: absolute;
+  left: -16px;
+  width: 10px;
+  height: 40px;
+  background: linear-gradient(180deg, #60a5fa, #3b82f6);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+}
+
+/* ensure layering */
+.icon-bg,
+.badge,
+.label,
+.label-tooltip,
+.active-indicator {
+  will-change: transform, opacity;
+}
+
+/* center icon wrapper placed and centered vertically */
+.center-icon-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  z-index: 25;
+  /* center vertically between top and bottom by auto margins */
+  margin-top: auto;
+  margin-bottom: auto;
+  pointer-events: none;
+}
+
+/* main circular/rounded icon (keeps accent color) */
+.center-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: linear-gradient(
+    180deg,
+    #0ea5e9,
+    #0369a1
+  ); /* visible on dark rail */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(3, 48, 80, 0.45);
+  transform: translateY(2px);
+  pointer-events: auto; /* allow clicks */
+  cursor: pointer;
+}
+.center-icon-inner {
+  color: #ffffff;
+  font-size: 22px;
+}
+
+/* container for small action buttons below main icon */
+.below-icons {
+  display: none; /* default: below-icons hidden until expanded */
+}
+
+/* small round buttons (stats, chat) - dark rail friendly */
+.small-btn {
+  width: 40px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #cfeeff;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    transform 120ms ease;
+}
+.small-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateX(4px);
+}
+.small-btn svg {
+  font-size: 16px;
+}
+
+/* active styles restored for dark rail */
+.icon-bg.visible {
+  background: linear-gradient(180deg, #0ea5e9, #0369a1);
+  box-shadow: 0 6px 14px rgba(3, 48, 80, 0.45);
+}
+.icon-bg.visible .icon-inner {
+  color: #ffffff;
+}
+.sidebar-item.active .active-indicator {
+  background: linear-gradient(180deg, #0ea5e9, #0369a1);
+  box-shadow: 0 2px 6px rgba(3, 48, 80, 0.6);
+}
+
+/* ensure center block stays above overlay */
+.center-icon-wrap,
+.center-icon,
+.below-icons,
+.small-btn {
+  z-index: 30;
+}
+
+/* show expanded sidebar: wider, reveal labels & below icons */
+.sidebar.expanded {
+  width: 240px; /* expanded width */
+  transition: width 180ms ease;
+}
+.sidebar.expanded::after {
+  opacity: 1;
+}
+
+/* show labels and tooltips differently when expanded */
+.sidebar.expanded .label {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.sidebar.expanded .label-tooltip {
+  display: none;
+}
+
+/* reveal below icons when expanded */
+.sidebar.expanded .below-icons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-left: 12px;
+  margin-top: 8px;
+}
+
+/* adjust icon-bg spacing when expanded */
+.sidebar.expanded .sidebar-item {
+  min-width: auto;
+  min-height: auto;
+  padding: 8px 12px;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+.sidebar.expanded .icon-bg {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+}
+.sidebar.expanded .icon-bg .icon-inner {
+  font-size: 18px;
+}
+
+/* center icon behavior when expanded (optional visual tweak) */
+.sidebar.expanded .center-icon {
+  margin-left: 8px;
+}
+
+/* ensure badge positions adapt in expanded mode */
+.sidebar.expanded .badge {
+  right: 18px;
+}
+
+/* Create submenu (shown when Create is active and sidebar expanded) */
+.create-submenu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  width: calc(100% - 24px);
+}
+.create-sub-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  color: #052034;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.create-sub-item:hover {
+  background: rgba(3, 48, 80, 0.06);
+  transform: translateX(4px);
+}
+.create-sub-item .sub-icon {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: rgba(3, 48, 80, 0.06);
+}
+.create-sub-item .sub-label {
+  font-size: 13px;
+}
+
+/* inline submenu styles */
+.create-submenu-inline {
+  list-style: none;
+  width: 100%;
+  padding: 6px 8px;
+  margin: 6px 0 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: transparent; /* keep rail color visible */
+  box-sizing: border-box;
+}
+
+/* submenu items styled for the sky-blue rail */
+.create-sub-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  width: calc(100% - 16px);
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #fff; /* white text on sky-blue rail */
+  font-weight: 700;
+  transition:
+    background 120ms ease,
+    transform 120ms ease;
+}
+.create-sub-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateX(6px);
+}
+
+/* icon inside submenu: subtle light background */
+.create-sub-item .sub-icon {
+  font-size: 16px;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+/* label text */
+.create-sub-item .sub-label {
+  font-size: 14px;
+  color: #fff;
+}
+
+/* Ensure when sidebar is expanded the submenu aligns with labels */
+.sidebar.expanded .create-submenu-inline {
+  margin-left: 12px;
+}
+
+/* Right-side create panel (appears near clicked Create icon; position set inline from JS) */
+.sidebar-right-panel {
+  position: fixed;
+  top: 56px; /* overridden by inline top when anchored */
+  width: 220px;
+  height: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* sky-blue vertical gradient matching the left rail (top → bottom) */
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text, var(--text-color));
+  border: 1px solid var(--sidebar-border);
+  border-radius: 0 12px 12px 0;
+  box-shadow: 4px 8px 24px rgba(2, 12, 22, 0.18);
+  z-index: 90;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+  /* small left border so it reads as an extension of the rail */
+  border-left: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+/* panel item styles matching rail feel */
+.right-create-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--sidebar-text, var(--text-color));
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    transform 140ms ease;
+}
+
+/* panel item default icon color */
+.right-create-item .right-sub-icon {
+  background: transparent;
+  color: var(--sidebar-text, #ffffff);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  font-size: 16px;
+  transition:
+    background 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+/* --- CHANGES START --- */
+/* on hover: make icon & label white (match sidebar icon appearance) */
+.right-create-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(-4px);
+  color: var(--sidebar-text, #fff);
+}
+.right-create-item:hover .right-sub-icon {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--sidebar-text, #fff);
+}
+
+/* when an option is active */
+.right-create-item.active .right-sub-icon {
+  background: linear-gradient(180deg, #60a5fa, #3b82f6);
+  box-shadow: 0 6px 14px rgba(59, 130, 246, 0.4);
+  color: #ffffff;
+}
+
+.right-create-item.active {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+/* --- CHANGES END --- */
+
+/* ensure hover still works for icon */
+.right-create-item:hover .right-sub-icon {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+/* responsive: keep panel near rail on small screens */
+@media (max-width: 800px) {
+  .sidebar-right-panel {
+    left: 72px;
+    top: 64px;
+    width: 180px;
+  }
+}
