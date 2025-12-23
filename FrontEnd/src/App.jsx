@@ -6,7 +6,7 @@ import {
   useNavigate,
 } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import MainPage from "./components/layout/DashboardLayout.jsx";
+import MainPage from "./components/layout/DashboardLayout.tsx";
 import Admin from "./pages/admin/Admin.tsx"; 
 import AdminLogin from "./pages/auth/AdminLogin.tsx";
 import Login from "./pages/auth/login.tsx";

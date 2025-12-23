@@ -1,12 +1,7 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import "./RightPane.css";
-import {
-  FaPlus,
-  FaEdit,
-  FaTrash,
-  FaMicrophone,
-  FaPaperPlane,
-} from "react-icons/fa";
+import MapsPanel from "../../features/create/maps";
+import { FaEdit, FaMicrophone, FaPaperPlane } from "react-icons/fa";
 
 /*
 Props expected (pass these from MainPage.jsx):
@@ -15,7 +10,6 @@ Props expected (pass these from MainPage.jsx):
   // maps
   mapsList, selectedMap, setSelectedMap, mapSearchField, setMapSearchField,
   mapSearchTerm, setMapSearchTerm, createNewMapImmediate, handleActivateMap,
-  handleMapAction,
   // zones
   zones, zoneFormOpen, setZoneFormOpen, zoneForm, setZoneForm, setZones,
   zoneSearchField, setZoneSearchField, zoneSearchTerm, setZoneSearchTerm,
@@ -63,20 +57,7 @@ const RightPane = (props) => {
     approval: "",
   });
 
-  // Add map modal state locally
-  const [mapModalOpen, setMapModalOpen] = useState(false);
-  const [mapModalMode, setMapModalMode] = useState("preview"); // "preview" | "edit" | "create"
-  const [mapForm, setMapForm] = useState({
-    id: null,
-    name: "",
-    createdBy: "",
-    image: "",
-    status: "",
-    category: "",
-    createdAt: "",
-  });
   const [isRecording, setIsRecording] = useState(false);
-  const mapImageInputRef = useRef(null);
 
   // ---------- VOICE RECOGNITION SETUP ----------
   const SpeechRecognition =
@@ -112,6 +93,7 @@ const RightPane = (props) => {
 
   // destructure props (removed isRecording/handleMicClick from props)
   const {
+    
     rightPage,
     setRightPage,
     // maps
@@ -119,7 +101,6 @@ const RightPane = (props) => {
     selectedMap,
     createNewMapImmediate,
     handleActivateMap,
-    handleMapAction,
     mapSearchField,
     setMapSearchField,
     mapSearchTerm,
@@ -220,136 +201,6 @@ const RightPane = (props) => {
   } = props;
 
   // Add this helper function reference (pass from MainPage)
-  const getMapDisplayName = (mapId) => {
-    if (!mapId) return "Unknown";
-    // This will be passed as a prop from MainPage
-    return mapId;
-  };
-
-  // Helper to open map modal for edit
-  const openMapModal = (mode, map = null) => {
-    setMapModalMode(mode);
-    if (!map) {
-      setMapForm({
-        id: null,
-        name: "",
-        createdBy: "",
-        image: "",
-        status: "",
-        category: "",
-        createdAt: new Date().toISOString().slice(0, 10),
-      });
-    } else {
-      setMapForm({
-        id: map.id,
-        name: map.name || "",
-        createdBy: map.createdBy || "",
-        image: map.image || "",
-        status: map.status || "",
-        category: map.category || "",
-        createdAt: map.createdAt || "",
-      });
-    }
-    setMapModalOpen(true);
-  };
-
-  const closeMapModal = () => {
-    setMapModalOpen(false);
-    setMapForm({
-      id: null,
-      name: "",
-      createdBy: "",
-      image: "",
-      status: "",
-      category: "",
-      createdAt: "",
-    });
-  };
-
-  const saveMapFromForm = async () => {
-    if (!mapForm.name.trim()) {
-      toast?.error?.("Map name required");
-      return;
-    }
-
-    const payload = {
-      name: mapForm.name.trim(),
-      createdBy: mapForm.createdBy,
-      image: mapForm.image,
-      status: mapForm.status,
-      category: mapForm.category,
-      createdAt: mapForm.createdAt,
-    };
-
-    try {
-      if (mapModalMode === "edit") {
-        const id = mapForm.id;
-        // Optimistic update
-        setMapsList((prev) => prev.map((m) => (m.id === id ? { ...m, ...payload } : m)));
-        if (props.selectedMap && props.selectedMap.id === id) {
-          setSelectedMap((s) => ({ ...s, ...payload }));
-        }
-        toast?.success?.("Map updated");
-        closeMapModal();
-      }
-    } catch (err) {
-      console.error("Save map error", err);
-      toast?.error?.(err.message || "Failed to save map");
-    }
-  };
-
-  // Handle image file selection (VERIFY THIS EXISTS)
-  const handleMapImageChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    // Validate file type
-    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      toast?.error?.("Please select a valid image file (PNG, JPG, JPEG, GIF, WebP)");
-      return;
-    }
-    
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast?.error?.("File size must be less than 5MB");
-      return;
-    }
-    
-    const reader = new FileReader();
-    reader.onload = () => {
-      setMapForm((prev) => ({ ...prev, image: reader.result || "" }));
-      toast?.success?.("Image loaded successfully!");
-    };
-    reader.onerror = () => {
-      toast?.error?.("Failed to read file");
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const triggerMapImagePicker = (e) => {
-    // Prevent any default behavior
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    
-    try {
-      // CRITICAL: Use the exact same ref name
-      if (mapImageInputRef.current) {
-        mapImageInputRef.current.value = ''; // Reset to allow re-selecting same file
-        mapImageInputRef.current.click(); // Trigger the file picker
-        console.log("✅ File picker triggered successfully");
-      } else {
-        console.error("❌ mapImageInputRef.current is NULL");
-        toast?.error?.("File picker unavailable. Please refresh the page.");
-      }
-    } catch (err) {
-      console.error("❌ Image picker failed:", err);
-      toast?.error?.("Failed to open file picker");
-    }
-  };
-
   // Helper function for filtering by search term and field
   const filterBySearch = (items, searchTerm, searchField, fieldMap) => {
     if (!searchTerm.trim()) return items;
@@ -389,350 +240,20 @@ const RightPane = (props) => {
       <div className="right-pane-body">
         {/* MAPS */}
         {rightPage === "maps" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {/* ✅ Hidden file input - VERIFY THIS EXISTS */}
-            <input
-              type="file"
-              ref={mapImageInputRef}
-              accept="image/*"
-              style={{ display: "none" }}
-              onChange={handleMapImageChange}
-            />
-
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <select
-                aria-label="Search field"
-                value={mapSearchField}
-                onChange={(e) => setMapSearchField(e.target.value)}
-                style={{ padding: "12px 8px" }}
-              >
-                <option value="any">Search By</option>
-                <option value="name">Name</option>
-                <option value="createdBy">Created By</option>
-                <option value="category">Category</option>
-                <option value="createdAt">Created At</option>
-                <option value="status">Status</option>
-              </select>
-
-              <input
-                value={mapSearchTerm}
-                onChange={(e) => setMapSearchTerm(e.target.value)}
-                placeholder="Type to search..."
-                style={{ padding: "12px 190px", minWidth: 220 }}
-              />
-
-              <div>
-                <button
-                  onClick={createNewMapImmediate}
-                  aria-label="Create new map"
-                  title="+ Create New Map"
-                  style={{
-                    background: "#0b74d1",
-                    color: "#fff",
-                    padding: "12px 12px",
-                    borderRadius: 8,
-                    border: "none",
-                    cursor: "pointer",
-                    boxShadow: "0 6px 18px rgba(11,116,209,0.16)",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                    fontWeight: 700,
-                  }}
-                >
-                  <FaPlus />
-                  <span> Create New Map</span>
-                </button>
-              </div>
-            </div>
-
-            <div style={{ borderTop: "1px solid var(--card-border, #e6eef2)", marginTop: 8 }} />
-
-            <div style={{ overflowY: "auto", maxHeight: 420 }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 8 }}>
-                <thead style={{ background: "var(--card-bg, #fafafa)" }}>
-                  <tr>
-                    <th style={{ textAlign: "center", padding: 12, width: 72 }}>Active</th>
-                    <th style={{ textAlign: "left", padding: 12 }}>Name</th>
-                    <th style={{ textAlign: "left", padding: 12 }}>Created By</th>
-                    <th style={{ textAlign: "left", padding: 12 }}>Created At</th>
-                    <th style={{ textAlign: "right", padding: 12 }}>Status</th>
-                    <th style={{ textAlign: "right", padding: 12, width: 160 }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(() => {
-                    const term = (mapSearchTerm || "").trim().toLowerCase();
-                    const field = mapSearchField;
-                    const filtered = (mapsList || []).filter((m) => {
-                      if (!term) return true;
-                      if (field === "any") {
-                        const hay = `${m.name||""} ${m.createdBy||""} ${m.category||""} ${m.createdAt||""} ${m.status||""}`.toLowerCase();
-                        return hay.includes(term);
-                      }
-                      return String(m[field] || "").toLowerCase().includes(term);
-                    });
-                    return filtered.map((m) => (
-                      <tr key={m.id} onClick={() => handleActivateMap(m)} style={{ cursor: "pointer", background: selectedMap?.id === m.id ? "rgba(3,48,80,0.04)" : "transparent" }}>
-                        <td style={{ padding: 12, borderBottom: "1px solid var(--card-border, #eef2f6)", textAlign: "center" }}>
-                          <input
-                            type="radio"
-                            name="activeMap"
-                            checked={selectedMap?.id === m.id}
-                            onChange={(e) => {
-                              e.stopPropagation();
-                              handleActivateMap(m);
-                            }}
-                            aria-label={`Activate ${m.name}`}
-                          />
-                        </td>
-                        <td style={{ padding: 12, borderBottom: "1px solid var(--card-border, #eef2f6)", fontWeight: 700, color: "var(--text-color)" }}>{m.name}</td>
-                        <td style={{ padding: 12, borderBottom: "1px solid var(--card-border, #eef2f6)", color: "var(--muted-text, #6b7280)" }}>{m.createdBy}</td>
-                        <td style={{ padding: 12, borderBottom: "1px solid var(--card-border, #eef2f6)", color: "var(--muted-text, #6b7280)" }}>{m.createdAt || "—"}</td>
-                        <td style={{ padding: 12, borderBottom: "1px solid var(--card-border, #eef2f6)", textAlign: "right" }}>
-                          <span
-                            style={{
-                              background:
-                                (String(m.status || "").toLowerCase() === "active")
-                                  ? "#10b981"
-                                  : "#ef4444ff",
-                              color: "#fff",
-                              padding: "2px 8px",
-                              borderRadius: 8,
-                              textTransform: "capitalize",
-                            }}
-                          >
-                            {m.status ? m.status : "Inactive"}
-                          </span>
-                        </td>
-                        <td style={{ padding: 12, borderBottom: "1px solid var(--card-border, #eef2f6)", display: "flex", gap: 8, justifyContent: "flex-end" }} onClick={(e) => e.stopPropagation()}>
-                          <button 
-                            title="Edit" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openMapModal("edit", m);
-                            }} 
-                            className="ghost-btn"
-                            style={{ 
-                              padding: "6px 10px", 
-                              borderRadius: 6, 
-                              border: "1px solid var(--card-border)", 
-                              background: "transparent", 
-                              cursor: "pointer",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 4
-                            }}
-                          >
-                            <FaEdit />
-                          </button>
-                          <button 
-                            title="Delete" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMapAction("delete", m);
-                            }} 
-                            className="ghost-btn"
-                            style={{ 
-                              padding: "6px 10px", 
-                              borderRadius: 6, 
-                              border: "1px solid var(--card-border)", 
-                              background: "transparent", 
-                              cursor: "pointer",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 4,
-                              color: "#ef4444"
-                            }}
-                          >
-                            <FaTrash />
-                          </button>
-                        </td>
-                      </tr>
-                    ));
-                  })()}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Edit Map Modal */}
-            {mapModalOpen && mapModalMode === "edit" && (
-              <div style={{ 
-                position: "fixed", 
-                top: 0, 
-                left: 0, 
-                right: 0, 
-                bottom: 0, 
-                background: "rgba(0,0,0,0.5)", 
-                display: "flex", 
-                alignItems: "center", 
-                justifyContent: "center",
-                zIndex: 1000 
-              }} onClick={closeMapModal}>
-                <div style={{ 
-                  background: "var(--card-bg)", 
-                  borderRadius: 12, 
-                  padding: 24, 
-                  maxWidth: 600, 
-                  width: "90%",
-                  boxShadow: "0 10px 40px rgba(0,0,0,0.3)",
-                  maxHeight: "90vh",
-                  overflowY: "auto"
-                }} onClick={(e) => e.stopPropagation()}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-                    <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Edit Map</h3>
-                    <button onClick={closeMapModal} style={{ background: "transparent", border: "none", fontSize: 20, cursor: "pointer" }}>×</button>
-                  </div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                    <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted-text)" }}>Map Name</span>
-                      <input 
-                        value={mapForm.name} 
-                        onChange={(e) => setMapForm(prev => ({ ...prev, name: e.target.value }))}
-                        style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--card-border)" }}
-                      />
-                    </label>
-
-                    <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted-text)" }}>Created By</span>
-                      <input 
-                        value={mapForm.createdBy} 
-                        onChange={(e) => setMapForm(prev => ({ ...prev, createdBy: e.target.value }))}
-                        style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--card-border)" }}
-                      />
-                    </label>
-
-                    <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted-text)" }}>Category</span>
-                      <input 
-                        value={mapForm.category} 
-                        onChange={(e) => setMapForm(prev => ({ ...prev, category: e.target.value }))}
-                        style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--card-border)" }}
-                        placeholder="Optional"
-                      />
-                    </label>
-
-                    <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted-text)" }}>Status</span>
-                      <select 
-                        value={mapForm.status} 
-                        onChange={(e) => setMapForm(prev => ({ ...prev, status: e.target.value }))}
-                        style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--card-border)" }}
-                      >
-                        <option value="">Inactive</option>
-                        <option value="Active">Active</option>
-                      </select>
-                    </label>
-
-                    {/* Map Image Upload Section */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "16px", background: "var(--muted-bg)", borderRadius: 8, border: "1px solid var(--card-border)" }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted-text)" }}>Map Image</span>
-                      
-                      {/* Image preview */}
-                      {mapForm.image && (
-                        <div style={{ position: "relative", width: "100%", maxHeight: 200, overflow: "hidden", borderRadius: 8, border: "1px solid var(--card-border)" }}>
-                          <img 
-                            src={mapForm.image} 
-                            alt="Map preview" 
-                            style={{ width: "100%", height: "auto", display: "block", objectFit: "contain" }}
-                          />
-                          <button
-                            onClick={() => setMapForm(prev => ({ ...prev, image: "" }))}
-                            style={{ 
-                              position: "absolute", 
-                              top: 8, 
-                              right: 8, 
-                              background: "rgba(239, 68, 68, 0.9)", 
-                              color: "#fff", 
-                              border: "none", 
-                              borderRadius: 6, 
-                              padding: "4px 8px", 
-                              cursor: "pointer",
-                              fontSize: 12,
-                              fontWeight: 600
-                            }}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      )}
-
-                      {/* URL Input */}
-                      <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        <span style={{ fontSize: 12, color: "var(--muted-text)" }}>Image URL</span>
-                        <input 
-                          type="url"
-                          value={mapForm.image && !mapForm.image.startsWith('data:') ? mapForm.image : ''} 
-                          onChange={(e) => setMapForm(prev => ({ ...prev, image: e.target.value }))}
-                          placeholder="https://example.com/map.png"
-                          style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid var(--card-border)", fontSize: 13 }}
-                        />
-                      </label>
-
-                      {/* Divider */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ flex: 1, height: 1, background: "var(--card-border)" }}></div>
-                        <span style={{ fontSize: 12, color: "var(--muted-text)" }}>OR</span>
-                        <div style={{ flex: 1, height: 1, background: "var(--card-border)" }}></div>
-                      </div>
-
-                      {/* ✅ File Browse Button - VERIFY CLICK HANDLER */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          console.log("🔵 Browse button clicked");
-                          e.preventDefault();
-                          e.stopPropagation();
-                          triggerMapImagePicker(e);
-                        }}
-                        style={{ 
-                          padding: "10px 16px", 
-                          background: "#0b74d1", 
-                          border: "1px solid #0ea5e9", 
-                          borderRadius: 6, 
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 8,
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: "#fff"
-                        }}
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                          <polyline points="17 8 12 3 7 8"></polyline>
-                          <line x1="12" y1="3" x2="12" y2="15"></line>
-                        </svg>
-                        📁 Browse from computer
-                      </button>
-
-                      <div style={{ fontSize: 11, color: "var(--muted-text)", textAlign: "center" }}>
-                        Supported formats: PNG, JPG, JPEG, GIF, WebP
-                      </div>
-                    </div>
-
-                    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 }}>
-                      <button 
-                        onClick={closeMapModal}
-                        style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--card-border)", background: "transparent", cursor: "pointer" }}
-                      >
-                        Cancel
-                      </button>
-                      <button 
-                        onClick={saveMapFromForm}
-                        style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#0b74d1", color: "#fff", cursor: "pointer" }}
-                      >
-                        Save Changes
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <MapsPanel
+            mapsList={mapsList}
+            selectedMap={selectedMap}
+            mapSearchField={mapSearchField}
+            setMapSearchField={setMapSearchField}
+            mapSearchTerm={mapSearchTerm}
+            setMapSearchTerm={setMapSearchTerm}
+            createNewMapImmediate={createNewMapImmediate}
+            handleActivateMap={handleActivateMap}
+            requestV1={requestV1}
+            toast={toast}
+            setMapsList={setMapsList}
+            setSelectedMap={setSelectedMap}
+          />
         )}
 
         {/* ZONES */}

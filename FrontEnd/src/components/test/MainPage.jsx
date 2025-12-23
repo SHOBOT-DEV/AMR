@@ -13,14 +13,13 @@ import {
     FaLock,
     FaUnlock,
     FaSignOutAlt,
-    FaPlus,
-    FaEdit,
 } from "react-icons/fa";
 import { toast } from "react-hot-toast";
 import { fetchWithAuth, clearAuthTokens, API_BASE } from "../utils/auth";
 import "./MainPage.css";
 import RightPane from "../layout/RightPane";
 import Header from "../layout/Header";
+import { MapWorkspace, INITIAL_MISSIONS } from "../../features/create/maps";
 
 const API_V1_BASE = `${API_BASE}/api/v1`;
 
@@ -64,7 +63,6 @@ const FALLBACK_STATS = {
         const mapRef = useRef(null);
         const layoutRef = useRef(null);
         const chatContainerRef = useRef(null);
-        const mapImageInputRef = useRef(null); // hidden file input used by map modal
 
         // AMR Bridge state & connect helper (keeps same UI behavior as before)
         const [bridgeStatus, setBridgeStatus] = useState({
@@ -266,36 +264,7 @@ const FALLBACK_STATS = {
         const [selectedWaypointId, setSelectedWaypointId] = useState(null);
 
         // missions data + selection (added)
-        const initialMissions = [
-            {
-                id: "m1",
-                mapId: "cfl_gf",
-                name: "Inspect Zone A",
-                owner: "CNDE",
-                status: "Draft",
-                createdAt: "2025-11-17",
-                notes: "Routine inspection",
-            },
-            {
-                id: "m2",
-                mapId: "cfl_gf",
-                name: "Delivery Route 3",
-                owner: "ANSCER ADMIN",
-                status: "Scheduled",
-                createdAt: "2025-11-16",
-                notes: "Delivery to docks",
-            },
-            {
-                id: "m3",
-                mapId: "cfl_gf",
-                name: "Battery Check",
-                owner: "CNDE",
-                status: "Completed",
-                createdAt: "2025-11-15",
-                notes: "Post-run check",
-            },
-        ];
-        const [missions, setMissions] = useState(initialMissions);
+        const [missions, setMissions] = useState(INITIAL_MISSIONS);
         const [selectedMissionId, setSelectedMissionId] = useState(null);
         const handleSelectMission = (id) => setSelectedMissionId(id);
         const [missionFormOpen, setMissionFormOpen] = useState(false);
@@ -692,106 +661,6 @@ const FALLBACK_STATS = {
             }
         };
 
-        // Map modal state for preview / edit / create
-        const [mapModalOpen, setMapModalOpen] = useState(false);
-        const [mapModalMode, setMapModalMode] = useState("preview"); // "preview" | "edit" | "create"
-        const [mapModalMap, setMapModalMap] = useState(null);
-
-        // form used for create/edit
-        const [mapForm, setMapForm] = useState({
-            id: null,
-            name: "",
-            createdBy: "",
-            image: "",
-            status: "",
-            category: "",
-            createdAt: "",
-        });
-
-        const openMapModal = (mode, map = null) => {
-            setMapModalMode(mode);
-            setMapModalMap(map);
-            if (!map) {
-                setMapForm({
-                    id: null,
-                    name: "",
-                    createdBy: "",
-                    image: "",
-                    status: "",
-                    category: "",
-                    createdAt: new Date().toISOString().slice(0, 10),
-                });
-            } else {
-                setMapForm({
-                    id: map.id,
-                    name: map.name || "",
-                    createdBy: map.createdBy || "",
-                    image: map.image || "",
-                    status: map.status || "",
-                    category: map.category || "",
-                    createdAt: map.createdAt || "",
-                });
-            }
-            setMapModalOpen(true);
-        };
-
-        const closeMapModal = () => {
-            setMapModalOpen(false);
-            setMapModalMap(null);
-        };
-
-        // Handle image file selection for map modal — read as data URL and store in mapForm.image
-        const handleMapImageChange = (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = () => {
-                setMapForm((prev) => ({ ...prev, image: reader.result || "" }));
-            };
-            reader.readAsDataURL(file);
-        };
-
-        const triggerMapImagePicker = () => {
-            try {
-                if (mapImageInputRef.current) mapImageInputRef.current.click();
-            } catch (err) {
-                console.warn("Image picker failed", err);
-            }
-        };
-
-        const handleMapAction = async (action, map) => {
-            try {
-                if (action === "edit") {
-                    openMapModal("edit", map);
-                    return;
-                }
-                if (action === "delete") {
-                    const ok = window.confirm(
-                        `Delete map "${map?.name || map?.id}"? This cannot be undone.`,
-                    );
-                    if (!ok) return;
-
-                    // Try server delete first; fallback to local removal on failure
-                    try {
-                        await requestV1(`/maps/${map.id}`, { method: "DELETE" });
-                        setMapsList((prev) => prev.filter((m) => m.id !== map.id));
-                        if (selectedMap && selectedMap.id === map.id) setSelectedMap(null);
-                        toast.success("Map deleted");
-                    } catch (err) {
-                        console.warn("Delete API failed, falling back to local remove", err);
-                        // fallback local behavior
-                        setMapsList((prev) => prev.filter((m) => m.id !== map.id));
-                        if (selectedMap && selectedMap.id === map.id) setSelectedMap(null);
-                        toast.success("Map removed (local)");
-                    }
-                    return;
-                }
-            } catch (err) {
-                console.error("Map action error", err);
-                toast.error(err.message || "Map action failed");
-            }
-        };
-
         // Create a new map immediately (optimistic local create with server persist attempt)
         const createNewMapImmediate = async () => {
             const newMap = {
@@ -1035,68 +904,6 @@ const FALLBACK_STATS = {
                 toast.error("Failed to activate map");
             }
         };
-
-        const saveMapFromForm = async () => {
-            // basic validation
-            if (!mapForm.name.trim()) {
-                toast.error("Map name required");
-                return;
-            }
-            const payload = {
-                name: mapForm.name.trim(),
-                createdBy: mapForm.createdBy,
-                image: mapForm.image,
-                status: mapForm.status,
-                category: mapForm.category,
-                createdAt: mapForm.createdAt,
-            };
-
-            try {
-                if (mapModalMode === "create") {
-                    // POST /maps
-                    try {
-                        const res = await requestV1("/maps", {
-                            method: "POST",
-                            body: JSON.stringify(payload),
-                        });
-                        const created = res.item || { ...payload, id: res.id || `map_${Date.now()}` };
-                        setMapsList((prev) => [created, ...prev]);
-                        setSelectedMap(created);
-                        toast.success("Map created");
-                    } catch (err) {
-                        // fallback local creation
-                        const created = { ...payload, id: `local_${Date.now()}` };
-                        setMapsList((prev) => [created, ...prev]);
-                        setSelectedMap(created);
-                        toast.success("Map created (local)");
-                    }
-                } else if (mapModalMode === "edit") {
-                    const id = mapForm.id;
-                    try {
-                        const res = await requestV1(`/maps/${id}`, {
-                            method: "PATCH",
-                            body: JSON.stringify(payload),
-                        });
-                        const updated = res.item || { ...payload, id };
-                        setMapsList((prev) => prev.map((m) => (m.id === id ? { ...m, ...updated } : m)));
-                        if (selectedMap && selectedMap.id === id) setSelectedMap((s) => ({ ...s, ...updated }));
-                        toast.success("Map updated");
-                    } catch (err) {
-                        console.warn("Edit API failed, applying local update", err);
-                        setMapsList((prev) => prev.map((m) => (m.id === id ? { ...m, ...payload } : m)));
-                        if (selectedMap && selectedMap.id === id) setSelectedMap((s) => ({ ...s, ...payload }));
-                        toast.success("Map updated (local)");
-                    }
-                }
-                closeMapModal();
-            } catch (err) {
-                console.error("Save map error", err);
-                toast.error(err.message || "Failed to save map");
-            }
-        };
-
-        // active action radio state for the map action buttons
-        const [activeMapAction, setActiveMapAction] = useState(null);
 
         // handler for testing: force error on next request
         const [forceError, setForceError] = useState(false);
@@ -1762,7 +1569,6 @@ const FALLBACK_STATS = {
                             setSelectedMap={setSelectedMap}
                             createNewMapImmediate={createNewMapImmediate}
                             handleActivateMap={handleActivateMap}
-                            handleMapAction={handleMapAction}
                             mapSearchField={mapSearchField}
                             setMapSearchField={setMapSearchField}
                             mapSearchTerm={mapSearchTerm}
@@ -1864,72 +1670,16 @@ const FALLBACK_STATS = {
                         />
                     )}
 
-                    <main className={`map-area ${minimizedMain ? "minimized" : ""}`}>
-                        {/* Map / Workspace placeholder - this is the element we fullscreen */}
-                        <div
-                            ref={mapRef}
-                            className="map-ref"
-                        /* ref kept on outer container so fullscreen targets the whole map area */
-                        >
-                            {/* inner content that will zoom — click handler here so only map-content scales */}
-                            <div
-                                className={`map-content`}
-                                onClick={toggleMapZoom}
-                                role="button"
-                                tabIndex={0}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter" || e.key === " ") toggleMapZoom();
-                                }}
-                                style={{
-                                    width: "100%",
-                                    height: "100%",
-                                    display: "flex",
-                                    alignItems: "stretch",
-                                    justifyContent: "stretch",
-                                    transform: `scale(${1 + zoomLevel})`,
-                                    transition: "transform 280ms ease",
-                                    cursor: zoomLevel > 0 ? "zoom-out" : "zoom-in",
-                                }}
-                            >
-                                {/* render selected map image if available, otherwise empty white area */}
-                                {selectedMap?.image ? (
-                                    <img
-                                        src={selectedMap.image}
-                                        alt={selectedMap.name || "Map preview"}
-                                        style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
-                                    />
-                                ) : (
-
-                                    <div style={{ width: "100%", height: "100%" }} aria-hidden="true" />
-                                )}
-                            </div>
-
-                            <div className="map-overlays">
-                                <div className="right-controls" onClick={(e) => e.stopPropagation()}>
-                                    <button
-                                        className="control-btn"
-                                        title="Zoom In"
-                                        onClick={(e) => { e.stopPropagation(); zoomIn(e); }}
-                                        aria-label="Zoom in"
-                                        type="button"
-                                    >
-                                        ＋
-                                    </button>
-                                    <button
-                                        className="control-btn"
-                                        title="Zoom Out"
-                                        onClick={(e) => { e.stopPropagation(); zoomOut(e); }}
-                                        aria-label="Zoom out"
-                                        type="button"
-                                    >
-                                        −
-                                    </button>
-                                </div>
-                                {/* joystick is controlled by DashboardLayout now; remove local JoyStick render */}
-                            </div>
-                        </div>
-                </div>
-            </main>
+                    <MapWorkspace
+                        mapRef={mapRef}
+                        selectedMap={selectedMap}
+                        zoomLevel={zoomLevel}
+                        minimized={minimizedMain}
+                        hasRightPane={!!rightPage}
+                        toggleMapZoom={toggleMapZoom}
+                        zoomIn={zoomIn}
+                        zoomOut={zoomOut}
+                    />
       </div >
 
   );
