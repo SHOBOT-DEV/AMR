@@ -1,7 +1,8 @@
 import React from "react";
-import MapsView from "../../features/create/maps.tsx";
+// import MapsView from "../create/Maps.tsx";
+// import ZonesPanel from "../create/zones.tsx";
 // import AnalyticsView from "../../features/analytics/AnalyticsView";
-
+import "../test/RightPane";
 type MapsData = {
   list: any[];
   setList: React.Dispatch<React.SetStateAction<any[]>>;
@@ -23,9 +24,13 @@ const RightPane: React.FC<RightPaneProps> = ({ page, onClose, mapsData, statsDat
   const renderContent = () => {
     switch (page) {
       case "maps":
-        return <MapsView {...mapsData} />;
+        return 
+        // <MapsView {...mapsData} />;
       case "zones":
-        return <div className="p-6 text-slate-500">Zones View (Under Construction)</div>;
+        return <>
+          {/* <ZonesPanel/> */}
+          <div className="p-6 text-slate-500">Zones View (Under Construction)</div>
+        </>;
       case "waypoints":
         return <div className="p-6 text-slate-500">Waypoints View (Under Construction)</div>;
       case "missions":
