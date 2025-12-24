@@ -692,15 +692,18 @@ const Dashboard: React.FC = () => {
         <div className="relative ml-16 flex flex-1 overflow-hidden">
           <MapArea
             minimized={minimizedMain}
-            isLocked={isLocked}
-            emergencyClicked={emergencyClicked}
+            // isLocked={isLocked}
+            // emergencyClicked={emergencyClicked}
             onJoystickMove={handleJoystickMove}
           />
 
-          {rightPage ? (
+          {rightPage && (
             <RightPane
+              // UI Control
               rightPage={rightPage}
               setRightPage={setRightPage}
+              
+              // Maps
               mapsList={mapsList}
               setMapsList={setMapsList}
               selectedMap={selectedMap}
@@ -714,16 +717,20 @@ const Dashboard: React.FC = () => {
               setMapSearchTerm={setMapSearchTerm}
               requestV1={requestV1}
               toast={toast}
+              
+              // Zones
               zones={zones}
+              setZones={setZones}
               zoneFormOpen={zoneFormOpen}
               setZoneFormOpen={setZoneFormOpen}
               zoneForm={zoneForm}
               setZoneForm={setZoneForm}
-              setZones={setZones}
               zoneSearchField={zoneSearchField}
               setZoneSearchField={setZoneSearchField}
               zoneSearchTerm={zoneSearchTerm}
               setZoneSearchTerm={setZoneSearchTerm}
+              
+              // Waypoints
               waypoints={waypoints}
               setWaypoints={setWaypoints}
               waypointFormOpen={waypointFormOpen}
@@ -732,6 +739,8 @@ const Dashboard: React.FC = () => {
               setWaypointForm={setWaypointForm}
               handleSelectWaypoint={handleSelectWaypoint}
               setSelectedWaypointId={setSelectedWaypointId}
+              
+              // Users
               users={users}
               usersLoading={usersLoading}
               usersError={usersError}
@@ -740,7 +749,10 @@ const Dashboard: React.FC = () => {
               setSelectedUserId={setSelectedUserId}
               userActionLoading={userActionLoading}
               handleResetUserPassword={handleResetUserPassword}
+              
+              // Missions
               missions={missions}
+              setMissions={setMissions}
               missionFormOpen={missionFormOpen}
               setMissionFormOpen={setMissionFormOpen}
               missionForm={missionForm}
@@ -748,7 +760,8 @@ const Dashboard: React.FC = () => {
               selectedMissionId={selectedMissionId}
               setSelectedMissionId={setSelectedMissionId}
               handleSelectMission={handleSelectMission}
-              setMissions={setMissions}
+              
+              // Data & Analytics
               analyticsSummary={analyticsSummary}
               analyticsSeries={analyticsSeries}
               analyticsAlerts={analyticsAlerts}
@@ -756,6 +769,10 @@ const Dashboard: React.FC = () => {
               logEvents={logEvents}
               missionHistory={missionHistory}
               bagFiles={bagFiles}
+              analyticsChartSize={analyticsChartSize}
+              analyticsPath={analyticsPath}
+              
+              // Settings & Account
               robotSettingsState={robotSettingsState}
               toggleRobotSetting={toggleRobotSetting}
               accountProfile={accountProfile}
@@ -771,6 +788,8 @@ const Dashboard: React.FC = () => {
               securityEvents={securityEvents}
               integrationItems={integrationItems}
               toggleIntegrationStatus={toggleIntegrationStatus}
+              
+              // Stats (spread specific stats fields if they are inside an object like statsData)
               overview={statsData.overview}
               missionTrend={statsData.missionTrend}
               monthlyMovement={statsData.monthlyMovement}
@@ -782,8 +801,8 @@ const Dashboard: React.FC = () => {
               lineChartSize={lineChartSize}
               buildLinePath={buildLinePath}
               buildSimplePath={buildSimplePath}
-              analyticsChartSize={analyticsChartSize}
-              analyticsPath={analyticsPath}
+              
+              // Chat
               chatMessages={chatMessages}
               chatInput={chatInput}
               setChatInput={setChatInput}
@@ -796,7 +815,7 @@ const Dashboard: React.FC = () => {
               formatTimestamp={formatTimestamp}
               latestMessage={latestMessage}
             />
-          ) : null}
+          )}
         </div>
       </div>
 
