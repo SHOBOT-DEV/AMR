@@ -1,21 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { FaPlus } from "react-icons/fa";
-
-type WaypointRecord = {
-  id: string | number;
-  mapId: string | number;
-  name: string;
-  category: string;
-  geom: string;
-  notes?: string;
-  active: boolean;
-  createdAt?: string;
-};
-
-type MapRecord = {
-  id: string | number;
-  name?: string;
-};
+import { getFilteredWaypoints, type WaypointRecord, type MapRecord } from "../../../utils/mapFilters.ts";
 
 type ToastApi = {
   success?: (message: string) => void;
@@ -63,14 +48,11 @@ const WaypointsPanel: React.FC<Props> = ({
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredWaypoints = useMemo(() => {
+    const baseWaypoints = getFilteredWaypoints(waypoints, selectedMap);
     const term = searchTerm.trim().toLowerCase();
-    let list = waypoints;
-    if (selectedMap?.id) {
-      list = list.filter((wp) => wp.mapId === selectedMap.id);
-    }
-    if (!term) return list;
+    if (!term) return baseWaypoints;
     if (searchField === "any") {
-      return list.filter((wp) =>
+      return baseWaypoints.filter((wp) =>
         Object.values(filterFields)
           .map((field) => {
             if (field === "active") return (wp.active ? "active" : "disabled").toLowerCase();
@@ -80,9 +62,9 @@ const WaypointsPanel: React.FC<Props> = ({
       );
     }
     if (searchField === "active") {
-      return list.filter((wp) => (wp.active ? "active" : "disabled").toLowerCase().includes(term));
+      return baseWaypoints.filter((wp) => (wp.active ? "active" : "disabled").toLowerCase().includes(term));
     }
-    return list.filter((wp) => String(wp[searchField as keyof WaypointRecord] || "").toLowerCase().includes(term));
+    return baseWaypoints.filter((wp) => String(wp[searchField as keyof WaypointRecord] || "").toLowerCase().includes(term));
   }, [waypoints, selectedMap, searchField, searchTerm]);
 
   const mapName = selectedMap?.name || mapsList.find((map) => map.id === selectedMap?.id)?.name;

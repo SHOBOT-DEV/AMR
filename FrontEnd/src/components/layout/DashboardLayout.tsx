@@ -10,8 +10,9 @@ import { toast, Toaster } from "react-hot-toast";
 
 import Sidebar from "./SideBar.tsx";
 import Header from "./Header.tsx";
-import MapArea from "../map/MapArea";
+import MapArea from "../map/MapArea.tsx";
 import RightPane from "../test/RightPane.tsx";
+import JoyStick from "../map/JoyStick.tsx";
 import { fetchWithAuth, clearAuthTokens, API_BASE } from "../../utils/auth";
 
 type OverviewStats = {
@@ -319,9 +320,21 @@ const Dashboard: React.FC = () => {
   const [batteryLevel, setBatteryLevel] = useState(100);
   const [rightPage, setRightPage] = useState<string | null>(null);
   const [minimizedMain, setMinimizedMain] = useState(false);
+  
+  // Auto-minimize map when right pane opens
   useEffect(() => {
     setMinimizedMain(Boolean(rightPage));
   }, [rightPage]);
+
+  const [zoomLevel, setZoomLevel] = useState<number>(1);
+
+  const handleZoom = (delta: number): void => {
+    setZoomLevel(prev => Math.min(Math.max(prev + delta, 0.1), 3));
+  };
+
+  const toggleMapZoom = (): void => {
+    setZoomLevel(prev => prev === 1 ? 1.8 : 1);
+  };
 
   const [joystickState, setJoystickState] = useState<JoystickState>({
     x: 0,
@@ -330,6 +343,17 @@ const Dashboard: React.FC = () => {
     angle: 0,
     type: null,
   });
+
+  const handleJoystickMove = useCallback((data: Partial<JoystickState>) => {
+    const newState: JoystickState = {
+      x: data.x ?? 0,
+      y: data.y ?? 0,
+      force: data.force ?? 0,
+      angle: data.angle ?? 0,
+      type: data.type || "joystick",
+    };
+    setJoystickState(newState);
+  }, []);
 
   const [mapsList, setMapsList] = useState<any[]>(SAMPLE_MAPS);
   const [selectedMap, setSelectedMap] = useState<any>(SAMPLE_MAPS[0]);
@@ -545,13 +569,18 @@ const Dashboard: React.FC = () => {
     navigate("/");
   }, [navigate]);
 
-  const handleJoystickMove = useCallback((data: Partial<JoystickState>) => {
-    setJoystickState({
-      x: data.x ?? 0,
-      y: data.y ?? 0,
-      force: data.force ?? 0,
-      angle: data.angle ?? 0,
-      type: data.type ?? "joystick",
+  const LOCK_TOAST_ID = "lock-toast";
+
+  const handleToggleLock = useCallback(() => {
+    setIsLocked((prev) => {
+      const next = !prev;
+      toast.dismiss(LOCK_TOAST_ID);
+      if (next) {
+        toast.error("Console locked", { id: LOCK_TOAST_ID });
+      } else {
+        toast.success("Console unlocked", { id: LOCK_TOAST_ID });
+      }
+      return next;
     });
   }, []);
 
@@ -644,6 +673,18 @@ const Dashboard: React.FC = () => {
     [handleSendMessage],
   );
 
+  // Allow unlocking via Escape key
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!isLocked) return;
+      if (e.key === "Escape") {
+        handleToggleLock();
+      }
+    };
+    window.addEventListener("keydown", onKey as any);
+    return () => window.removeEventListener("keydown", onKey as any);
+  }, [isLocked, handleToggleLock]);
+
   return (
     <div
       ref={layoutRef}
@@ -652,6 +693,45 @@ const Dashboard: React.FC = () => {
       }`}
     >
       <Toaster position="top-center" />
+
+      {/* Lock Overlay - shows when locked */}
+      {isLocked && (
+        <div
+          className="fixed inset-0 z-[9998] flex cursor-not-allowed items-center justify-center bg-black/50 backdrop-blur-md"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
+        >
+          <div className="rounded-full border border-white/20 bg-white/10 px-8 py-3 font-bold text-white backdrop-blur-xl">
+            Console Locked — Press Esc to Unlock
+          </div>
+        </div>
+      )}
+
+      {/* Unlock Button - ONLY visible when locked (floating on top) */}
+      {isLocked && (
+        <button
+          className="pointer-events-auto fixed right-6 top-6 z-[9999] rounded-full bg-white/10 p-3 text-white transition-all hover:bg-white/20"
+          onClick={handleToggleLock}
+          aria-label="Unlock console"
+          title="Unlock Console"
+        >
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+          </svg>
+        </button>
+      )}
 
       <Header
         bridgeStatus={bridgeStatus}
@@ -665,6 +745,7 @@ const Dashboard: React.FC = () => {
       />
 
       <div className="relative flex h-full flex-1 pt-14">
+
         <Sidebar
           onSelect={(id) => {
             const panelIds = new Set([
@@ -676,6 +757,10 @@ const Dashboard: React.FC = () => {
               "analytics",
               "diagnostics",
               "logs",
+              "camera",
+              "bridge",
+              "mission-logs",
+              "robot-bags",
               "chat",
               "stats",
               "robot-settings",
@@ -690,12 +775,57 @@ const Dashboard: React.FC = () => {
         />
 
         <div className="relative ml-16 flex flex-1 overflow-hidden">
-          <MapArea
-            minimized={minimizedMain}
-            // isLocked={isLocked}
-            // emergencyClicked={emergencyClicked}
-            onJoystickMove={handleJoystickMove}
-          />
+          {/* Left content wrapper that shrinks when right pane opens */}
+          <div
+            className={`relative h-full ${
+              minimizedMain
+                ? "shrink-0 basis-1/2 flex-none"
+                : "flex-auto basis-full"
+            }`}
+          >
+            {/* Map Area */}
+            <MapArea
+              minimized={minimizedMain}
+              zoomLevel={zoomLevel}
+              selectedMap={selectedMap}
+              toggleMapZoom={toggleMapZoom}
+            />
+
+            {/* Zoom Controls - Top Right within left content */}
+            <div className="absolute right-6 top-20 z-20 flex flex-col gap-2 bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+              <button
+                onClick={() => handleZoom(0.1)}
+                className="p-3 hover:bg-gray-50 active:bg-gray-100 text-slate-600 font-bold transition-colors"
+                title="Zoom In"
+                aria-label="Zoom in"
+              >
+                +
+              </button>
+              <div className="border-b border-gray-200"></div>
+              <button
+                onClick={() => handleZoom(-0.1)}
+                className="p-3 hover:bg-gray-50 active:bg-gray-100 text-slate-600 font-bold transition-colors"
+                title="Zoom Out"
+                aria-label="Zoom out"
+              >
+                −
+              </button>
+            </div>
+
+            {/* Joystick - bottom right within left content */}
+            <div
+              className={`
+                absolute pointer-events-auto z-[25]
+                ${
+                  minimizedMain
+                    ? "right-2 bottom-2 z-[30]"
+                    : "right-8 bottom-8 max-[1000px]:right-4 max-[1000px]:bottom-4 max-[800px]:right-3 max-[800px]:bottom-3"
+                }
+              `}
+            >
+              <JoyStick width={140} height={140} onMove={handleJoystickMove} />
+            </div>
+          </div>
 
           {rightPage && (
             <RightPane

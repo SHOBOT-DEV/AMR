@@ -1,320 +1,380 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { FaEdit, FaPlus, FaTrash } from "react-icons/fa";
-import arena from "../../assets/shobot_arena.png";
-import arena2 from "../../assets/shobot_arena2.png";
-import simulationMap from "../../assets/simulation_map.png";
+import React, { useState, useRef, useMemo } from "react";
+import { FaPlus, FaEdit, FaTrash } from "react-icons/fa";
+import map1 from "../../../assets/map1.png";
+import test1 from "../../../assets/test_1.png";
+import shobotLogo from "../../../assets/shobot_arena.png";
+import shobotLogo1 from "../../../assets/shobot_arena2.png";
+import simulationMap from "../../../assets/simulation_map.png";
+import trasccon4th from "../../../assets/trasccon4th.png";
+import { createPortal } from "react-dom";
 
-type MapRecord = {
-  id: string | number | null;
-  name: string;
-  createdBy?: string;
-  image?: string;
-  status?: string;
-  category?: string;
-  createdAt?: string;
-};
-
-type MapForm = {
-  id: string | number | null;
+// Type definitions
+interface Map {
+  id: string;
   name: string;
   createdBy: string;
   image: string;
   status: string;
-  category: string;
-  createdAt: string;
-};
+  category?: string;
+  createdAt?: string;
+}
 
-type MapModalMode = "preview" | "edit" | "create";
+interface MapsProps {
+  rightPage: string;
+  setRightPage: (page: string) => void;
+  mapsList: Map[];
+  selectedMap: Map | null;
+  createNewMapImmediate: () => Promise<void>;
+  handleActivateMap: (map: Map) => Promise<void>;
+  handleMapAction: (action: string, map: Map) => Promise<void>;
+  mapSearchField: string;
+  setMapSearchField: (field: string) => void;
+  mapSearchTerm: string;
+  setMapSearchTerm: (term: string) => void;
+  requestV1: (url: string, options?: any) => Promise<any>;
+  toast: {
+    success: (msg: string) => void;
+    error: (msg: string) => void;
+  };
+  setMapsList: React.Dispatch<React.SetStateAction<Map[]>>;
+  setSelectedMap: React.Dispatch<React.SetStateAction<Map | null>>;
+}
 
-type ToastApi = {
-  success?: (message: string) => void;
-  error?: (message: string) => void;
-};
-
-export const SAMPLE_MAPS: MapRecord[] = [
-  {
-    id: "cfl_gf",
-    name: "CFL_GF",
-    createdBy: "CNDE IITM",
-    image: simulationMap,
-    status: "Active",
-    category: "Factory",
-    createdAt: "2025-11-17",
-  },
-  {
-    id: "shobot_arena",
-    name: "shobot_arena",
-    createdBy: "ANSCER ADMIN",
-    image: arena,
-    status: "Maintenance",
-    category: "Arena",
-    createdAt: "2025-11-16",
-  },
-  {
-    id: "shobot_arena2",
-    name: "shobot_arena2",
-    createdBy: "ANSCER ADMIN",
-    image: arena2,
-    status: "Inactive",
-    category: "Arena",
-    createdAt: "2025-11-15",
-  },
-  {
-    id: "zones",
-    name: "Zones",
-    createdBy: "ANSCER ADMIN",
-    image: "",
-    status: "Inactive",
-    category: "Reference",
-    createdAt: "2025-11-15",
-  },
-  {
-    id: "waypoints",
-    name: "Waypoints",
-    createdBy: "ANSCER ADMIN",
-    image: "",
-    status: "Inactive",
-    category: "Reference",
-    createdAt: "2025-11-15",
-  },
-  {
-    id: "users",
-    name: "Users",
-    createdBy: "ANSCER ADMIN",
-    image: "",
-    status: "Inactive",
-    category: "Reference",
-    createdAt: "2025-11-15",
-  },
-];
-
-export const useSampleMapState = () => {
-  const [mapsList, setMapsList] = useState<MapRecord[]>(SAMPLE_MAPS);
-  const [selectedMap, setSelectedMap] = useState<MapRecord | null>(SAMPLE_MAPS[0] ?? null);
-  const [mapSearchField, setMapSearchField] = useState<string>("any");
-  const [mapSearchTerm, setMapSearchTerm] = useState<string>("");
-
-  return {
+const Maps: React.FC<MapsProps> = (props) => {
+  const {
+    rightPage,
     mapsList,
-    setMapsList,
     selectedMap,
-    setSelectedMap,
+    createNewMapImmediate,
+    handleActivateMap,
+    handleMapAction,
     mapSearchField,
     setMapSearchField,
     mapSearchTerm,
     setMapSearchTerm,
-  };
-};
+    toast,
+    setMapsList,
+    setSelectedMap,
+  } = props;
 
-type Props = {
-  mapsList: MapRecord[];
-  selectedMap: MapRecord | null;
-  createNewMapImmediate: () => void;
-  handleActivateMap: (map: MapRecord) => void;
-  requestV1?: (path: string, options?: RequestInit) => Promise<any>;
-  toast?: ToastApi;
-  setMapsList: React.Dispatch<React.SetStateAction<MapRecord[]>>;
-  setSelectedMap: React.Dispatch<React.SetStateAction<MapRecord | null>>;
-};
-
-const makeBlankMapForm = (): MapForm => ({
-  id: null,
-  name: "",
-  createdBy: "",
-  image: "",
-  status: "",
-  category: "",
-  createdAt: new Date().toISOString().slice(0, 10),
-});
-
-const statusClasses = (status?: string) => {
-  if ((status || "").toLowerCase() === "active") {
-    return "bg-green-500/90";
-  }
-  if ((status || "").toLowerCase() === "maintenance") {
-    return "bg-yellow-500/90";
-  }
-  return "bg-slate-400";
-};
-
-const MapsPanel: React.FC<Props> = ({
-  mapsList = [],
-  selectedMap,
-  createNewMapImmediate,
-  handleActivateMap,
-  requestV1,
-  toast,
-  setMapsList,
-  setSelectedMap,
-}) => {
+  // Modal state
   const [mapModalOpen, setMapModalOpen] = useState(false);
-  const [mapModalMode, setMapModalMode] = useState<MapModalMode>("edit");
-  const [mapForm, setMapForm] = useState<MapForm>(() => makeBlankMapForm());
-  const [mapSearchField, setMapSearchField] = useState<string>("any");
-  const [mapSearchTerm, setMapSearchTerm] = useState<string>("");
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [mapModalMode, setMapModalMode] = useState<"preview" | "edit" | "create">("preview");
+  const [mapForm, setMapForm] = useState<Partial<Map>>({
+    id: undefined,
+    name: "",
+    createdBy: "",
+    image: "",
+    status: "",
+    category: "",
+    createdAt: "",
+  });
 
-  useEffect(() => {
-    if (!mapsList.length) return;
-    const selectedExists = selectedMap && mapsList.some((map) => map.id === selectedMap.id);
-    if (!selectedExists) {
-      setSelectedMap(mapsList[0]);
-    }
-  }, [mapsList, selectedMap, setSelectedMap]);
+  const mapImageInputRef = useRef<HTMLInputElement>(null);
 
-  const filteredMaps = useMemo(() => {
-    const term = (mapSearchTerm ?? "").trim().toLowerCase();
-    if (!term) return mapsList;
-    if ((mapSearchField ?? "any") === "any") {
-      return mapsList.filter((map) =>
-        [map.name, map.createdBy, map.category, map.createdAt, map.status]
-          .map((value) => (value || "").toLowerCase())
-          .some((value) => value.includes(term)),
-      );
-    }
-    return mapsList.filter((map) =>
-      String((map as any)[mapSearchField ?? "any"] || "").toLowerCase().includes(term),
-    );
-  }, [mapSearchField, mapSearchTerm, mapsList]);
-
-  const openMapModal = (mode: MapModalMode, map?: MapRecord | null) => {
+  // Open map modal for edit
+  const openMapModal = (mode: "preview" | "edit" | "create", map?: Map) => {
     setMapModalMode(mode);
     if (map) {
       setMapForm({
-        id: map.id ?? null,
-        name: map.name ?? "",
-        createdBy: map.createdBy ?? "",
-        image: map.image ?? "",
-        status: map.status ?? "",
-        category: map.category ?? "",
-        createdAt: map.createdAt ?? new Date().toISOString().slice(0, 10),
+        id: map.id,
+        name: map.name,
+        createdBy: map.createdBy,
+        image: map.image,
+        status: map.status,
+        category: map.category || "",
+        createdAt: map.createdAt || "",
       });
-    } else {
-      setMapForm(makeBlankMapForm());
     }
     setMapModalOpen(true);
   };
 
+  // Close map modal
   const closeMapModal = () => {
     setMapModalOpen(false);
-    setMapForm(makeBlankMapForm());
+    setMapForm({
+      id: undefined,
+      name: "",
+      createdBy: "",
+      image: "",
+      status: "",
+      category: "",
+      createdAt: "",
+    });
   };
 
-  const saveMapFromForm = async () => {
-    if (!mapForm.name.trim()) {
-      toast?.error?.("Map name required");
-      return;
-    }
-
-    if (mapModalMode === "edit" && mapForm.id !== null) {
-      const payload = {
-        name: mapForm.name.trim(),
-        createdBy: mapForm.createdBy,
-        image: mapForm.image,
-        status: mapForm.status,
-        category: mapForm.category,
-        createdAt: mapForm.createdAt,
-      };
-
-      const applyLocalUpdate = () => {
-        setMapsList((prev) => prev.map((map) => (map.id === mapForm.id ? { ...map, ...payload } : map)));
-        setSelectedMap((prev) => {
-          if (!prev || prev.id !== mapForm.id) return prev;
-          return { ...prev, ...payload };
-        });
-      };
-
-      try {
-        if (requestV1) {
-          await requestV1(`/maps/${mapForm.id}`, {
-            method: "PATCH",
-            body: JSON.stringify(payload),
-          });
-        }
-        applyLocalUpdate();
-        toast?.success?.("Map updated");
-        closeMapModal();
-      } catch (error: any) {
-        console.warn("Map update failed, applying local change", error);
-        applyLocalUpdate();
-        toast?.error?.(error?.message || "Map saved locally (server error)");
-        closeMapModal();
-      }
-    }
-  };
-
-  const handleMapImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  // Handle image file selection
+  const handleMapImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file type
     const validTypes = ["image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"];
     if (!validTypes.includes(file.type)) {
-      toast?.error?.("Please select an image (PNG, JPG, JPEG, GIF, WebP)");
+      toast?.error("Please select a valid image file (PNG, JPG, JPEG, GIF, WebP)");
       return;
     }
 
+    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast?.error?.("File size must be below 5MB");
+      toast?.error("File size must be less than 5MB");
       return;
     }
 
     const reader = new FileReader();
     reader.onload = () => {
-      setMapForm((prev) => ({ ...prev, image: String(reader.result || "") }));
-      toast?.success?.("Image loaded successfully");
+      setMapForm((prev) => ({ ...prev, image: (reader.result as string) || "" }));
+      toast?.success("Image loaded successfully!");
     };
-    reader.onerror = () => toast?.error?.("Failed to read file");
+    reader.onerror = () => {
+      toast?.error("Failed to read file");
+    };
     reader.readAsDataURL(file);
   };
 
-  const triggerMapImagePicker = () => {
-    if (!fileInputRef.current) {
-      toast?.error?.("File picker unavailable. Please refresh the page.");
-      return;
+  // Trigger file picker
+  const triggerMapImagePicker = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
     }
-    fileInputRef.current.value = "";
-    fileInputRef.current.click();
+
+    try {
+      if (mapImageInputRef.current) {
+        mapImageInputRef.current.value = "";
+        mapImageInputRef.current.click();
+        console.log("✅ File picker triggered successfully");
+      } else {
+        console.error("❌ mapImageInputRef.current is NULL");
+        toast?.error("File picker unavailable. Please refresh the page.");
+      }
+    } catch (err) {
+      console.error("❌ Image picker failed:", err);
+      toast?.error("Failed to open file picker");
+    }
   };
 
-  const handleDeleteMap = async (map: MapRecord) => {
-    if (!map || !map.id) return;
-    const confirmed = window.confirm(`Delete map "${map.name || map.id}"? This cannot be undone.`);
-    if (!confirmed) return;
+  // Save map from form
+  const saveMapFromForm = async () => {
+    if (!mapForm.name?.trim()) {
+      toast?.error("Map name required");
+      return;
+    }
 
-    const removeLocally = () => {
-      setMapsList((prev) => prev.filter((item) => item.id !== map.id));
-      setSelectedMap((prev) => (prev && prev.id === map.id ? null : prev));
+    const payload = {
+      name: mapForm.name.trim(),
+      createdBy: mapForm.createdBy || "",
+      image: mapForm.image || "",
+      status: mapForm.status || "",
+      category: mapForm.category || "",
+      createdAt: mapForm.createdAt || "",
     };
 
     try {
-      if (requestV1) {
-        await requestV1(`/maps/${map.id}`, { method: "DELETE" });
+      if (mapModalMode === "edit" && mapForm.id) {
+        const id = mapForm.id;
+        // Optimistic update
+        setMapsList((prev) =>
+          prev.map((m) => (m.id === id ? { ...m, ...payload } : m))
+        );
+        if (selectedMap && selectedMap.id === id) {
+          setSelectedMap((prev) => (prev ? { ...prev, ...payload } : null));
+        }
+        toast?.success("Map updated");
+        closeMapModal();
       }
-      removeLocally();
-      toast?.success?.("Map deleted");
-    } catch (error: any) {
-      console.warn("Delete map API failed, removing locally", error);
-      removeLocally();
-      toast?.error?.(error?.message || "Map removed locally (server error)");
+    } catch (err: any) {
+      console.error("Save map error", err);
+      toast?.error(err.message || "Failed to save map");
     }
   };
 
+  // Aliases to normalize IDs coming from server/data
+  const mapIdAliases: Record<string, string> = {
+    shobot_area: "shobot_arena",
+    trasccon: "trasccon4th",
+  };
+  const normalizeId = (id?: string) => mapIdAliases[String(id || "").toLowerCase()] || (id || "");
+
+  // Initialize with imported map images (make stable via useMemo)
+  const defaultMapsWithImages = useMemo(
+    () => [
+      {
+        id: "shobot_arena",
+        name: "Shobot Arena",
+        createdBy: "Branding",
+        image: shobotLogo,
+        status: "Active",
+        category: "Arena",
+        createdAt: "2025-11-17",
+      },
+      {
+        id: "shobot_arena2",
+        name: "Shobot Arena 2",
+        createdBy: "Branding",
+        image: shobotLogo1,
+        status: "",
+        category: "Arena",
+        createdAt: "2025-11-16",
+      },
+      {
+        id: "simulation",
+        name: "Simulation Map",
+        createdBy: "Dev Team",
+        image: simulationMap,
+        status: "",
+        category: "Simulation",
+        createdAt: "2025-11-13",
+      },
+      // Fix id to match asset/use cases to avoid repeated re-render issues
+      {
+        id: "trasccon4th",
+        name: "Trasccon 4th Floor",
+        createdBy: "CNDE IITM",
+        image: trasccon4th,
+        status: "",
+        category: "Production",
+        createdAt: "2025-11-12",
+      },
+      {
+        id: "map1",
+        name: "Map 1",
+        createdBy: "Assets",
+        image: map1,
+        status: "",
+        category: "Demo",
+        createdAt: "2025-11-10",
+      },
+      {
+        id: "test_1",
+        name: "Test 1",
+        createdBy: "Assets",
+        image: test1,
+        status: "",
+        category: "Demo",
+        createdAt: "2025-11-09",
+      },
+    ],
+    []
+  );
+
+  // Fallback lookups for known maps (id/name -> default image), memoized
+  const defaultImageById = useMemo(
+    () =>
+      Object.fromEntries(
+        defaultMapsWithImages.map((dm) => [String(dm.id || "").toLowerCase(), dm.image])
+      ),
+    [defaultMapsWithImages]
+  );
+  const defaultImageByName = useMemo(
+    () =>
+      Object.fromEntries(
+        defaultMapsWithImages.map((dm) => [String(dm.name || "").toLowerCase(), dm.image])
+      ),
+    [defaultMapsWithImages]
+  );
+  const getFallbackImageByIdOrName = (id?: string, name?: string) => {
+    const normId = normalizeId(id);
+    return (
+      defaultImageById[String(normId || "").toLowerCase()] ||
+      defaultImageByName[String(name || "").toLowerCase()] ||
+      ""
+    );
+  };
+
+  // Helper to always provide normalized id + ensured image
+  const buildPatchedMap = (m: Map): Map => {
+    const normalizedId = normalizeId(m.id);
+    const ensuredImage =
+      (m.image || "").trim() || getFallbackImageByIdOrName(m.id, m.name);
+    return { ...m, id: normalizedId, image: ensuredImage };
+  };
+
+  // Merge and backfill images using normalized IDs, memoized
+  const combinedMaps = useMemo(() => {
+    const base = mapsList && mapsList.length > 0 ? mapsList : [];
+    const withoutCfl = base.filter(
+      (m) => (m.id || "").toLowerCase() !== "cfl_gf" && (m.name || "").toLowerCase() !== "cfl_gf"
+    );
+
+    // Backfill missing images with normalized id/name
+    const baseWithImages = withoutCfl.map((m) => {
+      const img = (m.image || "").trim();
+      if (img) return m;
+      const fallback = getFallbackImageByIdOrName(m.id, m.name);
+      return fallback ? { ...m, image: fallback } : m;
+    });
+
+    const merged = [
+      ...baseWithImages,
+      ...defaultMapsWithImages.filter(
+        (dm) => !baseWithImages.some((m) => normalizeId(m.id) === dm.id || m.name === dm.name)
+      ),
+    ];
+    return merged.length > 0 ? merged : defaultMapsWithImages;
+  }, [mapsList, defaultMapsWithImages]);
+
+  // Filter maps, memoized
+  const filteredMaps = useMemo(() => {
+    const term = (mapSearchTerm || "").trim().toLowerCase();
+    const field = mapSearchField;
+    return combinedMaps.filter((m) => {
+      if (!term) return true;
+      if (field === "any") {
+        const haystack = `${m.name || ""} ${m.createdBy || ""} ${m.category || ""} ${m.createdAt || ""} ${m.status || ""}`.toLowerCase();
+        return haystack.includes(term);
+      }
+      return String((m as any)[field] || "").toLowerCase().includes(term);
+    });
+  }, [combinedMaps, mapSearchField, mapSearchTerm]);
+
+  const selectMap = async (map: Map) => {
+    // Patch: normalize id and guarantee image, and activate with patched map
+    const patched = buildPatchedMap(map);
+
+    // Upsert selected map as Active; mark others Inactive
+    setMapsList((prev) => {
+      const selId = normalizeId(patched.id);
+      let found = false;
+      const updated = prev.map((m) => {
+        const isSel = normalizeId(m.id) === selId;
+        if (isSel) found = true;
+        return isSel
+          ? { ...m, status: "Active", image: (m.image || "").trim() ? m.image : patched.image }
+          : { ...m, status: "Inactive" };
+      });
+      return found ? updated : [...updated, { ...patched, status: "Active" }];
+    });
+    setSelectedMap(patched);
+
+    try {
+      await handleActivateMap(patched);
+    } catch (err: any) {
+      console.error("Activate map error", err);
+      toast?.error(err?.message || "Failed to activate map");
+    }
+  };
+
+  if (rightPage !== "maps") return null;
+
   return (
-    <section className="flex flex-col gap-4">
+    <div className="flex flex-col gap-2">
+      {/* Hidden file input */}
       <input
-        ref={fileInputRef}
         type="file"
+        ref={mapImageInputRef}
         accept="image/*"
         className="hidden"
         onChange={handleMapImageChange}
       />
 
-      <div className="flex flex-wrap items-center gap-3">
+      {/* Search and Create Controls */}
+      <div className="flex gap-2 flex-wrap items-center">
         <select
           aria-label="Search field"
           value={mapSearchField}
-          onChange={(event) => setMapSearchField(event.target.value)}
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 outline-none transition focus:border-sky-500"
+          onChange={(e) => setMapSearchField(e.target.value)}
+          className="px-3 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="any">Search By</option>
           <option value="name">Name</option>
@@ -326,98 +386,148 @@ const MapsPanel: React.FC<Props> = ({
 
         <input
           value={mapSearchTerm}
-          onChange={(event) => setMapSearchTerm(event.target.value)}
+          onChange={(e) => setMapSearchTerm(e.target.value)}
           placeholder="Type to search..."
-          className="min-w-[220px] flex-1 rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-800 outline-none transition focus:border-sky-500"
+          className="px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 min-w-[220px] flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
 
         <button
-          type="button"
           onClick={createNewMapImmediate}
-          className="inline-flex items-center gap-2 rounded-xl bg-[#0b74d1] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:bg-[#095da8]"
+          aria-label="Create new map"
+          title="Create New Map"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 inline-flex items-center gap-2 font-bold"
         >
-          <FaPlus className="text-xs" />
+          <FaPlus />
           <span>Create New Map</span>
         </button>
       </div>
 
-      <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-        <span>Active Maps</span>
-        <span>
-          {filteredMaps.length} of {mapsList.length} rows
-        </span>
-      </div>
+      {/* Divider */}
+      <div className="border-t border-gray-200 my-2" />
 
-      <div className="max-h-[420px] overflow-y-auto">
-        <table className="w-full border-collapse text-sm">
-          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+      {/* Maps Table */}
+      <div className="overflow-y-auto max-h-[420px]">
+        <table className="w-full border-collapse mt-2">
+          <thead className="bg-gray-50 sticky top-0">
             <tr>
-              <th className="px-4 py-3 text-center">Active</th>
-              <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Created By</th>
-              <th className="px-4 py-3">Created At</th>
-              <th className="px-4 py-3 text-right">Status</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th className="text-center p-3 w-18 text-sm font-semibold text-gray-700">
+                Active
+              </th>
+              <th className="text-center p-3 w-24 text-sm font-semibold text-gray-700">
+                Image
+              </th>
+              <th className="text-left p-3 text-sm font-semibold text-gray-700">
+                Name
+              </th>
+              <th className="text-left p-3 text-sm font-semibold text-gray-700">
+                Created By
+              </th>
+              <th className="text-left p-3 text-sm font-semibold text-gray-700">
+                Created At
+              </th>
+              <th className="text-right p-3 text-sm font-semibold text-gray-700">
+                Status
+              </th>
+              <th className="text-right p-3 w-40 text-sm font-semibold text-gray-700">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
-            {filteredMaps.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-500">
-                  {mapSearchTerm
-                    ? `No maps match "${mapSearchTerm}"`
-                    : "No maps available yet. Create one to get started."}
-                </td>
-              </tr>
-            ) : null}
-            {filteredMaps.map((map) => (
+            {filteredMaps.map((m) => (
               <tr
-                key={String(map.id)}
-                onClick={() => handleActivateMap(map)}
-                className={`cursor-pointer border-b border-slate-100 transition hover:bg-sky-50 ${
-                  selectedMap?.id === map.id ? "bg-sky-50" : "bg-white"
+                key={normalizeId(m.id)} // Patch: use normalized id for stable keys
+                onClick={() => selectMap(m)}
+                className={`cursor-pointer transition-colors hover:bg-blue-50 ${
+                  selectedMap?.id === normalizeId(m.id) ? "bg-blue-50" : "bg-white"
                 }`}
               >
-                <td className="px-4 py-3 text-center">
+                <td className="p-3 border-b border-gray-200 text-center">
                   <input
                     type="radio"
                     name="activeMap"
-                    checked={selectedMap?.id === map.id}
-                    onChange={(event) => {
-                      event.stopPropagation();
-                      handleActivateMap(map);
+                    checked={selectedMap?.id === normalizeId(m.id)} // Patch: compare normalized ids
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      selectMap(m);
                     }}
-                    className="h-4 w-4 accent-sky-500"
-                    aria-label={`Activate ${map.name}`}
+                    aria-label={`Activate ${m.name}`}
+                    className="w-4 h-4 cursor-pointer"
                   />
                 </td>
-                <td className="px-4 py-3 font-semibold text-slate-900">{map.name}</td>
-                <td className="px-4 py-3 text-slate-600">{map.createdBy || "—"}</td>
-                <td className="px-4 py-3 text-slate-600">{map.createdAt || "—"}</td>
-                <td className="px-4 py-3 text-right">
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold text-white ${statusClasses(map.status)}`}>
-                    {map.status || "Inactive"}
+
+                {/* Image thumbnail cell */}
+                <td className="p-3 border-b border-gray-200 text-center">
+                  <div className="w-16 h-10 rounded border border-gray-200 bg-gray-50 overflow-hidden mx-auto">
+                    {m.image ? (
+                      <img
+                        src={m.image as any}
+                        alt={m.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const fb = getFallbackImageByIdOrName(m.id, m.name);
+                          if (fb && e.currentTarget.src !== fb) {
+                            e.currentTarget.src = fb;
+                            e.currentTarget.onerror = null;
+                          } else {
+                            e.currentTarget.style.display = "none";
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-400">
+                        No Img
+                      </div>
+                    )}
+                  </div>
+                </td>
+
+                <td className="p-3 border-b border-gray-200 font-bold text-gray-900">
+                  {m.name}
+                </td>
+                <td className="p-3 border-b border-gray-200 text-gray-600">
+                  {m.createdBy}
+                </td>
+                <td className="p-3 border-b border-gray-200 text-gray-600">
+                  {m.createdAt || "—"}
+                </td>
+                <td className="p-3 border-b border-gray-200 text-right">
+                  <span
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
+                      selectedMap?.id === normalizeId(m.id) || String(m.status || "").toLowerCase() === "active"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
+                    }`}
+                  >
+                    {selectedMap?.id === normalizeId(m.id) || String(m.status || "").toLowerCase() === "active"
+                      ? "Active"
+                      : "Inactive"}
                   </span>
                 </td>
-                <td className="px-4 py-3">
-                  <div className="flex justify-end gap-2" onClick={(event) => event.stopPropagation()}>
+                <td
+                  className="p-3 border-b border-gray-200"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex gap-2 justify-end">
                     <button
-                      type="button"
-                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
-                      onClick={() => openMapModal("edit", map)}
                       title="Edit"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openMapModal("edit", m);
+                      }}
+                      className="p-2 rounded-lg border border-gray-300 bg-transparent hover:bg-gray-50 transition-colors"
                     >
-                      <FaEdit />
-                      Edit
+                      <FaEdit className="text-gray-600" />
                     </button>
                     <button
-                      type="button"
-                      className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1 text-xs font-medium text-red-600 transition hover:border-red-400 hover:bg-red-50"
-                      onClick={() => handleDeleteMap(map)}
                       title="Delete"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMapAction("delete", m);
+                      }}
+                      className="p-2 rounded-lg border border-gray-300 bg-transparent hover:bg-red-50 transition-colors"
                     >
-                      <FaTrash />
-                      Delete
+                      <FaTrash className="text-red-500" />
                     </button>
                   </div>
                 </td>
@@ -427,132 +537,210 @@ const MapsPanel: React.FC<Props> = ({
         </table>
       </div>
 
-      {mapModalOpen && mapModalMode === "edit" && (
-        <div
-          className="fixed inset-0 z-[999] flex items-center justify-center bg-black/50 p-4"
-          onClick={closeMapModal}
-        >
-          <div
-            className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-slate-900">Edit Map</h3>
-              <button type="button" className="text-2xl" onClick={closeMapModal}>
-                ×
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-4">
-              <label className="flex flex-col gap-2 text-sm font-semibold text-slate-600">
-                Map Name
-                <input
-                  value={mapForm.name}
-                  onChange={(event) => setMapForm((prev) => ({ ...prev, name: event.target.value }))}
-                  className="rounded-xl border border-slate-200 px-3 py-2 text-slate-800 focus:border-sky-500 focus:outline-none"
-                />
-              </label>
-
-              <label className="flex flex-col gap-2 text-sm font-semibold text-slate-600">
-                Created By
-                <input
-                  value={mapForm.createdBy}
-                  onChange={(event) => setMapForm((prev) => ({ ...prev, createdBy: event.target.value }))}
-                  className="rounded-xl border border-slate-200 px-3 py-2 text-slate-800 focus:border-sky-500 focus:outline-none"
-                />
-              </label>
-
-              <label className="flex flex-col gap-2 text-sm font-semibold text-slate-600">
-                Category
-                <input
-                  value={mapForm.category}
-                  onChange={(event) => setMapForm((prev) => ({ ...prev, category: event.target.value }))}
-                  className="rounded-xl border border-slate-200 px-3 py-2 text-slate-800 focus:border-sky-500 focus:outline-none"
-                  placeholder="Optional"
-                />
-              </label>
-
-              <label className="flex flex-col gap-2 text-sm font-semibold text-slate-600">
-                Status
-                <select
-                  value={mapForm.status}
-                  onChange={(event) => setMapForm((prev) => ({ ...prev, status: event.target.value }))}
-                  className="rounded-xl border border-slate-200 px-3 py-2 text-slate-800 focus:border-sky-500 focus:outline-none"
-                >
-                  <option value="">Inactive</option>
-                  <option value="Active">Active</option>
-                  <option value="Maintenance">Maintenance</option>
-                </select>
-              </label>
-
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                <div className="text-sm font-semibold text-slate-600">Map Image</div>
-                {mapForm.image ? (
-                  <div className="relative mt-3 overflow-hidden rounded-xl border border-slate-200">
-                    <img src={mapForm.image} alt="Map preview" className="h-auto w-full object-contain" />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-3 rounded-lg bg-red-500 px-3 py-1 text-xs font-semibold text-white"
-                      onClick={() => setMapForm((prev) => ({ ...prev, image: "" }))}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ) : null}
-
-                <label className="mt-3 flex flex-col gap-2 text-xs font-medium text-slate-500">
-                  Image URL
-                  <input
-                    type="url"
-                    value={mapForm.image && !mapForm.image.startsWith("data:") ? mapForm.image : ""}
-                    onChange={(event) => setMapForm((prev) => ({ ...prev, image: event.target.value }))}
-                    placeholder="https://example.com/map.png"
-                    className="rounded-xl border border-slate-200 px-3 py-2 text-slate-800 focus:border-sky-500 focus:outline-none"
-                  />
-                </label>
-
-                <div className="my-2 flex items-center gap-2 text-xs uppercase tracking-wide text-slate-400">
-                  <span className="h-px flex-1 bg-slate-200" />
-                  OR
-                  <span className="h-px flex-1 bg-slate-200" />
+      {/* Edit Map Modal */}
+      {mapModalOpen && mapModalMode === "edit" &&
+        createPortal(
+          (
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]"
+              onClick={closeMapModal}
+            >
+              <div
+                className="bg-white rounded-xl p-6 max-w-2xl w-11/12 shadow-2xl max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Modal Header */}
+                <div className="flex justify-between items-center mb-5">
+                  <h3 className="text-xl font-bold text-gray-900">Edit Map</h3>
+                  <button
+                    onClick={closeMapModal}
+                    className="text-gray-400 hover:text-gray-600 text-2xl font-light transition-colors"
+                  >
+                    ×
+                  </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={triggerMapImagePicker}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-sky-400 bg-white px-4 py-3 text-sm font-semibold text-sky-600 transition hover:bg-sky-50"
-                >
-                  <FaPlus className="text-xs" />
-                  Browse from computer
-                </button>
-                <p className="mt-2 text-center text-xs text-slate-500">
-                  Supported formats: PNG, JPG, JPEG, GIF, WebP (max 5MB)
-                </p>
+                {/* Modal Form */}
+                <div className="flex flex-col gap-4">
+                  {/* Map Name */}
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-sm font-semibold text-gray-700">
+                      Map Name
+                    </span>
+                    <input
+                      value={mapForm.name || ""}
+                      onChange={(e) =>
+                        setMapForm((prev) => ({ ...prev, name: e.target.value }))
+                      }
+                      className="px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </label>
+
+                  {/* Created By */}
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-sm font-semibold text-gray-700">
+                      Created By
+                    </span>
+                    <input
+                      value={mapForm.createdBy || ""}
+                      onChange={(e) =>
+                        setMapForm((prev) => ({
+                          ...prev,
+                          createdBy: e.target.value,
+                        }))
+                      }
+                      className="px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </label>
+
+                  {/* Category */}
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-sm font-semibold text-gray-700">
+                      Category
+                    </span>
+                    <input
+                      value={mapForm.category || ""}
+                      onChange={(e) =>
+                        setMapForm((prev) => ({
+                          ...prev,
+                          category: e.target.value,
+                        }))
+                      }
+                      placeholder="Optional"
+                      className="px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </label>
+
+                  {/* Status */}
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-sm font-semibold text-gray-700">
+                      Status
+                    </span>
+                    <select
+                      value={mapForm.status || ""}
+                      onChange={(e) =>
+                        setMapForm((prev) => ({ ...prev, status: e.target.value }))
+                      }
+                      className="px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Inactive</option>
+                      <option value="Active">Active</option>
+                    </select>
+                  </label>
+
+                  {/* Map Image Upload Section */}
+                  <div className="flex flex-col gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <span className="text-sm font-semibold text-gray-700">
+                      Map Image
+                    </span>
+
+                    {/* Image preview */}
+                    {mapForm.image && (
+                      <div className="relative w-full max-h-52 overflow-hidden rounded-lg border border-gray-300">
+                        <img
+                          src={mapForm.image}
+                          alt="Map preview"
+                          className="w-full h-auto object-contain"
+                          onError={(e) => {
+                            const fb = getFallbackImageByIdOrName(mapForm.id as string, mapForm.name || "");
+                            if (fb && e.currentTarget.src !== fb) {
+                              e.currentTarget.src = fb;
+                              e.currentTarget.onerror = null;
+                            }
+                          }}
+                        />
+                        <button
+                          onClick={() =>
+                            setMapForm((prev) => ({ ...prev, image: "" }))
+                          }
+                          className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded-md text-xs font-semibold transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+
+                    {/* URL Input */}
+                    <label className="flex flex-col gap-1.5">
+                      <span className="text-xs text-gray-600">Image URL</span>
+                      <input
+                        type="url"
+                        value={
+                          mapForm.image && !mapForm.image.startsWith("data:")
+                            ? mapForm.image
+                            : ""
+                        }
+                        onChange={(e) =>
+                          setMapForm((prev) => ({ ...prev, image: e.target.value }))
+                        }
+                        placeholder="https://example.com/map.png"
+                        className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </label>
+
+                    {/* Divider */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-px bg-gray-300"></div>
+                      <span className="text-xs text-gray-500">OR</span>
+                      <div className="flex-1 h-px bg-gray-300"></div>
+                    </div>
+
+                    {/* File Browse Button */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        console.log("🔵 Browse button clicked");
+                        e.preventDefault();
+                        e.stopPropagation();
+                        triggerMapImagePicker(e);
+                      }}
+                      className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                      📁 Browse from computer
+                    </button>
+
+                    <div className="text-xs text-gray-500 text-center">
+                      Supported formats: PNG, JPG, JPEG, GIF, WebP (Max 5MB)
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 justify-end mt-2">
+                    <button
+                      onClick={closeMapModal}
+                      className="px-4 py-2 rounded-lg border border-gray-300 bg-transparent hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={saveMapFromForm}
+                      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                    >
+                      Save Changes
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={closeMapModal}
-                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={saveMapFromForm}
-                className="rounded-xl bg-[#0b74d1] px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-500/20"
-              >
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </section>
+          ),
+          document.body
+        )}
+    </div>
   );
 };
 
-export type { MapRecord };
-export default MapsPanel;
+export default Maps;
