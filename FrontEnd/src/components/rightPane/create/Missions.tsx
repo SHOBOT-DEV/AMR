@@ -1,20 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { FaPlus } from "react-icons/fa";
-
-export type MissionRecord = {
-  id?: string | number | null;
-  mapId?: string | number | null;
-  name: string;
-  owner: string;
-  status: string;
-  createdAt?: string;
-  notes?: string;
-};
-
-export type MapRecord = {
-  id: string | number | null;
-  name?: string;
-};
+import { getFilteredMissions, type MissionRecord, type MapRecord } from "../../../utils/mapFilters.ts";
 
 type ToastApi = {
   success?: (message: string) => void;
@@ -72,8 +58,7 @@ const MissionsPanel: React.FC<Props> = ({
   const [selectedMissionId, setSelectedMissionId] = useState<string | number | null>(null);
 
   const missionsForMap = useMemo(() => {
-    if (!selectedMap?.id) return [];
-    return missions.filter((mission) => mission.mapId === selectedMap.id);
+    return getFilteredMissions(missions, selectedMap);
   }, [missions, selectedMap]);
 
   const filteredMissions = useMemo(() => {

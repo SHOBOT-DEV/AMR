@@ -20,6 +20,9 @@ import {
   FaPalette,
   FaShieldAlt,
   FaPlug,
+  FaCamera,
+  FaNetworkWired,
+  FaWrench,
 } from "react-icons/fa";
 
 type SidebarItem = {
@@ -147,7 +150,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSelect, onBack }) => {
   return (
     <>
       <aside
-        className="group fixed left-0 top-0 z-[60] flex h-screen w-[72px] flex-col items-center border-r border-[#e6eef2] bg-[#87ceeb] pt-3 text-[#052034]"
+        className="group fixed left-0 top-0 z-[60] flex h-screen w-[72px] flex-col items-center border-r border-[#e6eef2] bg-[#87ceeb] pt-3 text-[#052034] transition-all duration-300"
         aria-label="Main sidebar"
       >
         <div className="flex h-full w-full flex-col items-center">
@@ -323,7 +326,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSelect, onBack }) => {
               onSelect?.("camera");
             }}
           >
-            <FaLayerGroup className="text-lg" />
+            <FaCamera className="text-lg" />
             <span>Camera</span>
           </button>
           <button
@@ -336,7 +339,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSelect, onBack }) => {
               onSelect?.("bridge");
             }}
           >
-            <FaLayerGroup className="text-lg" />
+            <FaNetworkWired className="text-lg" />
             <span>AMR Bridge</span>
           </button>
           <button
@@ -349,7 +352,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSelect, onBack }) => {
               onSelect?.("diagnostics");
             }}
           >
-            <FaComments className="text-lg" />
+            <FaWrench className="text-lg" />
             <span>Diagnostics</span>
           </button>
           <button
@@ -406,24 +409,24 @@ const Sidebar: React.FC<SidebarProps> = ({ onSelect, onBack }) => {
               event.stopPropagation();
               setShowSettingsSub(false);
               setSettingsPos(null);
-              onSelect?.("robot-settings");
+              onSelect?.("account");
             }}
           >
-            <FaUserCog className="text-lg" />
-            <span>Robot</span>
+            <FaUser className="text-lg" />
+            <span>Account</span>
           </button>
-          <button
+                    <button
             type="button"
             className={panelButtonClass}
             onClick={(event) => {
               event.stopPropagation();
               setShowSettingsSub(false);
               setSettingsPos(null);
-              onSelect?.("account");
+              onSelect?.("robot-settings");
             }}
           >
-            <FaUser className="text-lg" />
-            <span>Account</span>
+            <FaUserCog className="text-lg" />
+            <span>Robot</span>
           </button>
           <button
             type="button"
