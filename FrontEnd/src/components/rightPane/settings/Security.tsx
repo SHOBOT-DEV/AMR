@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from "react";
 
-/* ===================== TYPES ===================== */
 interface SecurityPreferences {
   twoFactor: boolean;
   autoLock: boolean;
@@ -23,13 +22,11 @@ interface SecurityProps {
   };
 }
 
-/* ===================== COMPONENT ===================== */
 const Security: React.FC<SecurityProps> = ({
   rightPage,
   requestV1,
   toast,
-}) => {
-  /* ===================== STATE ===================== */
+}) => {= 
   const [securityPreferences, setSecurityPreferences] =
     useState<SecurityPreferences>({
       twoFactor: true,
@@ -54,7 +51,6 @@ const Security: React.FC<SecurityProps> = ({
     },
   ]);
 
-  /* ===================== API PERSIST ===================== */
   const persistSecurityPref = useCallback(
     (
       key: keyof SecurityPreferences,
@@ -78,7 +74,6 @@ const Security: React.FC<SecurityProps> = ({
     [requestV1, toast]
   );
 
-  /* ===================== TOGGLE ===================== */
   const toggleSecurityPref = (key: keyof SecurityPreferences) => {
     setSecurityPreferences((prev) => {
       const nextValue = !prev[key];
@@ -90,10 +85,8 @@ const Security: React.FC<SecurityProps> = ({
     });
   };
 
-  /* ===================== PAGE GUARD ===================== */
   if (rightPage !== "security") return null;
 
-  /* ===================== UI ===================== */
   return (
     <div className="flex flex-col gap-6 p-6">
       {/* Toggles */}

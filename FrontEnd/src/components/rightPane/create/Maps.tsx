@@ -1,4 +1,5 @@
 import React, { useState, useRef, useMemo } from "react";
+import { useEffect } from "react";
 import { FaPlus, FaEdit, FaTrash } from "react-icons/fa";
 import map1 from "../../../assets/map1.png";
 import test1 from "../../../assets/test_1.png";
@@ -6,7 +7,9 @@ import shobotLogo from "../../../assets/shobot_arena.png";
 import shobotLogo1 from "../../../assets/shobot_arena2.png";
 import simulationMap from "../../../assets/simulation_map.png";
 import trasccon4th from "../../../assets/trasccon4th.png";
+import MapContext from "../../rightPane/create/MapContext.tsx";
 import { createPortal } from "react-dom";
+import MapManager from "./MapContext.tsx";
 
 // Type definitions
 interface Map {
@@ -291,28 +294,61 @@ const Maps: React.FC<MapsProps> = (props) => {
   };
 
   // Merge and backfill images using normalized IDs, memoized
-  const combinedMaps = useMemo(() => {
-    const base = mapsList && mapsList.length > 0 ? mapsList : [];
-    const withoutCfl = base.filter(
-      (m) => (m.id || "").toLowerCase() !== "cfl_gf" && (m.name || "").toLowerCase() !== "cfl_gf"
+ const combinedMaps = useMemo(() => {
+  const validBackendMaps = (mapsList || [])
+    .filter((m) => {
+      const id = String(m.id || "").toLowerCase();
+      const name = String(m.name || "").toLowerCase();
+      if (!id) return false;
+      if (id === "cfl_gf" || name === "cfl_gf") return false;
+      return true;
+    })
+    .map(buildPatchedMap);
+
+  const mapById = new Map<string, Map>();
+
+  // 1️⃣ Insert backend maps first
+  for (const m of validBackendMaps) {
+    mapById.set(normalizeId(m.id).toLowerCase(), m);
+  }
+
+  // 2️⃣ Backfill defaults ONLY if missing
+  for (const dm of defaultMapsWithImages) {
+    const id = normalizeId(dm.id).toLowerCase();
+    if (!mapById.has(id)) {
+      mapById.set(id, dm);
+    }
+  }
+
+  // 3️⃣ Force Shobot Arena to top
+  const shobot = mapById.get("shobot_arena");
+  const rest = Array.from(mapById.values()).filter(
+    (m) => normalizeId(m.id) !== "shobot_arena"
+  );
+
+  return shobot ? [shobot, ...rest] : rest;
+}, [mapsList, defaultMapsWithImages]);
+
+useEffect(() => {
+  if (combinedMaps.length === 0) return;
+
+  const isValid =
+    selectedMap &&
+    combinedMaps.some(
+      (m) => normalizeId(m.id) === normalizeId(selectedMap.id)
     );
 
-    // Backfill missing images with normalized id/name
-    const baseWithImages = withoutCfl.map((m) => {
-      const img = (m.image || "").trim();
-      if (img) return m;
-      const fallback = getFallbackImageByIdOrName(m.id, m.name);
-      return fallback ? { ...m, image: fallback } : m;
-    });
+  if (!isValid) {
+    const shobot =
+      combinedMaps.find((m) => normalizeId(m.id) === "shobot_arena") ||
+      combinedMaps[0];
 
-    const merged = [
-      ...baseWithImages,
-      ...defaultMapsWithImages.filter(
-        (dm) => !baseWithImages.some((m) => normalizeId(m.id) === dm.id || m.name === dm.name)
-      ),
-    ];
-    return merged.length > 0 ? merged : defaultMapsWithImages;
-  }, [mapsList, defaultMapsWithImages]);
+    setSelectedMap(shobot);
+  }
+}, [combinedMaps, selectedMap, setSelectedMap]);
+
+
+
 
   // Filter maps, memoized
   const filteredMaps = useMemo(() => {
@@ -733,6 +769,20 @@ const Maps: React.FC<MapsProps> = (props) => {
                       Save Changes
                     </button>
                   </div>
+
+                        <MapContext>
+                            {(selectedMap, filteredWaypoints, filteredZones, filteredMissions) => (
+                              <>
+                                
+                                  selectedMap={selectedMap}
+                                  waypoints={filteredWaypoints}
+                                  zones={filteredZones}
+                                  missions={filteredMissions}
+                                
+                              </>
+                            )}
+                        </MapContext>
+
                 </div>
               </div>
             </div>

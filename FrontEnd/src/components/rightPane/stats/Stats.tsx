@@ -1,393 +1,312 @@
-import React, { useMemo } from "react";
+import React, { useState, useEffect } from "react";
+import { FaMicrophone } from "react-icons/fa";
 
-// --- Types ---
-
-export interface Overview {
-  totalKm: number;
-  deltaKm?: number;
-  missionsCompleted: number;
-  missionSuccessRate?: number;
-  avgSpeed: number;
-  operatingHours: number;
-}
-
-export interface MovementEntry {
-  month: string;
-  km?: number;
-}
-
-export interface BatteryPoint {
-  time: string;
-  voltage: number;
-  power: number;
-}
-
-export interface TrendEntry {
-  label: string;
-  completed: number;
-  incidents: number;
-}
-
-export interface Turns {
-  left?: number;
-  right?: number;
-}
-
-export interface StatsProps {
-  overview?: Overview;
-  monthlyMovement?: MovementEntry[];
-  missionTrend?: TrendEntry[];
-  batterySeries?: BatteryPoint[];
-  turns?: Turns;
-  statsLoading?: boolean;
-  statsError?: string;
-  lineChartSize?: { width: number; height: number };
-  // Optional: You can pass a custom path builder, or use the default internal one
-  buildLinePath?: (series: BatteryPoint[], key: "voltage" | "power") => string;
-}
-
-// --- Helpers ---
-
-const safeNumber = (value?: number) => {
-  return typeof value === "number" && !isNaN(value) ? value : 0;
-};
-
-// Default path builder if none is provided
-const defaultBuildLinePath = (
-  series: BatteryPoint[],
-  key: "voltage" | "power",
-  width: number,
-  height: number
-): string => {
-  if (!series.length) return "";
-  const maxVal = Math.max(...series.map((p) => p[key])) || 100;
-  const stepX = width / (series.length - 1);
-  
-  return series
-    .map((p, i) => {
-      const x = i * stepX;
-      // Invert Y because SVG 0 is at top
-      const y = height - (p[key] / maxVal) * height * 0.8 - 10; 
-      return `${x},${y}`;
-    })
-    .join(" ");
-};
-
-// --- Component ---
-
-const Stats: React.FC<StatsProps> = ({
-  overview = {
-    totalKm: 0,
-    deltaKm: 0,
-    missionsCompleted: 0,
-    missionSuccessRate: 0,
-    avgSpeed: 0,
-    operatingHours: 0,
+// Default stats
+const FALLBACK_STATS = {
+  overview: {
+    totalKm: 182.4,
+    missionsCompleted: 47,
+    avgSpeed: 1.8,
+    operatingHours: 326,
+    deltaKm: 4.3,
+    missionSuccessRate: 98,
   },
-  monthlyMovement = [],
-  missionTrend = [],
-  batterySeries = [],
-  turns = { left: 0, right: 0 },
-  statsLoading = false,
-  statsError = "",
-  lineChartSize = { width: 500, height: 200 },
-  buildLinePath,
-}) => {
-  // 1. Calculate Monthly Movement Stats
-  const { totalMovement, avgMovement, maxMonthlyKm } = useMemo(() => {
-    const total = monthlyMovement.reduce((acc, curr) => acc + (curr.km || 0), 0);
-    const avg = monthlyMovement.length ? total / monthlyMovement.length : 0;
-    const max = Math.max(...monthlyMovement.map((m) => m.km || 0)) || 1;
-    return { totalMovement: total, avgMovement: avg, maxMonthlyKm: max };
-  }, [monthlyMovement]);
+  missionTrend: [
+    { label: "Mon", completed: 5, incidents: 0 },
+    { label: "Tue", completed: 7, incidents: 1 },
+    { label: "Wed", completed: 6, incidents: 0 },
+    { label: "Thu", completed: 8, incidents: 1 },
+    { label: "Fri", completed: 9, incidents: 0 },
+  ],
+  monthlyMovement: [
+    { month: "Jan", km: 118 },
+    { month: "Feb", km: 142 },
+    { month: "Mar", km: 131 },
+    { month: "Apr", km: 155 },
+    { month: "May", km: 162 },
+    { month: "Jun", km: 174 },
+  ],
+  batterySeries: [
+    { time: "08:00", voltage: 48.2, power: 182 },
+    { time: "09:00", voltage: 47.8, power: 176 },
+    { time: "10:00", voltage: 47.4, power: 171 },
+    { time: "11:00", voltage: 46.9, power: 168 },
+    { time: "12:00", voltage: 47.1, power: 170 },
+    { time: "13:00", voltage: 46.7, power: 166 },
+    { time: "14:00", voltage: 46.3, power: 164 },
+  ],
+  batteryStatus: {
+    packVoltage: 46.9,
+    packCurrent: 38.2,
+    stateOfCharge: 78,
+    temperature: "32°C",
+    cycles: 412,
+    health: "Good",
+    cells: [
+      { id: "Cell A", voltage: 3.9 },
+      { id: "Cell B", voltage: 3.89 },
+      { id: "Cell C", voltage: 3.88 },
+      { id: "Cell D", voltage: 3.87 },
+    ],
+  },
+  turns: { left: 132, right: 148 },
+};
 
-  // 2. Calculate Turn Percentages
-  const { leftTurns, rightTurns, leftPercent, rightPercent } = useMemo(() => {
-    const left = turns.left || 0;
-    const right = turns.right || 0;
-    const total = left + right || 1; // Prevent div by zero
-    return {
-      leftTurns: left,
-      rightTurns: right,
-      leftPercent: Math.round((left / total) * 100),
-      rightPercent: Math.round((right / total) * 100),
-    };
-  }, [turns]);
+const Stats = (props: any) => {
+  const [statsData, setStatsData] = useState(FALLBACK_STATS);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [statsError, setStatsError] = useState("");
 
-  // 3. Resolve Line Path Function
-  const getPath = (key: "voltage" | "power") => {
-    if (buildLinePath) return buildLinePath(batterySeries, key);
-    return defaultBuildLinePath(batterySeries, key, lineChartSize.width, lineChartSize.height);
+  const lineChartSize = { width: 420, height: 180 };
+
+  const buildLinePath = (series: any[], key: string) => {
+    if (!series.length) return "";
+    const max = Math.max(...series.map((point) => point[key]));
+    const min = Math.min(...series.map((point) => point[key]));
+    const range = max - min || 1;
+    const stepX = series.length > 1 ? lineChartSize.width / (series.length - 1) : lineChartSize.width;
+    return series
+      .map((point, index) => {
+        const x = index * stepX;
+        const normalized = (point[key] - min) / range;
+        const y = lineChartSize.height - normalized * lineChartSize.height;
+        return `${x},${y}`;
+      })
+      .join(" ");
   };
 
+  const buildSimplePath = (points: number[], size: { width: number; height: number }) => {
+    if (!points.length) return "";
+    const max = Math.max(...points);
+    const min = Math.min(...points);
+    const range = max - min || 1;
+    const step = points.length > 1 ? size.width / (points.length - 1) : size.width;
+    return points
+      .map((value, index) => {
+        const x = index * step;
+        const normalized = (value - min) / range;
+        const y = size.height - normalized * size.height;
+        return `${x},${y}`;
+      })
+      .join(" ");
+  };
+
+  const { rightPage } = props;
+
+  // --- Stats UI ---
+  const { overview, monthlyMovement, missionTrend, batterySeries, turns } = statsData;
+
+  const totalMonthlyKm = monthlyMovement.reduce((s, e) => s + (e.km || 0), 0);
+  const avgMonthlyKm = monthlyMovement.length ? (totalMonthlyKm / monthlyMovement.length).toFixed(1) : "0.0";
+  const maxMonthlyKm = monthlyMovement.length ? Math.max(...monthlyMovement.map((m) => m.km)) : 1;
+
+  const totalTurns = (turns.left || 0) + (turns.right || 0) || 1;
+
   return (
-    <div className="flex flex-col gap-6 p-4 bg-white text-slate-900 dark:bg-slate-950 dark:text-white">
-      {/* Header / Status */}
-      <div className="flex justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 h-4">
-        {statsLoading && (
-          <span className="text-indigo-500 animate-pulse">Refreshing telemetry…</span>
-        )}
-        {statsError && <span className="text-rose-500">{statsError}</span>}
-      </div>
-
-      {/* KPI Cards Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Total Distance */}
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Total Moving Distance
-          </span>
-          <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
-            {safeNumber(overview.totalKm).toFixed(1)} km
-          </h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            +{safeNumber(overview.deltaKm).toFixed(1)} km vs previous day
-          </p>
-        </div>
-
-        {/* Missions */}
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Missions Completed
-          </span>
-          <h3 className="text-2xl font-bold">
-            {safeNumber(overview.missionsCompleted)}
-          </h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {safeNumber(overview.missionSuccessRate)}% success over 7 days
-          </p>
-        </div>
-
-        {/* Average Speed */}
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Average Speed
-          </span>
-          <h3 className="text-2xl font-bold">
-            {safeNumber(overview.avgSpeed).toFixed(1)} m/s
-          </h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Within safe corridor
-          </p>
-        </div>
-
-        {/* Operating Hours */}
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Operating Hours
-          </span>
-          <h3 className="text-2xl font-bold">
-            {safeNumber(overview.operatingHours)} h
-          </h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Last maintenance at 300 h
-          </p>
-        </div>
-      </div>
-
-      {/* Monthly Movement Bar Chart */}
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <div className="flex items-start justify-between">
-          <div>
-            <h4 className="text-lg font-semibold text-slate-900 dark:text-white">
-              Monthly Movement
-            </h4>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Distance travelled per month
-            </p>
+    <>
+      {rightPage === "stats" && (
+        <div className="flex flex-col gap-4 p-4">
+          {/* Status Row */}
+          <div className="flex justify-between text-[13px] text-slate-600">
+            {statsLoading && <span className="text-[#0b74d1] animate-pulse">Refreshing telemetry…</span>}
+            {statsError && <span className="text-[#c2410c]">{statsError}</span>}
           </div>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-6 text-sm text-slate-500 dark:text-slate-400">
-          <div>
-            <span className="text-xs uppercase tracking-[.25em]">Total</span>
-            <strong className="block text-2xl text-slate-900 dark:text-white">
-              {totalMovement.toFixed(1)} km
-            </strong>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3">
+            <div className="bg-slate-50 rounded-xl p-3 shadow-inner border border-slate-200">
+              <span className="text-[12px] uppercase tracking-wider text-slate-400">Total Moving Distance</span>
+              <h3 className="text-[24px] text-slate-900 mt-1">{overview.totalKm.toFixed(1)} km</h3>
+              <p className="text-[13px] text-slate-500">
+                +{typeof overview.deltaKm === "number" ? overview.deltaKm.toFixed(1) : overview.deltaKm} km vs previous day
+              </p>
+            </div>
+            <div className="bg-slate-50 rounded-xl p-3 shadow-inner border border-slate-200">
+              <span className="text-[12px] uppercase tracking-wider text-slate-400">Missions Completed</span>
+              <h3 className="text-[24px] text-slate-900 mt-1">{overview.missionsCompleted}</h3>
+              <p className="text-[13px] text-slate-500">{overview.missionSuccessRate}% success over 7 days</p>
+            </div>
+            <div className="bg-slate-50 rounded-xl p-3 shadow-inner border border-slate-200">
+              <span className="text-[12px] uppercase tracking-wider text-slate-400">Average Speed</span>
+              <h3 className="text-[24px] text-slate-900 mt-1">{overview.avgSpeed.toFixed(1)} m/s</h3>
+              <p className="text-[13px] text-slate-500">Within safe corridor</p>
+            </div>
+            <div className="bg-slate-50 rounded-xl p-3 shadow-inner border border-slate-200">
+              <span className="text-[12px] uppercase tracking-wider text-slate-400">Operating Hours</span>
+              <h3 className="text-[24px] text-slate-900 mt-1">{overview.operatingHours} h</h3>
+              <p className="text-[13px] text-slate-500">Last maintenance at 300 h</p>
+            </div>
           </div>
-          <div>
-            <span className="text-xs uppercase tracking-[.25em]">
-              Average / month
-            </span>
-            <strong className="block text-2xl text-slate-900 dark:text-white">
-              {avgMovement.toFixed(1)} km
-            </strong>
-          </div>
-        </div>
-        <div className="mt-6 flex gap-2 items-end h-48">
-          {monthlyMovement.map((entry) => {
-            const height = (entry.km ?? 0) / maxMonthlyKm;
-            return (
-              <div
-                key={entry.month}
-                className="flex flex-col items-center gap-2 flex-1"
-              >
-                <div className="relative w-6 h-full flex items-end">
+
+          {/* Monthly Movement */}
+          <div className="bg-white rounded-xl shadow-lg p-4">
+            <div className="flex justify-between items-center mb-3">
+              <div>
+                <h4 className="text-[16px] text-slate-900 font-semibold">Monthly Movement</h4>
+                <p className="text-[13px] text-slate-500">Distance travelled per month</p>
+              </div>
+            </div>
+
+            <div className="flex gap-6 text-[13px] text-slate-600 mb-3">
+              <div>
+                <span className="uppercase text-[11px] tracking-wider text-slate-400 block">Total</span>
+                <strong className="text-[20px] text-slate-900 block">{totalMonthlyKm.toFixed(1)} km</strong>
+              </div>
+              <div>
+                <span className="uppercase text-[11px] tracking-wider text-slate-400 block">Average / month</span>
+                <strong className="text-[20px] text-slate-900 block">{avgMonthlyKm} km</strong>
+              </div>
+            </div>
+
+            <div className="flex items-end gap-3 h-40">
+              {monthlyMovement.map((entry) => (
+                <div key={entry.month} className="flex flex-col items-center gap-1 text-[12px] text-slate-400">
                   <div
-                    className="w-full rounded-t-full bg-gradient-to-b from-sky-400 to-blue-600 transition-all duration-500"
-                    style={{ height: `${height * 100}%` }}
+                    className="w-full rounded-t-lg bg-gradient-to-b from-sky-400 to-sky-500"
+                    style={{ height: `${(entry.km / maxMonthlyKm) * 100}%` }}
+                    title={`${entry.km} km`}
                   />
+                  <span>{entry.month}</span>
                 </div>
-                <span className="text-xs text-slate-500 dark:text-slate-400">
-                  {entry.month}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* Battery Telemetry Line Chart */}
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <div className="flex items-start justify-between">
-            <div>
-              <h4 className="text-lg font-semibold text-slate-900 dark:text-white">
-                Battery Voltage & Power
-              </h4>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Live pack telemetry
-              </p>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-              <span className="flex items-center gap-1">
-                <span className="inline-flex h-2 w-2 rounded-full bg-sky-500" />{" "}
-                Voltage
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="inline-flex h-2 w-2 rounded-full bg-orange-500" />{" "}
-                Power
-              </span>
-            </div>
-          </div>
-          <div className="mt-4 overflow-hidden">
-            <svg
-              viewBox={`0 0 ${lineChartSize.width} ${lineChartSize.height}`}
-              className="w-full h-auto"
-              role="img"
-              aria-label="Battery voltage and power line plot"
-            >
-              {/* Grid Lines */}
-              {[0.25, 0.5, 0.75, 1].map((ratio) => (
-                <line
-                  key={String(ratio)}
-                  x1="0"
-                  x2={lineChartSize.width}
-                  y1={lineChartSize.height * ratio}
-                  y2={lineChartSize.height * ratio}
-                  className="stroke-slate-200 dark:stroke-slate-600"
-                  strokeDasharray="4 4"
-                />
               ))}
-              <polyline
-                points={getPath("voltage")}
-                className="fill-none stroke-sky-400"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <polyline
-                points={getPath("power")}
-                className="fill-none stroke-orange-500"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <div className="mt-3 flex justify-between text-xs text-slate-500 dark:text-slate-400">
-              {batterySeries.map((point) => (
-                <span key={point.time}>{point.time}</span>
-              ))}
-            </div>
-          </div>
         </div>
 
-        {/* Turn Distribution */}
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <div className="flex items-start justify-between">
-            <div>
-              <h4 className="text-lg font-semibold text-slate-900 dark:text-white">
-                Turn Distribution
-              </h4>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Left/right turns this shift
-              </p>
-            </div>
-          </div>
-          <div className="mt-4 flex flex-col gap-4 text-sm text-slate-500 dark:text-slate-400">
-            {/* Left */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span>Left turns</span>
-                <strong className="text-slate-900 dark:text-white">
-                  {leftTurns}
-                </strong>
-              </div>
-              <div className="h-3 w-full rounded-full bg-slate-200/60 dark:bg-slate-600/60 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-sky-500 to-blue-500 transition-all duration-500"
-                  style={{ width: `${leftPercent}%` }}
-                />
-              </div>
-            </div>
 
-            {/* Right */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span>Right turns</span>
-                <strong className="text-slate-900 dark:text-white">
-                  {rightTurns}
-                </strong>
-              </div>
-              <div className="h-3 w-full rounded-full bg-slate-200/60 dark:bg-slate-600/60 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-500"
-                  style={{ width: `${rightPercent}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="text-right text-xs font-semibold text-slate-500 dark:text-slate-400">
-              Left {leftPercent}% · Right {rightPercent}%
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Mission Table */}
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <div className="flex items-start justify-between">
+      {/* Battery chart */}
+      <div className="bg-white rounded-xl p-4 shadow-[0_15px_40px_rgba(15,23,42,0.08)]">
+        <div className="flex justify-between gap-3">
           <div>
-            <h4 className="text-lg font-semibold text-slate-900 dark:text-white">
-              Mission Trend
+            <h4 className="text-base text-slate-900">
+              Battery Voltage & Power
             </h4>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Completion vs incidents
-            </p>
+            <p className="text-[13px] text-gray-500">Live pack telemetry</p>
+          </div>
+
+          <div className="flex items-center gap-3 text-[13px] text-slate-600">
+            <span className="flex items-center gap-1">
+              <span className="w-2.5 h-2.5 rounded-full bg-sky-500" /> Voltage
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2.5 h-2.5 rounded-full bg-orange-500" /> Power
+            </span>
           </div>
         </div>
-        <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
-            <thead className="bg-slate-50 text-[11px] uppercase tracking-[.3em] text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-              <tr>
-                <th className="px-3 py-2 text-left font-medium">Day</th>
-                <th className="px-3 py-2 text-left font-medium">Completed</th>
-                <th className="px-3 py-2 text-left font-medium">Incidents</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 text-slate-900 dark:divide-slate-700 dark:text-white">
-              {missionTrend.map((entry) => (
-                <tr key={entry.label}>
-                  <td className="px-3 py-2">{entry.label}</td>
-                  <td className="px-3 py-2 font-semibold">{entry.completed}</td>
-                  <td className="px-3 py-2">{entry.incidents}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+
+        <svg
+          className="mt-3"
+          width={lineChartSize.width}
+          height={lineChartSize.height}
+        >
+          {[0.25, 0.5, 0.75, 1].map((r) => (
+            <line
+              key={r}
+              x1={0}
+              x2={lineChartSize.width}
+              y1={lineChartSize.height * r}
+              y2={lineChartSize.height * r}
+              stroke="rgba(148,163,184,0.35)"
+              strokeWidth={1}
+            />
+          ))}
+
+          <polyline
+            fill="none"
+            stroke="#0ea5e9"
+            strokeWidth={3}
+            points={buildLinePath(batterySeries, "voltage")}
+          />
+          <polyline
+            fill="none"
+            stroke="#f97316"
+            strokeWidth={2}
+            points={buildLinePath(batterySeries, "power")}
+          />
+        </svg>
       </div>
-    </div>
+
+      {/* Turn distribution */}
+      <div className="bg-white rounded-xl p-4 shadow-[0_15px_40px_rgba(15,23,42,0.08)]">
+        <h4 className="text-base text-slate-900">Turn Distribution</h4>
+        <p className="text-[13px] text-gray-500">
+          Number of left/right turns
+        </p>
+
+        <div className="mt-3">
+          <div className="flex justify-between text-sm text-slate-900">
+            <span>Left turns</span>
+            <strong>{turns.left}</strong>
+          </div>
+          <div className="mt-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-cyan-400 to-sky-500"
+              style={{
+                width: `${
+                  (turns.left / (turns.left + turns.right)) * 100
+                }%`,
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="mt-3">
+          <div className="flex justify-between text-sm text-slate-900">
+            <span>Right turns</span>
+            <strong>{turns.right}</strong>
+          </div>
+          <div className="mt-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-yellow-300 to-orange-500"
+              style={{
+                width: `${
+                  (turns.right / (turns.left + turns.right)) * 100
+                }%`,
+              }}
+            />
+          </div>
+        </div>
+
+        <p className="mt-4 text-[13px] text-slate-600 text-right">
+          Left{' '}
+          {Math.round(
+            (turns.left / (turns.left + turns.right)) * 100,
+          )}% · Right{' '}
+          {Math.round(
+            (turns.right / (turns.left + turns.right)) * 100,
+          )}%
+        </p>
+      </div>
+
+      {/* Mission trend */}
+      <div className="bg-white rounded-xl p-4 shadow-[0_15px_40px_rgba(15,23,42,0.08)]">
+        <h4 className="text-base text-slate-900">Mission Trend</h4>
+        <p className="text-[13px] text-gray-500">Completion vs incidents</p>
+
+        <table className="mt-3 w-full text-sm">
+          <thead className="text-slate-500">
+            <tr>
+              <th className="text-left">Day</th>
+              <th className="text-right">Completed</th>
+              <th className="text-right">Incidents</th>
+            </tr>
+          </thead>
+          <tbody>
+            {missionTrend.map((r) => (
+              <tr key={r.label} className="border-t text-slate-700">
+                <td className="py-1">{r.label}</td>
+                <td className="py-1 text-right">{r.completed}</td>
+                <td className="py-1 text-right">{r.incidents}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
 export default Stats;
+ 
