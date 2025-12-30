@@ -1,12 +1,15 @@
 import React, { useState, useRef } from "react";
 import Stats from "../rightPane/stats/Stats.tsx"; // Assumed to be your existing componentimport Chat from "../rightPane/chat/Chat";
 import Chat from "../rightPane/chat/chat.tsx";
+
+// Create
 import Maps from "../rightPane/create/Maps.tsx";
 import Waypoints from "../rightPane/create/Waypoints.tsx";
 import Zones from "../rightPane/create/Zones.tsx";
 import Missions from "../rightPane/create/Missions.tsx";
 import Users from "../rightPane/create/users.tsx";
 
+// Monitor
 import Analytics from "../rightPane/monitor/Analytics.tsx";
 import Diagnostics from "../rightPane/monitor/Diagnostics.tsx";
 import Logs from "../rightPane/monitor/Logs.tsx";
@@ -15,9 +18,13 @@ import Camera from "../rightPane/monitor/Camera.tsx";
 import Bridge from "../rightPane/monitor/Bridge.tsx";
 import RobotBags from "../rightPane/monitor/RobotBags.tsx";
 
+// Settings
 import Account from "../rightPane/settings/Account.tsx";
 import Robot from "../rightPane/settings/Robot.tsx";
 import Appearance from "../rightPane/settings/Appearance.tsx";
+import Security from "../rightPane/settings/Security.tsx";
+import Integrations  from "../rightPane/settings/Integrations.tsx";
+
 
 import {
   FaPlus,
@@ -31,7 +38,7 @@ import {
 
 const RightPane = (props) => {
   // --- Local State ---
-
+  
   const [editingUserId, setEditingUserId] = useState(null);
   
   const [editUserForm, setEditUserForm] = useState({
@@ -275,8 +282,11 @@ const RightPane = (props) => {
         {/* APPEARANCE SETTINGS */}
         {rightPage === "appearance" && (<Appearance {...props} />)}
 
-        {/* SETTINGS / GENERIC */}
+        {/* SECURITY SETTINGS */}
+        {rightPage === "security" && (<Security {...props} />)}
         
+        {/* INTEGRATIONS */}
+        {rightPage === "integrations" && (<Integrations {...props} />)}        
 
       </div>
     </aside>
