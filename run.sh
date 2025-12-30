@@ -151,7 +151,7 @@ echo "Installing frontend dependencies (if needed)..."
 cd "$FRONTEND_DIR"
 if [[ "$INSTALL_FRONTEND_DEPS" == "always" ]] || \
    { [[ "$INSTALL_FRONTEND_DEPS" != "never" ]] && [[ ! -d node_modules ]]; }; then
-  npm install
+  npm install --legacy-peer-deps
 else
   echo "Skipping npm install (INSTALL_FRONTEND_DEPS=$INSTALL_FRONTEND_DEPS)."
 fi
@@ -163,3 +163,4 @@ export REACT_APP_API_URL="${REACT_APP_API_URL:-http://127.0.0.1:$FLASK_PORT}"
 echo "REACT_APP_API_URL=${REACT_APP_API_URL}"
 echo "Starting React app (Ctrl+C to stop)..."
 npm start
+
