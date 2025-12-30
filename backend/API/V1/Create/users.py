@@ -73,5 +73,27 @@ def register_user_routes(bp, store):
         profile = store.get_account()
         return jsonify({"success": True, "item": profile})
 
+    @bp.route("/users/me", methods=["GET"])
+    def current_user_legacy():
+        profile = store.get_account()
+        return jsonify({"success": True, "item": profile})
+
+    @bp.route("/users/reset-password/<user_id>", methods=["POST"])
+    def reset_password_legacy(user_id):
+        try:
+            item = store.reset_user_password(user_id)
+            return jsonify(
+                {
+                    "success": True,
+                    "item": item,
+                    "message": "Password reset token generated",
+                }
+            )
+        except KeyError:
+            return (
+                jsonify({"success": False, "message": "User not found"}),
+                404,
+            )
+
 
 __all__ = ["register_user_routes"]

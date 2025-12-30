@@ -1,0 +1,509 @@
+openapi: 3.0.3
+
+info:
+  title: SHOBOT AMR API
+  description: >
+    REST API for managing SHOBOT AMRs including users, maps,
+    waypoints, missions, zones, graphs, robot control, and analytics.
+  version: 1.0.0
+  contact:
+    name: IIT Madras
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://{host}:{port}/api/v1
+    variables:
+      host:
+        default: localhost
+      port:
+        default: "8080"
+
+tags:
+  - name: Auth
+  - name: Users
+  - name: Maps
+  - name: Waypoints
+  - name: Missions
+  - name: Zones
+  - name: Graphs
+  - name: Robot
+  - name: Logs
+  - name: Analytics
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, user, developer]
+        isActive:
+          type: boolean
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        token:
+          type: string
+
+    Map:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        isActive:
+          type: boolean
+
+    Waypoint:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        dockMarker:
+          type: integer
+
+    Mission:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        iteration:
+          type: integer
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/MissionTask'
+
+    MissionTask:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [move, charging, docking, undocking, waitUser, buzzer, ledInd]
+        data:
+          type: object
+
+    Zone:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        isActive:
+          type: boolean
+        geometry:
+          type: object
+
+    Graph:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        nodes:
+          type: array
+          items:
+            type: object
+        edges:
+          type: array
+          items:
+            type: object
+
+security:
+  - BearerAuth: []
+
+paths:
+
+  # ---------------- AUTH ----------------
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+
+  # ---------------- USERS ----------------
+  /users:
+    get:
+      tags: [Users]
+      summary: Get all users
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+
+    post:
+      tags: [Users]
+      summary: Create user (Admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        "201":
+          description: User created
+
+  /users/{userId}:
+    get:
+      tags: [Users]
+      summary: Get user by ID
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+    put:
+      tags: [Users]
+      summary: Update user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        "200":
+          description: User updated
+
+    delete:
+      tags: [Users]
+      summary: Delete user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: User deleted
+
+  # ---------------- MAPS ----------------
+  /maps:
+    get:
+      tags: [Maps]
+      summary: Get all maps
+      responses:
+        "200":
+          description: Maps list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Map'
+
+    post:
+      tags: [Maps]
+      summary: Create map
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Map'
+      responses:
+        "201":
+          description: Map created
+
+  /maps/load/{mapId}:
+    post:
+      tags: [Maps]
+      summary: Load map into robot
+      parameters:
+        - name: mapId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Map loaded
+
+  # ---------------- WAYPOINTS ----------------
+  /waypoints:
+    get:
+      tags: [Waypoints]
+      summary: Get all waypoints
+      responses:
+        "200":
+          description: Waypoints list
+
+    post:
+      tags: [Waypoints]
+      summary: Create waypoint
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Waypoint'
+      responses:
+        "201":
+          description: Waypoint created
+
+  /waypoints/{id}:
+    put:
+      tags: [Waypoints]
+      summary: Update waypoint
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Waypoint updated
+
+    delete:
+      tags: [Waypoints]
+      summary: Delete waypoint
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Waypoint deleted
+
+  # ---------------- MISSIONS ----------------
+  /missions:
+    get:
+      tags: [Missions]
+      summary: Get all missions
+      responses:
+        "200":
+          description: Missions list
+
+    post:
+      tags: [Missions]
+      summary: Create mission
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Mission'
+      responses:
+        "201":
+          description: Mission created
+
+  /missions/initiate/{missionId}:
+    post:
+      tags: [Missions]
+      summary: Initiate mission
+      parameters:
+        - name: missionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Mission started
+
+  # ---------------- ZONES ----------------
+  /zones:
+    get:
+      tags: [Zones]
+      summary: Get all zones
+      responses:
+        "200":
+          description: Zones list
+
+    post:
+      tags: [Zones]
+      summary: Create zone
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Zone'
+      responses:
+        "201":
+          description: Zone created
+
+  /zones/{zoneId}:
+    put:
+      tags: [Zones]
+      summary: Update zone
+      parameters:
+        - name: zoneId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Zone updated
+
+    delete:
+      tags: [Zones]
+      summary: Delete zone
+      parameters:
+        - name: zoneId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Zone deleted
+
+  # ---------------- GRAPHS ----------------
+  /graphs:
+    get:
+      tags: [Graphs]
+      summary: Get all graphs
+      responses:
+        "200":
+          description: Graphs list
+
+    post:
+      tags: [Graphs]
+      summary: Create graph
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Graph'
+      responses:
+        "201":
+          description: Graph created
+
+  /graphs/{graphId}:
+    delete:
+      tags: [Graphs]
+      summary: Delete graph
+      parameters:
+        - name: graphId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Graph deleted
+
+  # ---------------- ROBOT ----------------
+  /robot/quickgoal/{waypointId}:
+    post:
+      tags: [Robot]
+      summary: Send robot to waypoint
+      parameters:
+        - name: waypointId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Robot moving
+
+  # ---------------- LOGS ----------------
+  /logs:
+    get:
+      tags: [Logs]
+      summary: Get logs
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Logs retrieved
+
+  # ---------------- ANALYTICS ----------------
+  /analytics/battery:
+    get:
+      tags: [Analytics]
+      summary: Battery analytics
+      responses:
+        "200":
+          description: Battery stats

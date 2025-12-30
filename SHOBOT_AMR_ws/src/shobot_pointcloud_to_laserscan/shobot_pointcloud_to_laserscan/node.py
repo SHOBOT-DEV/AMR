@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Point cloud in 3D to 2D
-=========================================================================
-Project 3D PointCloud2 into a 2D planar LaserScan.
-Optimized for AMR costmap input (Nav2, obstacle detection).
+PointCloud2 → LaserScan
+=========================================================
+Projects a 3D PointCloud2 into a 2D planar LaserScan.
+Optimized for AMR costmaps and Nav2 obstacle detection.
 """
 
 import math
@@ -11,11 +11,14 @@ from typing import List
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
+
 import sensor_msgs.point_cloud2 as pc2
 from sensor_msgs.msg import LaserScan, PointCloud2
 
 
 class PointCloudToLaserScanNode(Node):
+    """Convert 3D point cloud into 2D LaserScan."""
 
     def __init__(self):
         super().__init__("shobot_pointcloud_to_laserscan")
@@ -36,35 +39,57 @@ class PointCloudToLaserScanNode(Node):
         self.declare_parameter("max_height", 1.0)
 
         # ---------------- Load Parameters ----------------
-        input_topic = self.get_parameter("input_topic").value
-        output_topic = self.get_parameter("output_topic").value
+        self.input_topic = self.get_parameter("input_topic").value
+        self.output_topic = self.get_parameter("output_topic").value
         self.scan_frame = self.get_parameter("scan_frame").value
 
         self.angle_min = float(self.get_parameter("angle_min").value)
         self.angle_max = float(self.get_parameter("angle_max").value)
         self.angle_increment = float(self.get_parameter("angle_increment").value)
+
         self.range_min = float(self.get_parameter("range_min").value)
         self.range_max = float(self.get_parameter("range_max").value)
+
         self.min_height = float(self.get_parameter("min_height").value)
         self.max_height = float(self.get_parameter("max_height").value)
 
-        self.num_readings = int((self.angle_max - self.angle_min) / self.angle_increment) + 1
+        if self.angle_increment <= 0.0:
+            raise ValueError("angle_increment must be > 0")
 
-        # ---------------- Publisher / Subscriber ----------------
-        self.publisher = self.create_publisher(LaserScan, output_topic, 10)
-        self.create_subscription(PointCloud2, input_topic, self.callback, 10)
-
-        self.get_logger().info(
-            f"PointCloud → LaserScan ({input_topic} → {output_topic}) | frame={self.scan_frame}"
+        self.num_readings = max(
+            1,
+            int((self.angle_max - self.angle_min) / self.angle_increment) + 1,
         )
 
-    # ----------------------------------------------------------------------
+        # ---------------- QoS (sensor data) ----------------
+        sensor_qos = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=10,
+        )
+
+        # ---------------- Publisher / Subscriber ----------------
+        self.publisher = self.create_publisher(
+            LaserScan, self.output_topic, sensor_qos
+        )
+        self.create_subscription(
+            PointCloud2,
+            self.input_topic,
+            self.callback,
+            sensor_qos,
+        )
+
+        self.get_logger().info(
+            f"PointCloud → LaserScan: {self.input_topic} → {self.output_topic} "
+            f"(frame={self.scan_frame}, bins={self.num_readings})"
+        )
+
+    # ------------------------------------------------------------------
     def callback(self, cloud: PointCloud2):
         """Convert incoming PointCloud2 into planar LaserScan."""
 
-        ranges = [math.inf] * self.num_readings
+        ranges: List[float] = [math.inf] * self.num_readings
 
-        # Fast local variables
         amin = self.angle_min
         amax = self.angle_max
         aincr = self.angle_increment
@@ -73,27 +98,26 @@ class PointCloudToLaserScanNode(Node):
         rmin = self.range_min
         rmax = self.range_max
 
-        for (x, y, z) in pc2.read_points(cloud, field_names=("x", "y", "z"), skip_nans=True):
-            # Height filtering
+        for (x, y, z) in pc2.read_points(
+            cloud, field_names=("x", "y", "z"), skip_nans=True
+        ):
+            # Height filter
             if z < zmin or z > zmax:
                 continue
 
-            # Range filtering
-            r = math.sqrt(x * x + y * y)
+            r = math.hypot(x, y)
             if r < rmin or r > rmax:
                 continue
 
-            # Angle filtering
             angle = math.atan2(y, x)
             if angle < amin or angle > amax:
                 continue
 
             idx = int((angle - amin) / aincr)
-            if 0 <= idx < self.num_readings:
-                if r < ranges[idx]:
-                    ranges[idx] = r
+            if 0 <= idx < self.num_readings and r < ranges[idx]:
+                ranges[idx] = r
 
-        # ---------------- Build LaserScan Message ----------------
+        # ---------------- Build LaserScan ----------------
         scan = LaserScan()
         scan.header.stamp = self.get_clock().now().to_msg()
         scan.header.frame_id = self.scan_frame
@@ -104,6 +128,9 @@ class PointCloudToLaserScanNode(Node):
 
         scan.range_min = rmin
         scan.range_max = rmax
+
+        scan.time_increment = 0.0
+        scan.scan_time = 0.0
 
         scan.ranges = ranges
         scan.intensities = [float("nan")] * self.num_readings
@@ -119,8 +146,9 @@ def main(args=None):
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
-    node.destroy_node()
-    rclpy.shutdown()
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
 
 if __name__ == "__main__":

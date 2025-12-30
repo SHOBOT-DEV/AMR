@@ -11,11 +11,12 @@ from typing import Dict
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from std_msgs.msg import String
 
 
 class StatusAggregator(Node):
-    """Subscribe to multiple status topics and publish a combined JSON summary."""
+    """Aggregates multiple status topics into a single JSON status."""
 
     def __init__(self):
         super().__init__("shobot_status_aggregator")
@@ -35,10 +36,20 @@ class StatusAggregator(Node):
 
         self.status_topics = self.get_parameter("status_topics").value
         self.output_topic = self.get_parameter("output_topic").value
-        self.rate_hz = float(self.get_parameter("rate_hz").value)
+        self.rate_hz = max(float(self.get_parameter("rate_hz").value), 0.1)
 
-        # Dictionary storing latest values
-        self.status: Dict[str, str] = {}
+        # ---------------- QoS ----------------
+        qos = QoSProfile(
+            reliability=ReliabilityPolicy.RELIABLE,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=10,
+        )
+
+        # ---------------- State ----------------
+        # Initialize all topics as "unknown"
+        self.status: Dict[str, str] = {
+            topic: "unknown" for topic in self.status_topics
+        }
 
         # ---------------- Subscriptions ----------------
         for topic in self.status_topics:
@@ -46,36 +57,36 @@ class StatusAggregator(Node):
                 String,
                 topic,
                 partial(self._cb, topic=topic),
-                10,
+                qos,
             )
 
         # ---------------- Publisher ----------------
         self.pub = self.create_publisher(String, self.output_topic, 10)
 
-        # Publish timer
+        # ---------------- Timer ----------------
         self.create_timer(1.0 / self.rate_hz, self.publish_status)
 
         self.get_logger().info(
-            f"StatusAggregator: Subscribed to {self.status_topics}, publishing on {self.output_topic}"
+            f"StatusAggregator started\n"
+            f"Subscribed topics: {self.status_topics}\n"
+            f"Publishing to: {self.output_topic} @ {self.rate_hz} Hz"
         )
 
     # ------------------------------------------------------------------
     def _cb(self, msg: String, topic: str):
-        """Update the stored status string."""
+        """Update the stored status for a topic."""
         self.status[topic] = msg.data
 
     # ------------------------------------------------------------------
     def publish_status(self):
         """Publish combined JSON summary."""
         payload = {
-            "statuses": self.status,
+            "timestamp_ns": self.get_clock().now().nanoseconds,
             "count": len(self.status),
-            "timestamp": self.get_clock().now().nanoseconds,
+            "statuses": self.status,
         }
 
         self.pub.publish(String(data=json.dumps(payload)))
-
-    # ------------------------------------------------------------------
 
 
 def main(args=None):

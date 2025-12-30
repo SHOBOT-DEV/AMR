@@ -29,6 +29,17 @@ def register_zone_routes(bp, store):
                 404,
             )
 
+    @bp.route("/zones/<zone_id>", methods=["GET"])
+    def get_zone(zone_id):
+        try:
+            item = store.get_zone(zone_id)
+            return jsonify({"success": True, "item": item})
+        except KeyError:
+            return (
+                jsonify({"success": False, "message": "Zone not found"}),
+                404,
+            )
+
     @bp.route("/zones/<zone_id>", methods=["DELETE"])
     def delete_zone(zone_id):
         try:

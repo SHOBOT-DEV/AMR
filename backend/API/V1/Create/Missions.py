@@ -29,6 +29,17 @@ def register_mission_routes(bp, store):
                 404,
             )
 
+    @bp.route("/missions/<mission_id>", methods=["GET"])
+    def get_mission(mission_id):
+        try:
+            item = store.get_mission(mission_id)
+            return jsonify({"success": True, "item": item})
+        except KeyError:
+            return (
+                jsonify({"success": False, "message": "Mission not found"}),
+                404,
+            )
+
     @bp.route("/missions/<mission_id>", methods=["DELETE"])
     def delete_mission(mission_id):
         try:
@@ -42,6 +53,23 @@ def register_mission_routes(bp, store):
 
     @bp.route("/missions/<mission_id>/initiate", methods=["POST"])
     def initiate_mission(mission_id):
+        try:
+            item = store.initiate_mission(mission_id)
+            return jsonify(
+                {
+                    "success": True,
+                    "item": item,
+                    "message": "Mission sent to robot",
+                }
+            )
+        except KeyError:
+            return (
+                jsonify({"success": False, "message": "Mission not found"}),
+                404,
+            )
+
+    @bp.route("/missions/initiate/<mission_id>", methods=["POST"])
+    def initiate_mission_legacy(mission_id):
         try:
             item = store.initiate_mission(mission_id)
             return jsonify(

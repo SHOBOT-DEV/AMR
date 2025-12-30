@@ -1,13 +1,21 @@
 #!/usr/bin/env python3
+"""
+Keyboard Teleop for SHOBOT (ROS 2)
+=================================
+Publishes geometry_msgs/Twist based on keyboard input.
+Supports model-based velocity limits and smooth profiling.
+"""
+
 import sys
 import termios
 import tty
 from select import select
 
 import rclpy
-from geometry_msgs.msg import Twist
 from rclpy.node import Node
+from geometry_msgs.msg import Twist
 
+# ---------------- Velocity Limits ----------------
 BURGER_MAX_LIN_VEL = 0.8
 BURGER_MAX_ANG_VEL = 0.6
 
@@ -27,27 +35,19 @@ Moving around:
 
 w/x : increase/decrease linear velocity
 a/d : increase/decrease angular velocity
-
-space key, s : force stop
-
-CTRL-C to quit
+space or s : force stop
+CTRL+C : quit
 """
 
 
+# ---------------- Utility Functions ----------------
 def get_key(old_settings):
+    """Read one key press (non-blocking)."""
     tty.setraw(sys.stdin.fileno())
     rlist, _, _ = select([sys.stdin], [], [], 0.1)
     key = sys.stdin.read(1) if rlist else ""
     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
     return key
-
-
-def make_simple_profile(output, target, step):
-    if target > output:
-        output = min(target, output + step)
-    elif target < output:
-        output = max(target, output - step)
-    return output
 
 
 def constrain(value, low, high):
@@ -70,88 +70,121 @@ def limit_angular(model, vel):
     return constrain(vel, -BURGER_MAX_ANG_VEL, BURGER_MAX_ANG_VEL)
 
 
+def make_simple_profile(current, target, step):
+    """Smooth velocity change."""
+    if target > current:
+        return min(target, current + step)
+    if target < current:
+        return max(target, current - step)
+    return current
+
+
+# ---------------- Teleop Node ----------------
 class TeleopNode(Node):
     def __init__(self):
-        super().__init__("shobot_teleop")
+        super().__init__("shobot_teleop_keyboard")
+
         self.declare_parameter("model", "burger")
-        self.declare_parameter("teleop_topic", "/joy/cmd_vel")
+        self.declare_parameter("teleop_topic", "/cmd_vel/teleop")
         self.declare_parameter("rate_hz", 20.0)
 
         if not sys.stdin.isatty():
-            self.get_logger().error("teleop_key requires a TTY stdin (run in a terminal). Exiting.")
+            self.get_logger().error(
+                "Keyboard teleop requires a TTY (run in a terminal)."
+            )
             raise SystemExit(1)
 
-        topic = self.get_parameter("teleop_topic").value
-        self.publisher_ = self.create_publisher(Twist, topic, 10)
         self.model = self.get_parameter("model").value
+        topic = self.get_parameter("teleop_topic").value
+        rate_hz = float(self.get_parameter("rate_hz").value)
+        self.dt = 1.0 / rate_hz if rate_hz > 0 else 0.05
 
+        self.publisher = self.create_publisher(Twist, topic, 10)
+
+        # State
         self.target_linear = 0.0
         self.target_angular = 0.0
         self.control_linear = 0.0
         self.control_angular = 0.0
 
         self.old_settings = termios.tcgetattr(sys.stdin)
-        self.get_logger().info(f"Publishing Twist on {topic} (model={self.model})")
-        print(MSG)
-        try:
-            self.rate_period = 1.0 / float(self.get_parameter("rate_hz").value)
-        except (ValueError, ZeroDivisionError):
-            self.rate_period = 0.05
-            self.get_logger().warn("Invalid rate_hz parameter; defaulting to 20 Hz.")
-        self.rate_timer = self.create_timer(self.rate_period, lambda: None)
 
+        self.get_logger().info(
+            f"Keyboard teleop started → topic={topic}, model={self.model}, rate={rate_hz} Hz"
+        )
+        print(MSG)
+
+    # -------------------------------------------------
     def spin_keyboard(self):
+        """Main keyboard loop."""
         status = 0
         try:
             while rclpy.ok():
                 key = get_key(self.old_settings)
+
                 if key == "w":
-                    self.target_linear = limit_linear(self.model, self.target_linear + LIN_VEL_STEP_SIZE)
+                    self.target_linear = limit_linear(
+                        self.model, self.target_linear + LIN_VEL_STEP_SIZE
+                    )
                 elif key == "x":
-                    self.target_linear = limit_linear(self.model, self.target_linear - LIN_VEL_STEP_SIZE)
+                    self.target_linear = limit_linear(
+                        self.model, self.target_linear - LIN_VEL_STEP_SIZE
+                    )
                 elif key == "a":
-                    self.target_angular = limit_angular(self.model, self.target_angular + ANG_VEL_STEP_SIZE)
+                    self.target_angular = limit_angular(
+                        self.model, self.target_angular + ANG_VEL_STEP_SIZE
+                    )
                 elif key == "d":
-                    self.target_angular = limit_angular(self.model, self.target_angular - ANG_VEL_STEP_SIZE)
+                    self.target_angular = limit_angular(
+                        self.model, self.target_angular - ANG_VEL_STEP_SIZE
+                    )
                 elif key in (" ", "s"):
                     self.target_linear = 0.0
                     self.target_angular = 0.0
                     self.control_linear = 0.0
                     self.control_angular = 0.0
-                else:
-                    if key == "\x03":
-                        break
+                elif key == "\x03":  # CTRL+C
+                    break
+
+                # Smooth output
+                self.control_linear = make_simple_profile(
+                    self.control_linear,
+                    self.target_linear,
+                    LIN_VEL_STEP_SIZE / 2.0,
+                )
+                self.control_angular = make_simple_profile(
+                    self.control_angular,
+                    self.target_angular,
+                    ANG_VEL_STEP_SIZE / 2.0,
+                )
+
+                twist = Twist()
+                twist.linear.x = self.control_linear
+                twist.angular.z = self.control_angular
+                self.publisher.publish(twist)
 
                 status += 1
                 if status == 20:
                     print(MSG)
                     status = 0
 
-                twist = Twist()
-                self.control_linear = make_simple_profile(
-                    self.control_linear, self.target_linear, LIN_VEL_STEP_SIZE / 2.0
-                )
-                self.control_angular = make_simple_profile(
-                    self.control_angular, self.target_angular, ANG_VEL_STEP_SIZE / 2.0
-                )
+                rclpy.spin_once(self, timeout_sec=self.dt)
 
-                twist.linear.x = self.control_linear
-                twist.angular.z = self.control_angular
-                self.publisher_.publish(twist)
-                # Sleep roughly to the requested rate
-                rclpy.spin_once(self, timeout_sec=self.rate_period)
         finally:
-            twist = Twist()
-            self.publisher_.publish(twist)
+            # Always stop robot + restore terminal
+            self.publisher.publish(Twist())
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.old_settings)
 
 
+# ---------------- Main ----------------
 def main(args=None):
     rclpy.init(args=args)
     node = TeleopNode()
-    node.spin_keyboard()
-    node.destroy_node()
-    rclpy.shutdown()
+    try:
+        node.spin_keyboard()
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
 
 if __name__ == "__main__":

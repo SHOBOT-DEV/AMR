@@ -29,6 +29,17 @@ def register_waypoint_routes(bp, store):
                 404,
             )
 
+    @bp.route("/waypoints/<waypoint_id>", methods=["GET"])
+    def get_waypoint(waypoint_id):
+        try:
+            item = store.get_waypoint(waypoint_id)
+            return jsonify({"success": True, "item": item})
+        except KeyError:
+            return (
+                jsonify({"success": False, "message": "Waypoint not found"}),
+                404,
+            )
+
     @bp.route("/waypoints/<waypoint_id>", methods=["DELETE"])
     def delete_waypoint(waypoint_id):
         try:

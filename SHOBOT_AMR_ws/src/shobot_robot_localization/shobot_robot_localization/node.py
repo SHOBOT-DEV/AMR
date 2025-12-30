@@ -1,68 +1,124 @@
 #!/usr/bin/env python3
-"""Localization monitor: checks incoming localization inputs and reports health."""
-import time
+"""
+Localization Monitor for SHOBOT AMR
+=================================================
+Monitors required localization input topics and
+publishes health status based on message freshness.
+"""
+
 from typing import Dict, List
 
 import rclpy
-from rclpy.any_msg import AnyMsg
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
 from std_msgs.msg import Bool, String
 
 
 class LocalizationMonitor(Node):
-    """Monitor required localization inputs and publish a simple health status."""
+    """Monitor localization inputs and report health."""
 
     def __init__(self):
         super().__init__("shobot_localization_monitor")
+
+        # ---------------- Parameters ----------------
         self.declare_parameter(
             "input_topics",
-            ["/odom", "/odom/wheel", "/rtabmap/odom", "/lidar_odom", "/vo", "/imu/data"],
+            [
+                "/odom",
+                "/odom/wheel",
+                "/rtabmap/odom",
+                "/lidar_odom",
+                "/vo",
+                "/imu/data",
+            ],
         )
         self.declare_parameter("stale_timeout_sec", 1.0)
+        self.declare_parameter("check_period_sec", 0.5)
         self.declare_parameter("status_topic", "/localization/status")
         self.declare_parameter("healthy_topic", "/localization/healthy")
-        self.declare_parameter("check_period_sec", 0.5)
 
-        topics: List[str] = [
-            str(t) for t in self.get_parameter("input_topics").value if str(t).strip()
-        ]
-        self.stale_timeout = float(self.get_parameter("stale_timeout_sec").value)
-        status_topic = self.get_parameter("status_topic").value
-        healthy_topic = self.get_parameter("healthy_topic").value
-        check_period = float(self.get_parameter("check_period_sec").value)
+        self.input_topics: List[str] = list(
+            self.get_parameter("input_topics").value
+        )
 
-        self.last_seen: Dict[str, float] = {t: 0.0 for t in topics}
-        self.subs = []
-        for topic in topics:
-            # Use AnyMsg to accept any type without declaring message types here.
-            self.subs.append(self.create_subscription(AnyMsg, topic, self._make_cb(topic), 10))
+        self.stale_timeout = max(
+            float(self.get_parameter("stale_timeout_sec").value), 0.1
+        )
+        self.check_period = max(
+            float(self.get_parameter("check_period_sec").value), 0.1
+        )
 
-        self.status_pub = self.create_publisher(String, status_topic, 10)
-        self.healthy_pub = self.create_publisher(Bool, healthy_topic, 10)
+        self.status_topic = self.get_parameter("status_topic").value
+        self.healthy_topic = self.get_parameter("healthy_topic").value
 
-        self.create_timer(check_period, self.check_inputs)
-        self.get_logger().info(f"Monitoring localization inputs: {topics}")
+        # ---------------- State ----------------
+        self.last_seen: Dict[str, int] = {
+            topic: 0 for topic in self.input_topics
+        }
 
+        # ---------------- Subscriptions ----------------
+        # Message type does NOT matter; callback only tracks activity
+        for topic in self.input_topics:
+            self.create_subscription(
+                String,  # lightweight placeholder
+                topic,
+                self._make_cb(topic),
+                qos_profile_sensor_data,
+            )
+
+        # ---------------- Publishers ----------------
+        self.status_pub = self.create_publisher(String, self.status_topic, 10)
+        self.healthy_pub = self.create_publisher(Bool, self.healthy_topic, 10)
+
+        # ---------------- Timer ----------------
+        self.create_timer(self.check_period, self.check_inputs)
+
+        self.get_logger().info(
+            f"LocalizationMonitor started\n"
+            f"  Topics        : {self.input_topics}\n"
+            f"  Timeout (sec) : {self.stale_timeout}\n"
+            f"  Check period  : {self.check_period}"
+        )
+
+    # ------------------------------------------------------------------
     def _make_cb(self, topic: str):
         def cb(_msg):
-            self.last_seen[topic] = time.time()
-
+            self.last_seen[topic] = self.get_clock().now().nanoseconds
         return cb
 
+    # ------------------------------------------------------------------
     def check_inputs(self):
-        now = time.time()
-        stale = [t for t, ts in self.last_seen.items() if now - ts > self.stale_timeout]
-        healthy = len(stale) == 0
-        if stale:
-            msg = f"Localization inputs stale: {stale}"
-        else:
-            msg = "Localization inputs healthy"
-        self.status_pub.publish(String(data=msg))
+        now_ns = self.get_clock().now().nanoseconds
+        stale_topics = []
+
+        for topic, last_ns in self.last_seen.items():
+            if last_ns == 0:
+                stale_topics.append(topic)
+                continue
+
+            age_sec = (now_ns - last_ns) / 1e9
+            if age_sec > self.stale_timeout:
+                stale_topics.append(topic)
+
+        healthy = len(stale_topics) == 0
+
+        status_msg = {
+            "healthy": healthy,
+            "stale_topics": stale_topics,
+            "timeout_sec": self.stale_timeout,
+            "timestamp_ns": now_ns,
+        }
+
+        self.status_pub.publish(String(data=str(status_msg)))
         self.healthy_pub.publish(Bool(data=healthy))
-        if stale:
-            self.get_logger().warn(msg)
+
+        if not healthy:
+            self.get_logger().warn(
+                f"Localization inputs stale: {stale_topics}"
+            )
 
 
+# ======================================================================
 def main(args=None):
     rclpy.init(args=args)
     node = LocalizationMonitor()

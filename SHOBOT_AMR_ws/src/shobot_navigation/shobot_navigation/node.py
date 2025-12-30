@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
-"""Simple Nav2 NavigateToPose client with topic-driven goals and cancel support."""
+"""
+Topic-driven Nav2 NavigateToPose client with optional path execution and cancel support.
+"""
+
 from collections import deque
 from typing import Deque, Optional
 
 import rclpy
 from rclpy.action import ActionClient
 from rclpy.node import Node
+from rclpy.time import Time
+
 from action_msgs.msg import GoalStatus
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
@@ -28,141 +33,158 @@ class NavigationClient(Node):
         self.declare_parameter("planner_mode", "dwa")  # dwa | path
         self.declare_parameter("path_goal_topic", "/plan_goal")
         self.declare_parameter("feedback_throttle_sec", 0.5)
-        self.declare_parameter("server_wait_timeout", 2.0)
 
         goal_topic = self.get_parameter("goal_topic").value
         status_topic = self.get_parameter("status_topic").value
         feedback_topic = self.get_parameter("feedback_topic").value
         action_name = self.get_parameter("nav2_action_name").value
-        self.planner_mode = self.get_parameter("planner_mode").value
+        self.planner_mode = self.get_parameter("planner_mode").value.lower()
         path_goal_topic = self.get_parameter("path_goal_topic").value
         self.feedback_throttle = float(self.get_parameter("feedback_throttle_sec").value)
-        self.server_wait_timeout = float(self.get_parameter("server_wait_timeout").value)
+
+        if self.planner_mode not in ("dwa", "path"):
+            self.get_logger().warn(
+                f"Invalid planner_mode '{self.planner_mode}', falling back to 'dwa'"
+            )
+            self.planner_mode = "dwa"
 
         # ---------------- Action client ----------------
         self.nav_client = ActionClient(self, NavigateToPose, action_name)
 
         # ---------------- Publishers / Subscribers / Services ----------------
-        self.goal_sub = self.create_subscription(PoseStamped, goal_topic, self.goal_cb, 10)
+        self.create_subscription(PoseStamped, goal_topic, self.goal_cb, 10)
         self.status_pub = self.create_publisher(String, status_topic, 10)
         self.feedback_pub = self.create_publisher(String, feedback_topic, 10)
-        self.cancel_srv = self.create_service(Trigger, "cancel_navigation", self.cancel_cb)
+        self.create_service(Trigger, "cancel_navigation", self.cancel_cb)
 
         self.path_sub = None
         self.path_queue: Deque[PoseStamped] = deque()
-        self.current_goal_source = "single"
+        self.current_goal_source: Optional[str] = None
 
         if self.planner_mode == "path":
-            self.path_sub = self.create_subscription(Path, path_goal_topic, self.path_cb, 10)
-            self.get_logger().info(
-                f"Planner mode 'path' enabled; listening for Path on {path_goal_topic}."
+            self.path_sub = self.create_subscription(
+                Path, path_goal_topic, self.path_cb, 10
             )
-        else:
-            self.get_logger().info("Planner mode set to 'dwa' (Nav2 default).")
+            self.get_logger().info(
+                f"Path mode enabled; listening on {path_goal_topic}"
+            )
 
+        # ---------------- State ----------------
         self.current_goal_handle = None
         self.last_feedback_time = self.get_clock().now()
 
+        # ---------------- Timers ----------------
+        self.wait_timer = self.create_timer(1.0, self._wait_for_server)
+
         self.get_logger().info(
-            f"Navigation client initialized. Waiting for Nav2 action server '{action_name}' and listening for goals on {goal_topic}"
+            f"Navigation client started. Waiting for Nav2 action server '{action_name}'."
         )
 
-        # Block until action server is available (with retries)
-        waited = 0.0
-        while not self.nav_client.wait_for_server(timeout_sec=self.server_wait_timeout):
-            waited += self.server_wait_timeout
-            self.get_logger().warn(f"Waiting for Nav2 action server... waited {waited:.1f}s")
-        self.get_logger().info("Nav2 action server available.")
+    # ------------------------------------------------------------------
+    def _wait_for_server(self):
+        """Wait asynchronously for Nav2 action server."""
+        if self.nav_client.wait_for_server(timeout_sec=0.1):
+            self.get_logger().info("Nav2 action server available.")
+            self.wait_timer.cancel()
 
     # ------------------------------------------------------------------
     def goal_cb(self, msg: PoseStamped):
-        """Handle a single Pose goal (used in both modes)."""
+        """Handle single Pose goal."""
         self._send_pose_goal(msg, source="single")
 
     # ------------------------------------------------------------------
-    def _send_pose_goal(self, msg: PoseStamped, source: str):
-        """Send a pose as a NavigateToPose goal to Nav2."""
-        if not self.nav_client.server_is_ready():
-            self.get_logger().warn("Nav2 action server not ready; dropping goal.")
-            return
-
-        # Cancel any running goal before sending new one (single-goal behavior)
-        if self.current_goal_handle is not None:
-            self.get_logger().info("Cancelling previous goal before sending a new one.")
-            self._cancel_goal()
-
-        goal_msg = NavigateToPose.Goal()
-        goal_msg.pose = msg
-
-        send_future = self.nav_client.send_goal_async(goal_msg, feedback_callback=self.feedback_cb)
-        send_future.add_done_callback(self._goal_response_cb)
-        self.current_goal_source = source
-
-        self.publish_status(
-            f"Sending goal to Nav2: frame={msg.header.frame_id} x={msg.pose.position.x:.2f} y={msg.pose.position.y:.2f}"
-        )
-
-    # ------------------------------------------------------------------
     def path_cb(self, msg: Path):
-        """Receive a Path and schedule it as a sequence of pose goals."""
+        """Receive a Path and schedule it as sequential goals."""
         if not msg.poses:
-            self.get_logger().warn("Received empty path; ignoring.")
+            self.publish_status("Received empty path; ignoring.")
             return
 
-        # store PoseStamped queue (make a copy to avoid mutating original)
-        self.path_queue = deque([PoseStamped(p.header, p.pose) for p in msg.poses])
-        self.publish_status(f"Received path with {len(self.path_queue)} poses; executing sequential goals.")
-        # Start execution if no current goal
+        self.path_queue = deque(
+            [PoseStamped(header=p.header, pose=p.pose) for p in msg.poses]
+        )
+        self.publish_status(f"Received path with {len(self.path_queue)} poses.")
+
         if self.current_goal_handle is None:
             self._send_next_path_goal()
 
     # ------------------------------------------------------------------
     def _send_next_path_goal(self):
-        """Send next pose from the path queue if available."""
         if not self.path_queue:
-            self.publish_status("Path execution complete.")
+            self.publish_status("Path execution completed.")
             return
-        next_pose = self.path_queue.popleft()
-        self._send_pose_goal(next_pose, source="path")
+        self._send_pose_goal(self.path_queue.popleft(), source="path")
+
+    # ------------------------------------------------------------------
+    def _send_pose_goal(self, msg: PoseStamped, source: str):
+        if not self.nav_client.server_is_ready():
+            self.publish_status("Nav2 action server not ready; goal dropped.")
+            return
+
+        if self.current_goal_handle is not None:
+            self.publish_status("Canceling previous goal before sending new one.")
+            self._cancel_goal_internal(clear_path=False)
+
+        goal = NavigateToPose.Goal()
+        goal.pose = msg
+
+        send_future = self.nav_client.send_goal_async(
+            goal, feedback_callback=self.feedback_cb
+        )
+        send_future.add_done_callback(self._goal_response_cb)
+
+        self.current_goal_source = source
+        self.publish_status(
+            f"Sending goal: frame={msg.header.frame_id}, "
+            f"x={msg.pose.position.x:.2f}, y={msg.pose.position.y:.2f}"
+        )
 
     # ------------------------------------------------------------------
     def _goal_response_cb(self, future):
         goal_handle = future.result()
+
         if not goal_handle.accepted:
             self.publish_status("Nav2 goal rejected.")
             self.current_goal_handle = None
             return
-        self.publish_status("Nav2 goal accepted.")
+
         self.current_goal_handle = goal_handle
+        self.publish_status("Nav2 goal accepted.")
+
         result_future = goal_handle.get_result_async()
         result_future.add_done_callback(self._result_cb)
 
     # ------------------------------------------------------------------
     def feedback_cb(self, feedback_msg):
-        """Throttle and publish feedback info."""
         now = self.get_clock().now()
-        dt = (now - self.last_feedback_time).nanoseconds / 1e9
-        if dt < self.feedback_throttle:
+        if (now - self.last_feedback_time).nanoseconds * 1e-9 < self.feedback_throttle:
             return
+
         self.last_feedback_time = now
         fb = feedback_msg.feedback
-        try:
-            self.feedback_pub.publish(
-                String(data=f"distance_remaining: {fb.distance_remaining:.2f}, speed: {fb.speed:.2f}")
-            )
-        except Exception:
-            # be defensive: some feedback implementations differ
-            self.get_logger().debug("Unexpected feedback format; skipping publish.")
+
+        if hasattr(fb, "distance_remaining"):
+            text = f"distance_remaining={fb.distance_remaining:.2f}"
+            if hasattr(fb, "speed"):
+                text += f", speed={fb.speed:.2f}"
+            self.feedback_pub.publish(String(data=text))
 
     # ------------------------------------------------------------------
     def _result_cb(self, future):
         result = future.result()
         status = result.status
-        self.publish_status(f"Nav2 goal completed with status: {status}")
-        # keep current_goal_handle until after we process follow-up
+
+        if status == GoalStatus.STATUS_SUCCEEDED:
+            msg = "Goal reached successfully."
+        elif status == GoalStatus.STATUS_ABORTED:
+            msg = "Navigation aborted."
+        elif status == GoalStatus.STATUS_CANCELED:
+            msg = "Navigation canceled."
+        else:
+            msg = f"Navigation finished with status {status}"
+
+        self.publish_status(msg)
         self.current_goal_handle = None
 
-        # If running path mode and goal succeeded, continue with next waypoint
         if (
             self.planner_mode == "path"
             and self.current_goal_source == "path"
@@ -172,31 +194,27 @@ class NavigationClient(Node):
 
     # ------------------------------------------------------------------
     def cancel_cb(self, request, response):
-        """Service handler to cancel current navigation."""
-        success = self._cancel_goal()
-        response.success = success
-        response.message = "Cancel requested" if success else "No active goal to cancel"
+        response.success = self._cancel_goal_internal(clear_path=True)
+        response.message = (
+            "Cancel request sent." if response.success else "No active goal."
+        )
         return response
 
     # ------------------------------------------------------------------
-    def _cancel_goal(self) -> bool:
-        """Cancel active goal (if any)."""
+    def _cancel_goal_internal(self, clear_path: bool) -> bool:
         if self.current_goal_handle is None:
             return False
 
         try:
-            cancel_future = self.current_goal_handle.cancel_goal_async()
-            cancel_future.add_done_callback(lambda f: self.publish_status("Cancel request sent to Nav2."))
-        except Exception as e:
-            self.get_logger().error(f"Failed to send cancel request: {e}")
+            self.current_goal_handle.cancel_goal_async()
+            self.publish_status("Cancel request sent to Nav2.")
+        except Exception as exc:
+            self.get_logger().error(f"Cancel failed: {exc}")
             return False
 
-        # Clear local state and path queue
         self.current_goal_handle = None
-        if self.planner_mode == "path":
-            self.path_queue = deque()
-            self.publish_status("Path queue cleared.")
-
+        if clear_path:
+            self.path_queue.clear()
         return True
 
     # ------------------------------------------------------------------

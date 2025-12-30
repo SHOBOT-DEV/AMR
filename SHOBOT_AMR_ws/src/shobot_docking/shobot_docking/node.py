@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """
-Simple docking manager for SHOBOT AMR.
-Drives straight until a distance threshold or timeout is reached.
+Docking Manager for SHOBOT AMR
+-----------------------------
+Minimal docking controller using odometry distance.
+
+Behavior:
+- Drives forward at constant speed
+- Stops when target distance is reached OR timeout occurs
+- Exposes a Dock action server
 """
 
 import math
@@ -16,11 +22,11 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Bool
 
-from shobot_docking.action import Dock   # custom action: goal.start(bool), result.success(bool)
+from shobot_docking.action import Dock
 
 
 class DockingNode(Node):
-    """Minimal docking controller for SHOBOT."""
+    """Minimal, safe docking controller."""
 
     def __init__(self):
         super().__init__("shobot_docking")
@@ -36,9 +42,11 @@ class DockingNode(Node):
         self.odom_topic = self.get_parameter("odom_topic").value
         self.dock_speed = float(self.get_parameter("dock_speed").value)
         self.dock_distance = float(self.get_parameter("dock_distance").value)
-        self.timeout = Duration(seconds=float(self.get_parameter("timeout_sec").value))
+        self.timeout = Duration(
+            seconds=float(self.get_parameter("timeout_sec").value)
+        )
 
-        # ---------------- Publishers & Subscribers ----------------
+        # ---------------- Publishers / Subscribers ----------------
         self.cmd_pub = self.create_publisher(Twist, self.cmd_vel_topic, 10)
         self.docked_pub = self.create_publisher(Bool, "/dock_status", 10)
         self.create_subscription(Odometry, self.odom_topic, self.odom_cb, 10)
@@ -53,54 +61,56 @@ class DockingNode(Node):
             execute_callback=self.execute_callback,
         )
 
-        self.current_pose = None
-        self.start_pose = None
+        # ---------------- State ----------------
+        self.current_pose: Optional[Odometry] = None
+        self.start_pose: Optional[Odometry] = None
         self.goal_active = False
 
         self.get_logger().info("SHOBOT DockingNode ready.")
 
-    # ----------------------------------------------------------------------
-    # Action Handlers
-    # ----------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # Action Callbacks
+    # ------------------------------------------------------------------
     def goal_callback(self, goal_request):
         if self.goal_active:
-            self.get_logger().warn("Dock goal rejected: already executing another dock.")
+            self.get_logger().warn("Rejecting dock goal: another goal is active.")
             return GoalResponse.REJECT
-        self.get_logger().info("Dock goal accepted.")
         return GoalResponse.ACCEPT
 
     def cancel_callback(self, goal_handle):
-        self.get_logger().info("Dock: cancel requested.")
+        self.get_logger().info("Dock cancel requested.")
         self.stop()
         self.goal_active = False
         return CancelResponse.ACCEPT
 
-    # ----------------------------------------------------------------------
+    # ------------------------------------------------------------------
     # Odometry Callback
-    # ----------------------------------------------------------------------
+    # ------------------------------------------------------------------
     def odom_cb(self, msg: Odometry):
         self.current_pose = msg.pose.pose
 
-    # ----------------------------------------------------------------------
+    # ------------------------------------------------------------------
     # Dock Execution
-    # ----------------------------------------------------------------------
+    # ------------------------------------------------------------------
     def execute_callback(self, goal_handle):
         self.get_logger().info("Dock execution started.")
         self.goal_active = True
 
+        # --- Safety check ---
         if self.current_pose is None:
-            self.get_logger().warn("No odom available — aborting dock.")
+            self.get_logger().error("No odometry received. Aborting dock.")
             goal_handle.abort()
+            self.goal_active = False
             return Dock.Result(success=False)
 
         self.start_pose = self.current_pose
         start_time = self.get_clock().now()
 
-        success = False
+        rate = self.create_rate(10)  # 10 Hz loop
 
         while rclpy.ok():
 
-            # --- Check for cancel request ---
+            # ---- Cancel handling ----
             if goal_handle.is_cancel_requested:
                 self.stop()
                 goal_handle.canceled()
@@ -109,10 +119,9 @@ class DockingNode(Node):
                 self.get_logger().info("Dock canceled.")
                 return Dock.Result(success=False)
 
-            # --- Check progress ---
-            if self.current_pose:
+            # ---- Progress check ----
+            if self.current_pose and self.start_pose:
                 dist = self._distance(self.start_pose, self.current_pose)
-
                 goal_handle.publish_feedback(Dock.Feedback(distance=dist))
 
                 if dist >= self.dock_distance:
@@ -120,30 +129,31 @@ class DockingNode(Node):
                     self.docked_pub.publish(Bool(data=True))
                     goal_handle.succeed()
                     self.goal_active = False
-                    self.get_logger().info(f"Dock successful. Distance= {dist:.2f} m")
+                    self.get_logger().info(
+                        f"Dock successful (distance = {dist:.2f} m)"
+                    )
                     return Dock.Result(success=True)
 
-            # --- Timeout check ---
-            elapsed = self.get_clock().now() - start_time
-            if elapsed > self.timeout:
+            # ---- Timeout ----
+            if self.get_clock().now() - start_time > self.timeout:
                 self.stop()
                 goal_handle.abort()
                 self.goal_active = False
-                self.get_logger().warn("Dock timeout reached.")
+                self.get_logger().warn("Dock aborted: timeout reached.")
                 return Dock.Result(success=False)
 
-            # --- Drive forward ---
+            # ---- Motion ----
             self.drive_forward()
-            rclpy.spin_once(self, timeout_sec=0.1)
+            rate.sleep()
 
-        # Fallback exit
+        # ---- Fallback ----
         self.stop()
         self.goal_active = False
         return Dock.Result(success=False)
 
-    # ----------------------------------------------------------------------
+    # ------------------------------------------------------------------
     # Motion Helpers
-    # ----------------------------------------------------------------------
+    # ------------------------------------------------------------------
     def drive_forward(self):
         cmd = Twist()
         cmd.linear.x = self.dock_speed
@@ -156,7 +166,7 @@ class DockingNode(Node):
     def _distance(p1, p2):
         dx = p2.position.x - p1.position.x
         dy = p2.position.y - p1.position.y
-        return math.sqrt(dx * dx + dy * dy)
+        return math.hypot(dx, dy)
 
 
 # ----------------------------------------------------------------------
@@ -167,8 +177,9 @@ def main(args=None):
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
-    node.destroy_node()
-    rclpy.shutdown()
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
 
 if __name__ == "__main__":

@@ -7,13 +7,13 @@ REST API Bridge for SHOBOT AMR
 - Publishes and retrieves simple robot status
 """
 
-import json
+import os
 import time
 from threading import Thread, Lock
 from typing import Optional
 
 import rclpy
-from flask import Flask, jsonify, request, Response
+from flask import Blueprint, Flask, jsonify, request, Response
 from flask_cors import CORS
 from geometry_msgs.msg import Twist
 from rclpy.executors import MultiThreadedExecutor
@@ -23,6 +23,7 @@ from std_msgs.msg import String
 
 app = Flask("shobot_api_bridge")
 CORS(app)
+api_bp = Blueprint("api_bridge", __name__)
 
 
 # ======================================================================
@@ -103,6 +104,9 @@ def start_ros():
     """Start ROS2 node + executor in background thread."""
     global node, executor, spin_thread
 
+    if node is not None:
+        return
+
     rclpy.init()
     node = ApiBridge()
 
@@ -133,7 +137,7 @@ def shutdown_ros():
 # FLASK HTTP API
 # ======================================================================
 
-@app.route("/api/status", methods=["GET"])
+@api_bp.route("/api/status", methods=["GET"])
 def api_get_status():
     if node is None:
         return jsonify({"status": "offline"}), 503
@@ -143,12 +147,15 @@ def api_get_status():
     })
 
 
-@app.route("/api/cmd_vel", methods=["POST"])
+@api_bp.route("/api/cmd_vel", methods=["POST"])
 def api_cmd_vel():
     if node is None:
         return jsonify({"success": False, "error": "ROS2 not started"}), 503
 
     payload = request.get_json(silent=True) or {}
+    # Accept query params for compatibility with lightweight clients.
+    if not payload:
+        payload = request.args
 
     try:
         lx = float(payload.get("linear_x", 0.0))
@@ -161,7 +168,7 @@ def api_cmd_vel():
         return jsonify({"success": False, "error": str(exc)}), 400
 
 
-@app.route("/api/camera/snapshot", methods=["GET"])
+@api_bp.route("/api/camera/snapshot", methods=["GET"])
 def api_camera_snapshot():
     if node is None or node.latest_camera is None:
         return jsonify({"success": False, "error": "No camera frame"}), 503
@@ -172,7 +179,7 @@ def api_camera_snapshot():
     return Response(jpeg_bytes, mimetype="image/jpeg")
 
 
-@app.route("/api/camera/stream", methods=["GET"])
+@api_bp.route("/api/camera/stream", methods=["GET"])
 def api_camera_stream():
     if node is None:
         return jsonify({"success": False, "error": "ROS2 not started"}), 503
@@ -199,13 +206,34 @@ def api_camera_stream():
 
 
 # ======================================================================
+# APP FACTORY / ROUTERS
+# ======================================================================
+
+def register_routers(flask_app: Flask) -> Flask:
+    """Attach the API routes to the provided Flask app."""
+    flask_app.register_blueprint(api_bp)
+    return flask_app
+
+
+# Register routes on the module-level app by default.
+register_routers(app)
+
+
+# ======================================================================
 # ENTRY POINT
 # ======================================================================
 
 def main():
     start_ros()
+
+    host = os.environ.get("API_BRIDGE_HOST", "0.0.0.0")
+    port = int(os.environ.get("API_BRIDGE_PORT", "8000"))
+
     try:
-        app.run(host="0.0.0.0", port=8000, threaded=True)
+        # threaded=True allows Flask to serve while ROS spins in its own thread.
+        app.run(host=host, port=port, threaded=True)
+    except KeyboardInterrupt:
+        pass
     finally:
         shutdown_ros()
 

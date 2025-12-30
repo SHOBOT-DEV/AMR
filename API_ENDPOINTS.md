@@ -9,7 +9,7 @@ This document provides a comprehensive list of all API endpoints available in th
 The system has **4 main API interfaces**:
 
 1. **Node.js Backend REST API** (Port 5000) - Main web API
-2. **C++ Analytics HTTP API** (Port 6060) - Robot analytics
+2. **Python Analytics HTTP API** (Port 6060) - Robot analytics
 3. **ROS Services** - Internal robot control APIs
 4. **ROS Bridge WebSocket API** (Port 9090) - Real-time ROS communication
 

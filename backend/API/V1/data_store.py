@@ -749,6 +749,77 @@ class FrontendDataStore:
                 },
                 "turns": {"left": 132, "right": 148},
             },
+            "graphs": [
+                {
+                    "id": "graph1",
+                    "name": "Main Graph",
+                    "nodes": [
+                        {
+                            "id": 1,
+                            "name": "Node-1",
+                            "pose": {"lat": 2339, "lng": 816},
+                            "ignoreOrientation": False,
+                            "rotation": 0,
+                        },
+                        {
+                            "id": 2,
+                            "name": "Node-2",
+                            "pose": {"lat": 2207, "lng": 852},
+                            "ignoreOrientation": False,
+                            "rotation": 0,
+                        },
+                    ],
+                    "edges": [
+                        {
+                            "source": 1,
+                            "target": 2,
+                            "id": 1,
+                            "name": "Edge-1|1->2",
+                            "weight": 1,
+                            "type": "C",
+                            "directionType": "Forward",
+                            "isBidirectional": False,
+                            "ignoreOrientation": True,
+                            "controlPoints": [{"lng": 825, "lat": 2306}, {"lng": 843, "lat": 2240}],
+                        }
+                    ],
+                }
+            ],
+            "registers": [
+                {"id": "reg1", "name": "battery_voltage", "value": 46.8, "unit": "V"},
+                {"id": "reg2", "name": "battery_current", "value": 38.2, "unit": "A"},
+                {"id": "reg3", "name": "cpu_temp", "value": 62.5, "unit": "C"},
+            ],
+            "downloads": [
+                {
+                    "name": "logs_from_2024-05-14_00:00:00_to_2024-05-16_13:39:12.csv",
+                    "size": "128 KB",
+                    "createdAt": "2024-05-16T13:39:12Z",
+                }
+            ],
+            "robot_bag_files": {
+                "paths": [
+                    "analytics.js",
+                    "footprint.js",
+                    "graph.js",
+                    "log.js",
+                    "utils",
+                ]
+            },
+            "battery_analytics": [
+                {"ts": "2024-03-01T09:10:01Z", "voltage": 48.1, "current": 36.2},
+                {"ts": "2024-03-10T09:10:01Z", "voltage": 47.8, "current": 35.4},
+                {"ts": "2024-03-20T09:10:01Z", "voltage": 47.4, "current": 34.9},
+                {"ts": "2024-04-01T09:10:01Z", "voltage": 47.0, "current": 33.8},
+            ],
+            "mission_log_progress": {
+                "default": {
+                    "progress": 68,
+                    "status": "Running",
+                    "currentTask": "Move",
+                    "updatedAt": _utc_ts(),
+                }
+            },
         }
 
     def _collection_index(self, bucket: str, item_id: str) -> Tuple[int, Dict[str, Any]]:
@@ -840,6 +911,11 @@ class FrontendDataStore:
             self._state["zones"].append(zone)
             return _clone(zone)
 
+    def get_zone(self, zone_id: str) -> Dict[str, Any]:
+        with self._lock:
+            _, item = self._collection_index("zones", zone_id)
+            return _clone(item)
+
     def update_zone(self, zone_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         with self._lock:
             idx, item = self._collection_index("zones", zone_id)
@@ -894,6 +970,11 @@ class FrontendDataStore:
             idx, _ = self._collection_index("waypoints", waypoint_id)
             self._state["waypoints"].pop(idx)
 
+    def get_waypoint(self, waypoint_id: str) -> Dict[str, Any]:
+        with self._lock:
+            _, item = self._collection_index("waypoints", waypoint_id)
+            return _clone(item)
+
     # ------------------------------------------------------------------
     # Missions
     def list_missions(self) -> List[Dict[str, Any]]:
@@ -939,6 +1020,11 @@ class FrontendDataStore:
         with self._lock:
             idx, _ = self._collection_index("missions", mission_id)
             self._state["missions"].pop(idx)
+
+    def get_mission(self, mission_id: str) -> Dict[str, Any]:
+        with self._lock:
+            _, item = self._collection_index("missions", mission_id)
+            return _clone(self._normalize_mission(item))
 
     def initiate_mission(self, mission_id: str) -> Dict[str, Any]:
         with self._lock:
@@ -1053,6 +1139,13 @@ class FrontendDataStore:
         with self._lock:
             return _clone(self._state["mission_logs"])
 
+    def get_mission_log_progress(self, log_id: str) -> Dict[str, Any]:
+        with self._lock:
+            progress = self._state["mission_log_progress"].get(log_id) or self._state[
+                "mission_log_progress"
+            ].get("default")
+            return _clone(progress)
+
     def add_mission_history(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         with self._lock:
             entry = {
@@ -1080,6 +1173,10 @@ class FrontendDataStore:
             }
             self._state["robot_bags"].insert(0, bag)
             return _clone(bag)
+
+    def get_robot_bag_files(self) -> Dict[str, Any]:
+        with self._lock:
+            return _clone(self._state["robot_bag_files"])
 
     # ------------------------------------------------------------------
     # Settings
@@ -1177,6 +1274,74 @@ class FrontendDataStore:
                 message["metadata"] = metadata
             self._state["chat_messages"].append(message)
             return _clone(message)
+
+    # ------------------------------------------------------------------
+    # Graphs
+    def list_graphs(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            return _clone(self._state["graphs"])
+
+    def create_graph(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        with self._lock:
+            graph = {
+                "id": payload.get("id") or self._new_id("graph"),
+                "name": payload.get("name", "Graph"),
+                "nodes": payload.get("nodes", []),
+                "edges": payload.get("edges", []),
+            }
+            self._state["graphs"].append(graph)
+            return _clone(graph)
+
+    def get_graph(self, graph_id: str) -> Dict[str, Any]:
+        with self._lock:
+            _, item = self._collection_index("graphs", graph_id)
+            return _clone(item)
+
+    def update_graph(self, graph_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        with self._lock:
+            idx, item = self._collection_index("graphs", graph_id)
+            updated = {**item, **payload, "id": graph_id}
+            self._state["graphs"][idx] = updated
+            return _clone(updated)
+
+    def delete_graph(self, graph_id: str) -> None:
+        with self._lock:
+            idx, _ = self._collection_index("graphs", graph_id)
+            self._state["graphs"].pop(idx)
+
+    # ------------------------------------------------------------------
+    # Legacy API helpers
+    def get_maps_data(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            return _clone(self._state["maps"])
+
+    def update_map_overlay(self, map_id: str, payload: Dict[str, Any], save_as_new: bool) -> Dict[str, Any]:
+        with self._lock:
+            if save_as_new:
+                return self.create_map(payload)
+            idx, item = self._collection_index("maps", map_id)
+            updated = {**item, **payload, "id": map_id}
+            self._state["maps"][idx] = updated
+            return _clone(updated)
+
+    def get_registers(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            return _clone(self._state["registers"])
+
+    def list_downloads(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            return _clone(self._state["downloads"])
+
+    def get_download(self, name: str) -> Optional[Dict[str, Any]]:
+        with self._lock:
+            for entry in self._state["downloads"]:
+                if entry.get("name") == name:
+                    return _clone(entry)
+            return None
+
+    def get_battery_analytics(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            return _clone(self._state["battery_analytics"])
 
     # ------------------------------------------------------------------
     def get_stats(self) -> Dict[str, Any]:

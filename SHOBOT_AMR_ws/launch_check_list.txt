@@ -1,39 +1,104 @@
-shobot_api_bridge api_bridge_launch.py
-shobot_api_bridge mission_api_bridge_launch.py
-shobot_bringup shobot_full_bringup.launch.py
-shobot_costmap_plugins shobot_costmap_plugins_launch.py
-shobot_costmap_safety_layer shobot_costmap_safety_layer_launch.py
-shobot_dock_detection dock_detection_launch.py
-shobot_docking shobot_docking_launch.py
-shobot_dynamic_param_server dynamic_param_server_launch.py
-shobot_fsm shobot_fsm_launch.py
-shobot_laser_filters shobot_laser_filters_launch.py
-shobot_local_planner shobot_local_planner_launch.py
-shobot_localization_reset localization_reset_launch.py
-shobot_log_recorder log_recorder_launch.py
-shobot_mission_control shobot_mission_control_launch.py
-shobot_mission_handler shobot_mission_handler_launch.py
-shobot_navigation shobot_navigation_launch.py
-shobot_navigation_server shobot_navigation_server_launch.py
-shobot_pointcloud_assembler shobot_pointcloud_assembler_launch.py
-shobot_pointcloud_filter shobot_pointcloud_filter_launch.py
-shobot_pointcloud_to_laserscan shobot_pointcloud_to_laserscan_launch.py
-shobot_recovery shobot_recovery_launch.py
-shobot_rl_agent shobot_rl_agent_launch.py
-shobot_rl_agent shobot_rl_intent_launch.py
-shobot_rl_agent shobot_rl_speed_launch.py
-shobot_robot_diagnostics robot_diagnostics_launch.py
-shobot_robot_localization ekf_launch.py
-shobot_robot_pose_publisher shobot_robot_pose_publisher_launch.py
-shobot_rosbridge_suite shobot_rosbridge_suite_launch.py
-shobot_scan_merger shobot_scan_merger_launch.py
-shobot_sensors shobot_sensors_launch.py
-shobot_status_aggregator shobot_status_aggregator_launch.py
-shobot_system_monitor system_heartbeat_launch.py
-shobot_teleop teleop_launch.py
-shobot_tf_static static_tf_publisher_launch.py
-shobot_trajectory_controller shobot_trajectory_controller_launch.py
-shobot_twist_mux shobot_twist_mux_launch.py
-shobot_yolo_detection shobot_yolo_detection_launch.py
-shobot_zone_management shobot_zone_management_launch.py
-web_video_server web_video_server.launch.py
+SHOBOT – ROS 2 Launch Commands
+=============================
+
+API & Integration
+-----------------
+ros2 launch shobot_api_bridge api_bridge_launch.py
+ros2 launch shobot_api_bridge mission_api_bridge_launch.py
+
+
+Bringup
+-------
+ros2 launch shobot_bringup shobot_full_bringup.launch.py
+
+
+Costmap & Safety
+----------------
+ros2 launch shobot_costmap_plugins shobot_costmap_plugins_launch.py
+ros2 launch shobot_costmap_safety_layer shobot_costmap_safety_layer_launch.py
+
+
+Docking
+-------
+ros2 launch shobot_dock_detection dock_detection_launch.py
+ros2 launch shobot_docking shobot_docking_launch.py
+
+
+Dynamic Parameters
+------------------
+ros2 launch shobot_dynamic_param_server dynamic_param_server_launch.py
+
+
+FSM & Mission Control
+---------------------
+ros2 launch shobot_fsm shobot_fsm_launch.py
+ros2 launch shobot_mission_control shobot_mission_control_launch.py
+ros2 launch shobot_mission_handler shobot_mission_handler_launch.py
+
+
+Navigation
+----------
+ros2 launch shobot_navigation shobot_navigation_launch.py
+ros2 launch shobot_navigation_server shobot_navigation_server_launch.py
+
+
+Localization & Pose
+-------------------
+ros2 launch shobot_robot_localization ekf_launch.py
+ros2 launch shobot_robot_pose_publisher shobot_robot_pose_publisher_launch.py
+ros2 launch shobot_localization_reset localization_reset_launch.py
+
+
+Local Planner & Recovery
+------------------------
+ros2 launch shobot_local_planner shobot_local_planner_launch.py
+ros2 launch shobot_recovery shobot_recovery_launch.py
+
+
+Reinforcement Learning
+----------------------
+ros2 launch shobot_rl_agent shobot_rl_agent_launch.py
+ros2 launch shobot_rl_agent shobot_rl_intent_launch.py
+ros2 launch shobot_rl_agent shobot_rl_speed_launch.py
+
+
+Sensors & Pointcloud Processing
+--------------------------------
+ros2 launch shobot_sensors shobot_sensors_launch.py
+ros2 launch shobot_pointcloud_assembler shobot_pointcloud_assembler_launch.py
+ros2 launch shobot_pointcloud_filter shobot_pointcloud_filter_launch.py
+ros2 launch shobot_pointcloud_to_laserscan shobot_pointcloud_to_laserscan_launch.py
+ros2 launch shobot_scan_merger shobot_scan_merger_launch.py
+ros2 launch shobot_laser_filters shobot_laser_filters_launch.py
+
+
+Perception
+-----------
+ros2 launch shobot_yolo_detection shobot_yolo_detection_launch.py
+
+
+Teleoperation & Control
+-----------------------
+ros2 launch shobot_teleop teleop_launch.py
+ros2 launch shobot_trajectory_controller shobot_trajectory_controller_launch.py
+ros2 launch shobot_twist_mux shobot_twist_mux_launch.py
+
+
+System Monitoring & Diagnostics
+-------------------------------
+ros2 launch shobot_robot_diagnostics robot_diagnostics_launch.py
+ros2 launch shobot_status_aggregator shobot_status_aggregator_launch.py
+ros2 launch shobot_system_monitor system_heartbeat_launch.py
+ros2 launch shobot_log_recorder log_recorder_launch.py
+
+
+TF & Zone Management
+--------------------
+ros2 launch shobot_tf_static static_tf_publisher_launch.py
+ros2 launch shobot_zone_management shobot_zone_management_launch.py
+
+
+Web & Visualization
+-------------------
+ros2 launch shobot_rosbridge_suite shobot_rosbridge_suite_launch.py
+ros2 launch web_video_server web_video_server.launch.py

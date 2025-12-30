@@ -1,25 +1,19 @@
 #!/usr/bin/env python3
 """
-Robot Diagnostics Node.
-
-Publishes diagnostic_msgs/DiagnosticArray on /diagnostics summarizing:
-- Motor temperature (Float32)
-- IMU errors (String)
-- Encoder errors (String)
-- Camera status (String/Bool)
-- Network quality (Float32 0-100)
-
-Each input is monitored with a timeout; stale data is marked as WARN. Thresholds
-are configurable via parameters.
+Robot Diagnostics Node for SHOBOT AMR
+=========================================================
+Publishes diagnostic_msgs/DiagnosticArray on /diagnostics
+summarizing robot health and subsystem status.
 """
 
 from dataclasses import dataclass
-from typing import Callable, Optional
+from typing import Optional
 
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from rclpy.time import Time
+
 from std_msgs.msg import Float32, String, Bool
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 
@@ -37,21 +31,30 @@ class RobotDiagnosticsNode(Node):
     def __init__(self):
         super().__init__("shobot_robot_diagnostics")
 
-        # Parameters
+        # ---------------- Parameters ----------------
         self.declare_parameter("publish_rate", 1.0)
         self.declare_parameter("timeout_sec", 2.0)
+
         self.declare_parameter("motor_temp_topic", "/motor/temperature")
         self.declare_parameter("motor_temp_warn", 70.0)
         self.declare_parameter("motor_temp_error", 85.0)
+
         self.declare_parameter("imu_error_topic", "/imu/errors")
         self.declare_parameter("encoder_error_topic", "/encoders/errors")
+
         self.declare_parameter("camera_status_topic", "/camera/status")
+        self.declare_parameter("camera_status_type", "string")  # string | bool
+
         self.declare_parameter("network_quality_topic", "/network/quality")
         self.declare_parameter("network_warn", 40.0)
         self.declare_parameter("network_error", 15.0)
 
-        self.publish_rate = float(self.get_parameter("publish_rate").value)
-        self.timeout_sec = float(self.get_parameter("timeout_sec").value)
+        self.publish_rate = max(
+            float(self.get_parameter("publish_rate").value), 0.1
+        )
+        self.timeout_sec = max(
+            float(self.get_parameter("timeout_sec").value), 0.1
+        )
 
         qos = QoSProfile(
             depth=10,
@@ -59,99 +62,102 @@ class RobotDiagnosticsNode(Node):
             history=HistoryPolicy.KEEP_LAST,
         )
 
-        # State containers
+        # ---------------- State ----------------
         self.motor_state = SignalState()
         self.imu_state = SignalState()
         self.encoder_state = SignalState()
         self.camera_state = SignalState()
         self.network_state = SignalState()
 
-        # Subscriptions
+        # ---------------- Subscriptions ----------------
         self.create_subscription(
             Float32,
             self.get_parameter("motor_temp_topic").value,
-            self._wrap_cb(self._motor_cb),
+            self._motor_cb,
             qos,
         )
         self.create_subscription(
             String,
             self.get_parameter("imu_error_topic").value,
-            self._wrap_cb(self._imu_cb),
+            self._imu_cb,
             qos,
         )
         self.create_subscription(
             String,
             self.get_parameter("encoder_error_topic").value,
-            self._wrap_cb(self._encoder_cb),
+            self._encoder_cb,
             qos,
         )
-        self.create_subscription(
-            String,
-            self.get_parameter("camera_status_topic").value,
-            self._wrap_cb(self._camera_cb),
-            qos,
-        )
-        self.create_subscription(
-            Bool,
-            self.get_parameter("camera_status_topic").value,
-            self._wrap_cb(self._camera_bool_cb),
-            qos,
-        )
+
+        camera_topic = self.get_parameter("camera_status_topic").value
+        cam_type = self.get_parameter("camera_status_type").value.lower()
+
+        if cam_type == "bool":
+            self.create_subscription(Bool, camera_topic, self._camera_bool_cb, qos)
+        else:
+            self.create_subscription(String, camera_topic, self._camera_cb, qos)
+
         self.create_subscription(
             Float32,
             self.get_parameter("network_quality_topic").value,
-            self._wrap_cb(self._network_cb),
+            self._network_cb,
             qos,
         )
 
+        # ---------------- Publisher ----------------
         self.pub = self.create_publisher(DiagnosticArray, "/diagnostics", 10)
-        self.create_timer(1.0 / max(self.publish_rate, 0.1), self._publish_diag)
+        self.create_timer(1.0 / self.publish_rate, self._publish_diag)
 
-        self.get_logger().info(
-            "Robot diagnostics ready (publishing /diagnostics)."
-        )
+        self.get_logger().info("Robot diagnostics node started.")
 
-    # ------------------------------------------------------------------ #
-    def _wrap_cb(self, fn: Callable):
-        def _cb(msg):
-            try:
-                fn(msg)
-            except Exception as exc:  # pragma: no cover - defensive
-                self.get_logger().warn(f"Diagnostics callback error: {exc}")
-        return _cb
+    # ------------------------------------------------------------------
+    def _stamp(self):
+        return self.get_clock().now()
 
-    # Individual callbacks update state
+    # Callbacks
     def _motor_cb(self, msg: Float32):
         self.motor_state.last_value = float(msg.data)
-        self.motor_state.last_seen = self.get_clock().now()
+        self.motor_state.last_seen = self._stamp()
 
     def _imu_cb(self, msg: String):
         self.imu_state.last_text = msg.data
-        self.imu_state.last_seen = self.get_clock().now()
+        self.imu_state.last_seen = self._stamp()
 
     def _encoder_cb(self, msg: String):
         self.encoder_state.last_text = msg.data
-        self.encoder_state.last_seen = self.get_clock().now()
+        self.encoder_state.last_seen = self._stamp()
 
     def _camera_cb(self, msg: String):
         self.camera_state.last_text = msg.data
-        self.camera_state.last_seen = self.get_clock().now()
+        self.camera_state.last_seen = self._stamp()
 
     def _camera_bool_cb(self, msg: Bool):
         self.camera_state.last_text = "ok" if msg.data else "fault"
-        self.camera_state.last_seen = self.get_clock().now()
+        self.camera_state.last_seen = self._stamp()
 
     def _network_cb(self, msg: Float32):
         self.network_state.last_value = float(msg.data)
-        self.network_state.last_seen = self.get_clock().now()
+        self.network_state.last_seen = self._stamp()
 
-    # ------------------------------------------------------------------ #
+    # ------------------------------------------------------------------
+    def _age_sec(self, state: SignalState, now: Time) -> Optional[float]:
+        if state.last_seen is None:
+            return None
+        return (now - state.last_seen).nanoseconds / 1e9
+
+    def _base_status(self, name: str, hw: str) -> DiagnosticStatus:
+        s = DiagnosticStatus()
+        s.name = name
+        s.hardware_id = hw
+        return s
+
+    # ------------------------------------------------------------------
     def _publish_diag(self):
-        now = self.get_clock().now()
-        msg = DiagnosticArray()
-        msg.header.stamp = now.to_msg()
+        now = self._stamp()
+        arr = DiagnosticArray()
+        arr.header.stamp = now.to_msg()
 
-        msg.status = [
+        arr.status = [
             self._motor_status(now),
             self._imu_status(now),
             self._encoder_status(now),
@@ -159,107 +165,110 @@ class RobotDiagnosticsNode(Node):
             self._network_status(now),
         ]
 
-        self.pub.publish(msg)
+        self.pub.publish(arr)
 
-    def _staleness(self, state: SignalState, now: Time) -> Optional[float]:
-        if state.last_seen is None:
-            return None
-        return (now - state.last_seen).nanoseconds / 1e9
+    # ---------------- Individual Status Builders ----------------
+    def _motor_status(self, now: Time):
+        s = self._base_status("motor_temperature", "motors")
+        age = self._age_sec(self.motor_state, now)
 
-    def _motor_status(self, now: Time) -> DiagnosticStatus:
-        warn = float(self.get_parameter("motor_temp_warn").value)
-        error = float(self.get_parameter("motor_temp_error").value)
-        status = DiagnosticStatus(name="motor_temperature", hardware_id="motors")
-        age = self._staleness(self.motor_state, now)
         if age is None or age > self.timeout_sec:
-            status.level = DiagnosticStatus.WARN
-            status.message = "No data"
-        else:
-            temp = self.motor_state.last_value or 0.0
-            status.values.append(KeyValue(key="temperature_c", value=f"{temp:.2f}"))
-            if temp >= error:
-                status.level = DiagnosticStatus.ERROR
-                status.message = "Overheat"
-            elif temp >= warn:
-                status.level = DiagnosticStatus.WARN
-                status.message = "High temperature"
-            else:
-                status.level = DiagnosticStatus.OK
-                status.message = "OK"
-        return status
+            s.level = DiagnosticStatus.WARN
+            s.message = "No data"
+            return s
 
-    def _imu_status(self, now: Time) -> DiagnosticStatus:
-        status = DiagnosticStatus(name="imu_errors", hardware_id="imu")
-        age = self._staleness(self.imu_state, now)
-        if age is None or age > self.timeout_sec:
-            status.level = DiagnosticStatus.WARN
-            status.message = "No data"
-        else:
-            text = self.imu_state.last_text or ""
-            if text.strip():
-                status.level = DiagnosticStatus.ERROR
-                status.message = text
-            else:
-                status.level = DiagnosticStatus.OK
-                status.message = "OK"
-        return status
+        temp = self.motor_state.last_value or 0.0
+        warn = self.get_parameter("motor_temp_warn").value
+        err = self.get_parameter("motor_temp_error").value
 
-    def _encoder_status(self, now: Time) -> DiagnosticStatus:
-        status = DiagnosticStatus(name="encoder_errors", hardware_id="encoders")
-        age = self._staleness(self.encoder_state, now)
-        if age is None or age > self.timeout_sec:
-            status.level = DiagnosticStatus.WARN
-            status.message = "No data"
-        else:
-            text = self.encoder_state.last_text or ""
-            if text.strip():
-                status.level = DiagnosticStatus.ERROR
-                status.message = text
-            else:
-                status.level = DiagnosticStatus.OK
-                status.message = "OK"
-        return status
+        s.values.append(KeyValue("temperature_c", f"{temp:.2f}"))
+        s.values.append(KeyValue("age_sec", f"{age:.2f}"))
 
-    def _camera_status(self, now: Time) -> DiagnosticStatus:
-        status = DiagnosticStatus(name="camera_status", hardware_id="camera")
-        age = self._staleness(self.camera_state, now)
-        if age is None or age > self.timeout_sec:
-            status.level = DiagnosticStatus.WARN
-            status.message = "No data"
+        if temp >= err:
+            s.level = DiagnosticStatus.ERROR
+            s.message = "Overheat"
+        elif temp >= warn:
+            s.level = DiagnosticStatus.WARN
+            s.message = "High temperature"
         else:
-            text = (self.camera_state.last_text or "").lower()
-            if text in ("ok", "ready", "true"):
-                status.level = DiagnosticStatus.OK
-                status.message = "OK"
-            elif text:
-                status.level = DiagnosticStatus.WARN
-                status.message = text
-            else:
-                status.level = DiagnosticStatus.OK
-                status.message = "OK"
-        return status
+            s.level = DiagnosticStatus.OK
+            s.message = "OK"
+        return s
 
-    def _network_status(self, now: Time) -> DiagnosticStatus:
-        warn = float(self.get_parameter("network_warn").value)
-        error = float(self.get_parameter("network_error").value)
-        status = DiagnosticStatus(name="network_quality", hardware_id="network")
-        age = self._staleness(self.network_state, now)
+    def _imu_status(self, now: Time):
+        s = self._base_status("imu_errors", "imu")
+        age = self._age_sec(self.imu_state, now)
+
         if age is None or age > self.timeout_sec:
-            status.level = DiagnosticStatus.WARN
-            status.message = "No data"
+            s.level = DiagnosticStatus.WARN
+            s.message = "No data"
+        elif self.imu_state.last_text:
+            s.level = DiagnosticStatus.ERROR
+            s.message = self.imu_state.last_text
         else:
-            quality = self.network_state.last_value or 0.0
-            status.values.append(KeyValue(key="quality_percent", value=f"{quality:.1f}"))
-            if quality <= error:
-                status.level = DiagnosticStatus.ERROR
-                status.message = "Poor"
-            elif quality <= warn:
-                status.level = DiagnosticStatus.WARN
-                status.message = "Weak"
-            else:
-                status.level = DiagnosticStatus.OK
-                status.message = "OK"
-        return status
+            s.level = DiagnosticStatus.OK
+            s.message = "OK"
+        return s
+
+    def _encoder_status(self, now: Time):
+        s = self._base_status("encoder_errors", "encoders")
+        age = self._age_sec(self.encoder_state, now)
+
+        if age is None or age > self.timeout_sec:
+            s.level = DiagnosticStatus.WARN
+            s.message = "No data"
+        elif self.encoder_state.last_text:
+            s.level = DiagnosticStatus.ERROR
+            s.message = self.encoder_state.last_text
+        else:
+            s.level = DiagnosticStatus.OK
+            s.message = "OK"
+        return s
+
+    def _camera_status(self, now: Time):
+        s = self._base_status("camera_status", "camera")
+        age = self._age_sec(self.camera_state, now)
+
+        if age is None or age > self.timeout_sec:
+            s.level = DiagnosticStatus.WARN
+            s.message = "No data"
+            return s
+
+        text = (self.camera_state.last_text or "").lower()
+        if text in ("ok", "ready", "true"):
+            s.level = DiagnosticStatus.OK
+            s.message = "OK"
+        else:
+            s.level = DiagnosticStatus.WARN
+            s.message = text or "Unknown"
+        return s
+
+    def _network_status(self, now: Time):
+        s = self._base_status("network_quality", "network")
+        age = self._age_sec(self.network_state, now)
+
+        if age is None or age > self.timeout_sec:
+            s.level = DiagnosticStatus.WARN
+            s.message = "No data"
+            return s
+
+        q = self.network_state.last_value or 0.0
+        warn = self.get_parameter("network_warn").value
+        err = self.get_parameter("network_error").value
+
+        s.values.append(KeyValue("quality_percent", f"{q:.1f}"))
+        s.values.append(KeyValue("age_sec", f"{age:.2f}"))
+
+        if q <= err:
+            s.level = DiagnosticStatus.ERROR
+            s.message = "Poor"
+        elif q <= warn:
+            s.level = DiagnosticStatus.WARN
+            s.message = "Weak"
+        else:
+            s.level = DiagnosticStatus.OK
+            s.message = "OK"
+        return s
 
 
 def main(args=None):
@@ -272,3 +281,7 @@ def main(args=None):
     finally:
         node.destroy_node()
         rclpy.shutdown()
+
+
+if __name__ == "__main__":
+    main()

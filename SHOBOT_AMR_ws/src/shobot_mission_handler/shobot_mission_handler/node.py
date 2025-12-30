@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
-Mission handler: normalize mission commands and forward to mission_control.
-Enhanced version with validation, clearer logs, and robust error handling.
+Mission handler for SHOBOT AMR.
+
+- Accepts mission commands as JSON
+- Normalizes them into a mission queue format
+- Publishes to mission_control / mission_queue
+- Provides a service to clear all missions
 """
 
 import json
@@ -34,83 +38,97 @@ class MissionHandler(Node):
         # ---------------- Services ----------------
         self.create_service(Trigger, "clear_missions", self.clear_cb)
 
-        self.get_logger().info(f"[MissionHandler] Listening on {cmd_topic} → {self.queue_topic}")
+        self.get_logger().info(
+            f"[MissionHandler] Listening on '{cmd_topic}' → publishing to '{self.queue_topic}'"
+        )
 
     # ------------------------------------------------------------------
     def command_cb(self, msg: String):
-        """Process incoming mission JSON."""
+        """Process incoming mission command JSON."""
         try:
             data = json.loads(msg.data)
-        except Exception as e:
-            self.publish_status(f"❌ Invalid mission JSON: {e}")
+        except json.JSONDecodeError as exc:
+            self.publish_status(f"Invalid mission JSON: {exc}")
             return
 
-        # Accept either:
-        # 1) { "missions": [ ... ] }
-        # 2) { "pose": {...}, "dock": false } → converted automatically
+        # Accept formats:
+        # 1) { "missions": [ {...}, {...} ] }
+        # 2) { "pose": {...}, "dock": false }  (single mission shorthand)
         missions = data.get("missions")
 
         if missions is None:
-            # Shorthand mode
             pose = data.get("pose")
-            if not pose:
-                self.publish_status("❌ Missing 'missions' list or 'pose' object.")
+            if pose is None:
+                self.publish_status("Missing 'missions' list or 'pose' object.")
                 return
 
-            missions = [dict(pose=pose, dock=data.get("dock", False))]
+            missions = [
+                {
+                    "pose": pose,
+                    "dock": bool(data.get("dock", False)),
+                }
+            ]
 
         if not isinstance(missions, list):
-            self.publish_status("❌ 'missions' must be a list.")
+            self.publish_status("'missions' must be a list.")
             return
 
-        if len(missions) == 0:
-            self.publish_status("⚠️ Received empty mission list.")
+        if not missions:
+            self.publish_status("Received empty mission list.")
+            return
 
         # ---------------- Validate missions ----------------
         if not self._validate_missions(missions):
             return
 
-        # ---------------- Build final payload ----------------
+        # ---------------- Build payload ----------------
         payload = {"missions": missions}
 
-        if data.get("clear"):
+        if bool(data.get("clear", False)):
             payload["clear"] = True
 
-        # ---------------- Publish to mission queue ----------------
+        # ---------------- Publish ----------------
         self.queue_pub.publish(String(data=json.dumps(payload)))
-        self.publish_status(f"➡️ Forwarded {len(missions)} mission(s) to {self.queue_topic}")
+        self.publish_status(f"Forwarded {len(missions)} mission(s) to mission queue.")
 
     # ------------------------------------------------------------------
     def clear_cb(self, request, response):
-        """Service call to clear mission queue immediately."""
+        """Clear mission queue via service."""
         payload = {"missions": [], "clear": True}
         self.queue_pub.publish(String(data=json.dumps(payload)))
-        self.publish_status("🧹 Cleared missions via service call.")
+        self.publish_status("Mission queue cleared via service.")
+
         response.success = True
-        response.message = "Cleared missions"
+        response.message = "Mission queue cleared"
         return response
 
     # ------------------------------------------------------------------
-    def _validate_missions(self, missions):
-        """Validate mission list and return False if invalid."""
-        for idx, m in enumerate(missions):
-            if "pose" not in m:
-                self.publish_status(f"❌ Mission #{idx} missing required 'pose' field.")
+    def _validate_missions(self, missions) -> bool:
+        """Validate mission structure."""
+        for idx, mission in enumerate(missions):
+            if not isinstance(mission, dict):
+                self.publish_status(f"Mission #{idx} is not a dictionary.")
                 return False
 
-            pose = m["pose"]
-            required = ["x", "y"]
-            for key in required:
+            if "pose" not in mission:
+                self.publish_status(f"Mission #{idx} missing required 'pose'.")
+                return False
+
+            pose = mission["pose"]
+            if not isinstance(pose, dict):
+                self.publish_status(f"Mission #{idx} 'pose' must be an object.")
+                return False
+
+            for key in ("x", "y"):
                 if key not in pose:
                     self.publish_status(
-                        f"❌ Mission #{idx} pose missing required field '{key}'. Pose={pose}"
+                        f"Mission #{idx} pose missing required field '{key}'."
                     )
                     return False
 
-            # Docking missions optional
-            if "dock" in m and not isinstance(m["dock"], bool):
+            if "dock" in mission and not isinstance(mission["dock"], bool):
                 self.publish_status(
-                    f"❌ Mission #{idx} 'dock' must be true/false, got: {m['dock']}"
+                    f"Mission #{idx} 'dock' must be boolean."
                 )
                 return False
 
@@ -118,9 +136,8 @@ class MissionHandler(Node):
 
     # ------------------------------------------------------------------
     def publish_status(self, text: str):
-        """Send status updates to UI + log output."""
-        msg = String(data=text)
-        self.status_pub.publish(msg)
+        """Publish status updates to UI and logs."""
+        self.status_pub.publish(String(data=text))
         self.get_logger().info(f"[MissionHandler] {text}")
 
 
@@ -132,8 +149,9 @@ def main(args=None):
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
-    node.destroy_node()
-    rclpy.shutdown()
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
 
 if __name__ == "__main__":

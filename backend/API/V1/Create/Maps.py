@@ -28,6 +28,17 @@ def register_maps_routes(bp, store):
                 404,
             )
 
+    @bp.route("/maps/<map_id>/preview", methods=["GET"])
+    def preview_map(map_id):
+        try:
+            item = store.get_map(map_id)
+            return jsonify({"success": True, "item": item})
+        except KeyError:
+            return (
+                jsonify({"success": False, "message": "Map not found"}),
+                404,
+            )
+
     @bp.route("/maps/<map_id>", methods=["PUT", "PATCH"])
     def update_map(map_id):
         data = request.get_json(silent=True) or {}
@@ -62,6 +73,40 @@ def register_maps_routes(bp, store):
                     "message": "Map dispatched to robot",
                 }
             )
+        except KeyError:
+            return (
+                jsonify({"success": False, "message": "Map not found"}),
+                404,
+            )
+
+    @bp.route("/maps/load/<map_id>", methods=["POST"])
+    def load_map_legacy(map_id):
+        try:
+            item = store.mark_map_loaded(map_id)
+            return jsonify(
+                {
+                    "success": True,
+                    "item": item,
+                    "message": "Map dispatched to robot",
+                }
+            )
+        except KeyError:
+            return (
+                jsonify({"success": False, "message": "Map not found"}),
+                404,
+            )
+
+    @bp.route("/maps/data", methods=["GET"])
+    def list_maps_with_data():
+        return jsonify({"success": True, "items": store.get_maps_data()})
+
+    @bp.route("/maps/edit/<map_id>", methods=["PUT", "PATCH"])
+    def edit_map_overlay(map_id):
+        data = request.get_json(silent=True) or {}
+        save_as_new = request.args.get("saveAsNew", "false").lower() == "true"
+        try:
+            item = store.update_map_overlay(map_id, data, save_as_new)
+            return jsonify({"success": True, "item": item})
         except KeyError:
             return (
                 jsonify({"success": False, "message": "Map not found"}),

@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 """
-Dock station detection aggregator.
+Dock Detection Aggregator
+------------------------
+Fuses multiple upstream dock detectors (AprilTag, ArUco, QR, etc.)
+that publish geometry_msgs/PoseStamped into a unified output:
 
-Use upstream detectors (AprilTag, QR, ArUco, magnetic/colored markers) that output
-geometry_msgs/PoseStamped. This node merges multiple sources into a unified:
-- /dock_pose (PoseStamped)
-- /dock_detected (Bool)
+- /dock_pose      (PoseStamped)
+- /dock_detected  (Bool)
+- /dock_detection_status (String, JSON)
+
+Selection policy:
+- First valid (non-expired) source in configured priority order.
 """
 
 import json
@@ -13,10 +18,11 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 import rclpy
-from geometry_msgs.msg import PoseStamped
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from rclpy.time import Time
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
+
+from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Bool, String
 
 
@@ -29,36 +35,37 @@ class Detection:
 
 
 class DockDetectionNode(Node):
-    """Fuse multiple dock detections into a single pose + flag."""
+    """Fuse multiple dock detections into a single pose + detected flag."""
 
     def __init__(self):
         super().__init__("shobot_dock_detection")
 
-        # Parameters
-        self.declare_parameter(
-            "sources",
-            [
-                # Example entries:
-                # "apriltag:/dock/apriltag_pose:1.0",
-                # "aruco:/dock/aruco_pose:1.0",
-            ],
-        )
+        # ---------------- Parameters ----------------
+        self.declare_parameter("sources", [])
         self.declare_parameter("dock_pose_topic", "/dock_pose")
         self.declare_parameter("dock_detected_topic", "/dock_detected")
-        self.declare_parameter("pose_frame_override", "")  # override frame_id if non-empty
-        self.declare_parameter("publish_status_topic", "/dock_detection_status")
+        self.declare_parameter("pose_frame_override", "")
         self.declare_parameter("publish_status", True)
+        self.declare_parameter("publish_status_topic", "/dock_detection_status")
 
         self.dock_pose_topic = self.get_parameter("dock_pose_topic").value
         self.dock_detected_topic = self.get_parameter("dock_detected_topic").value
         self.frame_override = self.get_parameter("pose_frame_override").value
-        self.status_topic = self.get_parameter("publish_status_topic").value
         self.publish_status = bool(self.get_parameter("publish_status").value)
+        self.status_topic = self.get_parameter("publish_status_topic").value
 
-        self.sources = self._parse_sources(self.get_parameter("sources").value)
+        # ---------------- Sources ----------------
+        self.sources: List[Detection] = self._parse_sources(
+            self.get_parameter("sources").value
+        )
+
+        if not self.sources:
+            self.get_logger().warn("No dock detection sources configured!")
+
+        # ---------------- QoS ----------------
         qos = QoSProfile(
             depth=10,
-            reliability=ReliabilityPolicy.BEST_EFFORT,
+            reliability=ReliabilityPolicy.RELIABLE,
             history=HistoryPolicy.KEEP_LAST,
         )
 
@@ -70,60 +77,77 @@ class DockDetectionNode(Node):
                 qos,
             )
 
-        self.pose_pub = self.create_publisher(PoseStamped, self.dock_pose_topic, 10)
-        self.detected_pub = self.create_publisher(Bool, self.dock_detected_topic, 10)
-        self.status_pub = self.create_publisher(String, self.status_topic, 10)
-
-        # Timer to publish best detection
-        self.create_timer(0.1, self._publish_best)  # 10 Hz lightweight loop
-
-        self.get_logger().info(
-            f"DockDetection: watching sources {[(s.name, s.topic) for s in self.sources]} "
-            f"-> {self.dock_pose_topic}, {self.dock_detected_topic}"
+        # ---------------- Publishers ----------------
+        self.pose_pub = self.create_publisher(
+            PoseStamped, self.dock_pose_topic, 10
+        )
+        self.detected_pub = self.create_publisher(
+            Bool, self.dock_detected_topic, 10
+        )
+        self.status_pub = self.create_publisher(
+            String, self.status_topic, 10
         )
 
-    # ------------------------------------------------------------------ #
+        # ---------------- Timer ----------------
+        self.create_timer(0.1, self._publish_best)  # 10 Hz
+
+        self.get_logger().info(
+            f"DockDetection started with sources: "
+            f"{[(s.name, s.topic, s.timeout_sec) for s in self.sources]}"
+        )
+
+    # ------------------------------------------------------------------
     def _parse_sources(self, entries) -> List[Detection]:
-        normalized = self._normalize_entries(entries)
+        """Parse source definitions: name:topic:timeout_sec."""
         sources: List[Detection] = []
-        for raw in normalized:
-            parts = str(raw).split(":")
+
+        if not entries:
+            return sources
+
+        if isinstance(entries, str):
+            entries = [entries]
+
+        for raw in entries:
+            parts = str(raw).strip().split(":")
             if len(parts) != 3:
                 self.get_logger().warn(
-                    f"Source '{raw}' should be 'name:topic:timeout_sec'; skipping."
+                    f"Invalid source '{raw}'. Expected 'name:topic:timeout_sec'."
                 )
                 continue
+
             name, topic, timeout_str = parts
             try:
                 timeout = float(timeout_str)
             except ValueError:
-                self.get_logger().warn(f"Timeout '{timeout_str}' invalid for '{raw}'; skipping.")
+                self.get_logger().warn(
+                    f"Invalid timeout '{timeout_str}' for source '{raw}'."
+                )
                 continue
-            sources.append(Detection(name=name, topic=topic, timeout_sec=timeout))
+
+            sources.append(
+                Detection(name=name, topic=topic, timeout_sec=timeout)
+            )
+
         return sources
 
-    def _normalize_entries(self, entries) -> List[str]:
-        if entries is None:
-            return []
-        if isinstance(entries, list):
-            return [str(e).strip() for e in entries if str(e).strip()]
-        if isinstance(entries, str):
-            text = entries.strip()
-            if text.startswith("[") and text.endswith("]"):
-                inner = text[1:-1]
-                return [item.strip().strip("\"'") for item in inner.split(",") if item.strip().strip("\"'")]
-            if text:
-                return [text]
-        return []
-
+    # ------------------------------------------------------------------
     def _make_cb(self, src: Detection):
+        """Create subscription callback bound to a specific source."""
+
         def _cb(msg: PoseStamped):
-            # Keep most recent pose and timestamp
+            # Copy message to avoid mutating ROS-managed memory
+            pose = PoseStamped()
+            pose.header = msg.header
+            pose.pose = msg.pose
+
             if self.frame_override:
-                msg.header.frame_id = self.frame_override
-            src.pose = msg
+                pose.header.frame_id = self.frame_override
+
+            src.pose = pose
+
         return _cb
 
+    # ------------------------------------------------------------------
     def _publish_best(self):
         now = self.get_clock().now()
         best = self._select_best(now)
@@ -131,44 +155,65 @@ class DockDetectionNode(Node):
         detected = best is not None
         self.detected_pub.publish(Bool(data=detected))
 
-        if detected:
+        if detected and best.pose:
             self.pose_pub.publish(best.pose)
 
         if self.publish_status:
             self._publish_status(now, best, detected)
 
+    # ------------------------------------------------------------------
     def _select_best(self, now: Time) -> Optional[Detection]:
-        # Priority: first valid in list order
+        """Select first non-expired detection by priority order."""
         for src in self.sources:
             if src.pose is None:
                 continue
-            age = (now - Time.from_msg(src.pose.header.stamp)).nanoseconds / 1e9
+
+            stamp = Time.from_msg(src.pose.header.stamp)
+            if stamp.nanoseconds == 0:
+                continue
+
+            age = (now - stamp).nanoseconds * 1e-9
             if age <= src.timeout_sec:
                 return src
+
         return None
 
-    def _publish_status(self, now: Time, best: Optional[Detection], detected: bool):
-        statuses: Dict[str, Dict] = {}
+    # ------------------------------------------------------------------
+    def _publish_status(
+        self, now: Time, best: Optional[Detection], detected: bool
+    ):
+        """Publish JSON status for diagnostics."""
+        status: Dict[str, Dict] = {}
+
         for src in self.sources:
             age = None
+            alive = False
+
             if src.pose:
-                age = (now - Time.from_msg(src.pose.header.stamp)).nanoseconds / 1e9
-            statuses[src.name] = {
+                stamp = Time.from_msg(src.pose.header.stamp)
+                if stamp.nanoseconds != 0:
+                    age = (now - stamp).nanoseconds * 1e-9
+                    alive = age <= src.timeout_sec
+
+            status[src.name] = {
                 "topic": src.topic,
                 "age_sec": age,
                 "timeout_sec": src.timeout_sec,
-                "alive": age is not None and age <= src.timeout_sec,
+                "alive": alive,
             }
+
         payload = {
-            "timestamp": now.nanoseconds,
+            "timestamp_ns": now.nanoseconds,
             "detected": detected,
             "selected_source": best.name if best else None,
-            "sources": statuses,
             "frame_id": best.pose.header.frame_id if best else None,
+            "sources": status,
         }
+
         self.status_pub.publish(String(data=json.dumps(payload)))
 
 
+# ------------------------------------------------------------------
 def main(args=None):
     rclpy.init(args=args)
     node = DockDetectionNode()

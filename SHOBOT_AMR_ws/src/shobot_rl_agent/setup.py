@@ -20,9 +20,9 @@ setup(
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-            "rl_agent_node = shobot_rl_agent.node:main",
-            "rl_intent_node = shobot_rl_agent.node:main_intent",
-            "rl_speed_node = shobot_rl_agent.node:main_speed",
+            "shobot_rl_agent = shobot_rl_agent:main",
+            "shobot_rl_intent = shobot_rl_intent:main",
+            "shobot_rl_speed = shobot_rl_speed:main",
         ],
     },
 )

@@ -1,1 +1,1 @@
-from .node import RLAgentNode, main  # noqa: F401
+from .shobot_rl_agent import RLAgentNode, main  # noqa: F401
