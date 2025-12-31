@@ -55,6 +55,7 @@ def register_maps_routes(bp, store):
     def load_map(map_id):
         try:
             item = store.mark_map_loaded(map_id)
+            store.set_current_map(map_id)
             return jsonify(
                 {
                     "success": True,
@@ -67,6 +68,50 @@ def register_maps_routes(bp, store):
                 jsonify({"success": False, "message": "Map not found"}),
                 404,
             )
+
+    @bp.route("/maps/load", methods=["POST"])
+    def load_map_by_body():
+        data = request.get_json(silent=True) or {}
+        map_id = data.get("map_id") or data.get("id")
+        if not map_id:
+            return jsonify({"success": False, "message": "map_id is required"}), 400
+        try:
+            item = store.mark_map_loaded(map_id)
+            store.set_current_map(map_id)
+            return jsonify(
+                {
+                    "success": True,
+                    "item": item,
+                    "message": "Map dispatched to robot",
+                }
+            )
+        except KeyError:
+            return (
+                jsonify({"success": False, "message": "Map not found"}),
+                404,
+            )
+
+    @bp.route("/maps/save", methods=["POST"])
+    def save_map():
+        data = request.get_json(silent=True) or {}
+        map_id = data.get("map_id") or data.get("id")
+        if not map_id:
+            return jsonify({"success": False, "message": "map_id is required"}), 400
+        try:
+            item = store.update_map(map_id, data)
+            return jsonify({"success": True, "item": item})
+        except KeyError:
+            return (
+                jsonify({"success": False, "message": "Map not found"}),
+                404,
+            )
+
+    @bp.route("/maps/current", methods=["GET"])
+    def current_map():
+        item = store.get_current_map()
+        if not item:
+            return jsonify({"success": False, "message": "No current map"}), 404
+        return jsonify({"success": True, "item": item})
 
 
 __all__ = ["register_maps_routes"]

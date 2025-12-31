@@ -6,6 +6,7 @@ from .Monitor import register_monitor_routes
 from .Settings import register_settings_routes
 from .Chat.Chat import register_chat_routes
 from .Stats.Stats import register_stats_routes
+from .ROS2 import register_ros2_routes
 
 
 api_v1_bp = Blueprint("api_v1", __name__)
@@ -17,6 +18,7 @@ register_monitor_routes(api_v1_bp, frontend_store)
 register_settings_routes(api_v1_bp, frontend_store)
 register_chat_routes(api_v1_bp, frontend_store)
 register_stats_routes(api_v1_bp, frontend_store)
+register_ros2_routes(api_v1_bp, frontend_store)
 
 
 __all__ = ["api_v1_bp", "frontend_store"]

@@ -700,6 +700,33 @@ class FrontendDataStore:
                     "status": "Delivered",
                 }
             ],
+            "ros2": {
+                "status": "offline",
+                "battery": 100.0,
+                "battery_status": {},
+                "pose": {"x": 0.0, "y": 0.0, "theta": 0.0},
+                "velocity": {"linear_x": 0.0, "angular_z": 0.0},
+                "robot_state": "IDLE",
+                "robot_mode": "AUTO",
+                "navigation": {
+                    "status": "IDLE",
+                    "goal": None,
+                    "feedback": {},
+                    "path": [],
+                    "paused": False,
+                },
+                "latest_scan": None,
+                "last_goal": None,
+                "last_cmd_vel": None,
+                "costmap": None,
+                "safety_stop": False,
+                "dock_detected": False,
+                "dock_pose": None,
+                "dock_status": {},
+                "dock_action_name": "",
+                "parameters": {},
+            },
+            "current_map_id": None,
             "stats": {
                 "overview": {
                     "totalKm": 182.4,
@@ -816,6 +843,20 @@ class FrontendDataStore:
             self._state["maps"][idx] = updated
             return _clone(updated)
 
+    def set_current_map(self, map_id: str) -> Dict[str, Any]:
+        with self._lock:
+            _, item = self._collection_index("maps", map_id)
+            self._state["current_map_id"] = map_id
+            return _clone(item)
+
+    def get_current_map(self) -> Optional[Dict[str, Any]]:
+        with self._lock:
+            map_id = self._state.get("current_map_id")
+            if not map_id:
+                return None
+            _, item = self._collection_index("maps", map_id)
+            return _clone(item)
+
     # ------------------------------------------------------------------
     # Zones
     def list_zones(self) -> List[Dict[str, Any]]:
@@ -844,6 +885,18 @@ class FrontendDataStore:
         with self._lock:
             idx, item = self._collection_index("zones", zone_id)
             updated = {**item, **payload, "id": zone_id}
+            self._state["zones"][idx] = updated
+            return _clone(updated)
+
+    def get_zone(self, zone_id: str) -> Dict[str, Any]:
+        with self._lock:
+            _, item = self._collection_index("zones", zone_id)
+            return _clone(item)
+
+    def set_zone_active(self, zone_id: str, active: bool) -> Dict[str, Any]:
+        with self._lock:
+            idx, item = self._collection_index("zones", zone_id)
+            updated = {**item, "isActive": bool(active), "id": zone_id}
             self._state["zones"][idx] = updated
             return _clone(updated)
 
@@ -888,6 +941,11 @@ class FrontendDataStore:
             updated = {**item, **payload, "id": waypoint_id}
             self._state["waypoints"][idx] = updated
             return _clone(updated)
+
+    def get_waypoint(self, waypoint_id: str) -> Dict[str, Any]:
+        with self._lock:
+            _, item = self._collection_index("waypoints", waypoint_id)
+            return _clone(item)
 
     def delete_waypoint(self, waypoint_id: str) -> None:
         with self._lock:
@@ -1177,6 +1235,163 @@ class FrontendDataStore:
                 message["metadata"] = metadata
             self._state["chat_messages"].append(message)
             return _clone(message)
+
+    # ------------------------------------------------------------------
+    # ROS2 bridge state (mocked)
+    def get_ros2_snapshot(self) -> Dict[str, Any]:
+        with self._lock:
+            return _clone(self._state["ros2"])
+
+    def set_ros2_status(self, status: str) -> Dict[str, Any]:
+        with self._lock:
+            self._state["ros2"]["status"] = status
+            return _clone(self._state["ros2"])
+
+    def set_ros2_pose(self, pose: Dict[str, float]) -> Dict[str, Any]:
+        with self._lock:
+            self._state["ros2"]["pose"] = {**self._state["ros2"]["pose"], **pose}
+            return _clone(self._state["ros2"])
+
+    def set_ros2_goal(self, goal: Dict[str, float]) -> Dict[str, Any]:
+        with self._lock:
+            payload = {**goal, "ts": _utc_ts()}
+            self._state["ros2"]["last_goal"] = payload
+            return _clone(payload)
+
+    def set_ros2_cmd_vel(self, cmd: Dict[str, float]) -> Dict[str, Any]:
+        with self._lock:
+            payload = {**cmd, "ts": _utc_ts()}
+            self._state["ros2"]["last_cmd_vel"] = payload
+            self._state["ros2"]["velocity"] = {
+                "linear_x": cmd.get("linear_x", 0.0),
+                "angular_z": cmd.get("angular_z", 0.0),
+            }
+            return _clone(payload)
+
+    def set_ros2_scan(self, scan: Dict[str, Any]) -> Dict[str, Any]:
+        with self._lock:
+            self._state["ros2"]["latest_scan"] = scan
+            return _clone(scan)
+
+    def get_ros2_scan(self) -> Optional[Dict[str, Any]]:
+        with self._lock:
+            return _clone(self._state["ros2"]["latest_scan"])
+
+    def get_robot_state(self) -> str:
+        with self._lock:
+            return str(self._state["ros2"].get("robot_state", "IDLE"))
+
+    def set_robot_state(self, state: str) -> str:
+        with self._lock:
+            self._state["ros2"]["robot_state"] = str(state)
+            return self._state["ros2"]["robot_state"]
+
+    def get_robot_mode(self) -> str:
+        with self._lock:
+            return str(self._state["ros2"].get("robot_mode", "AUTO"))
+
+    def set_robot_mode(self, mode: str) -> str:
+        with self._lock:
+            self._state["ros2"]["robot_mode"] = str(mode)
+            return self._state["ros2"]["robot_mode"]
+
+    def get_robot_battery_status(self) -> Dict[str, Any]:
+        with self._lock:
+            return _clone(self._state["ros2"]["battery_status"])
+
+    def set_robot_battery_status(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        with self._lock:
+            self._state["ros2"]["battery_status"] = payload
+            return _clone(payload)
+
+    def get_navigation(self) -> Dict[str, Any]:
+        with self._lock:
+            return _clone(self._state["ros2"]["navigation"])
+
+    def set_navigation_goal(self, goal: Dict[str, Any]) -> Dict[str, Any]:
+        with self._lock:
+            self._state["ros2"]["navigation"]["goal"] = goal
+            self._state["ros2"]["navigation"]["status"] = "ACTIVE"
+            return _clone(self._state["ros2"]["navigation"])
+
+    def set_navigation_status(self, status: str) -> Dict[str, Any]:
+        with self._lock:
+            self._state["ros2"]["navigation"]["status"] = status
+            return _clone(self._state["ros2"]["navigation"])
+
+    def set_navigation_feedback(self, feedback: Dict[str, Any]) -> Dict[str, Any]:
+        with self._lock:
+            self._state["ros2"]["navigation"]["feedback"] = feedback
+            return _clone(self._state["ros2"]["navigation"])
+
+    def set_navigation_path(self, path: List[Dict[str, Any]]) -> Dict[str, Any]:
+        with self._lock:
+            self._state["ros2"]["navigation"]["path"] = path
+            return _clone(self._state["ros2"]["navigation"])
+
+    def set_navigation_paused(self, paused: bool) -> Dict[str, Any]:
+        with self._lock:
+            self._state["ros2"]["navigation"]["paused"] = bool(paused)
+            return _clone(self._state["ros2"]["navigation"])
+
+    # ------------------------------------------------------------------
+    def get_ros2_costmap(self) -> Optional[Dict[str, Any]]:
+        with self._lock:
+            return _clone(self._state["ros2"]["costmap"])
+
+    def set_ros2_costmap(self, costmap: Dict[str, Any]) -> Dict[str, Any]:
+        with self._lock:
+            self._state["ros2"]["costmap"] = costmap
+            return _clone(costmap)
+
+    def get_ros2_safety_stop(self) -> bool:
+        with self._lock:
+            return bool(self._state["ros2"]["safety_stop"])
+
+    def set_ros2_safety_stop(self, stop: bool) -> bool:
+        with self._lock:
+            self._state["ros2"]["safety_stop"] = bool(stop)
+            return bool(self._state["ros2"]["safety_stop"])
+
+    def get_ros2_dock_detection(self) -> Dict[str, Any]:
+        with self._lock:
+            return {
+                "dock_detected": bool(self._state["ros2"]["dock_detected"]),
+                "dock_pose": _clone(self._state["ros2"]["dock_pose"]),
+                "dock_status": _clone(self._state["ros2"]["dock_status"]),
+            }
+
+    def set_ros2_dock_detection(
+        self,
+        detected: bool,
+        pose: Optional[Dict[str, Any]] = None,
+        status: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        with self._lock:
+            self._state["ros2"]["dock_detected"] = bool(detected)
+            if pose is not None:
+                self._state["ros2"]["dock_pose"] = pose
+            if status is not None:
+                self._state["ros2"]["dock_status"] = status
+            return _clone(self._state["ros2"])
+
+    def get_ros2_dock_action_name(self) -> str:
+        with self._lock:
+            return str(self._state["ros2"].get("dock_action_name", ""))
+
+    def set_ros2_dock_action_name(self, name: str) -> str:
+        with self._lock:
+            self._state["ros2"]["dock_action_name"] = str(name)
+            return self._state["ros2"]["dock_action_name"]
+
+    def list_ros2_parameters(self) -> Dict[str, Any]:
+        with self._lock:
+            return _clone(self._state["ros2"]["parameters"])
+
+    def set_ros2_parameters(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        with self._lock:
+            self._state["ros2"]["parameters"].update(params)
+            return _clone(self._state["ros2"]["parameters"])
 
     # ------------------------------------------------------------------
     def get_stats(self) -> Dict[str, Any]:

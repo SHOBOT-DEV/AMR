@@ -17,11 +17,44 @@ def register_zone_routes(bp, store):
         item = store.create_zone(data)
         return jsonify({"success": True, "item": item}), 201
 
+    @bp.route("/zones/<zone_id>", methods=["GET"])
+    def fetch_zone(zone_id):
+        try:
+            item = store.get_zone(zone_id)
+            return jsonify({"success": True, "item": item})
+        except KeyError:
+            return (
+                jsonify({"success": False, "message": "Zone not found"}),
+                404,
+            )
+
     @bp.route("/zones/<zone_id>", methods=["PUT", "PATCH"])
     def update_zone(zone_id):
         data = request.get_json(silent=True) or {}
         try:
             item = store.update_zone(zone_id, data)
+            return jsonify({"success": True, "item": item})
+        except KeyError:
+            return (
+                jsonify({"success": False, "message": "Zone not found"}),
+                404,
+            )
+
+    @bp.route("/zones/<zone_id>/enable", methods=["POST"])
+    def enable_zone(zone_id):
+        try:
+            item = store.set_zone_active(zone_id, True)
+            return jsonify({"success": True, "item": item})
+        except KeyError:
+            return (
+                jsonify({"success": False, "message": "Zone not found"}),
+                404,
+            )
+
+    @bp.route("/zones/<zone_id>/disable", methods=["POST"])
+    def disable_zone(zone_id):
+        try:
+            item = store.set_zone_active(zone_id, False)
             return jsonify({"success": True, "item": item})
         except KeyError:
             return (
