@@ -170,7 +170,7 @@ const SAMPLE_WAYPOINTS = [
 const SAMPLE_ZONES = [
   {
     id: "z1",
-    mapId: "cfl_gf",
+    mapId: "arena",
     name: "Dock Corridor",
     category: "Safe",
     active: true,
@@ -179,7 +179,7 @@ const SAMPLE_ZONES = [
   },
   {
     id: "z2",
-    mapId: "cfl_gf",
+    mapId: "arena",
     name: "Battery Corner",
     category: "No-Go",
     active: true,
@@ -356,7 +356,7 @@ const Dashboard: React.FC = () => {
   }, []);
 
   const [mapsList, setMapsList] = useState<any[]>(SAMPLE_MAPS);
-  const [selectedMap, setSelectedMap] = useState<any>(SAMPLE_MAPS[0]);
+  const [selectedMap, setSelectedMap] = useState<any>(SAMPLE_MAPS[1]);
   const [mapSearchField, setMapSearchField] = useState<string>("any");
   const [mapSearchTerm, setMapSearchTerm] = useState<string>("");
 

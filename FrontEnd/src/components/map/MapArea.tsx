@@ -59,11 +59,16 @@ const MapArea: React.FC<MapAreaProps> = ({
     return defaultImageById[String(normId || "").toLowerCase()] || defaultImageByName[String(name || "").toLowerCase()] || "";
   };
 
-  const resolvedImage = useMemo(() => {
-    if (!selectedMap) return "";
-    const explicit = (selectedMap.image || "").trim();
-    return explicit || getFallbackImage(selectedMap.id as string, selectedMap.name);
-  }, [selectedMap, defaultImageById, defaultImageByName]);
+const resolvedImage = useMemo(() => {
+  if (!selectedMap) return "";
+
+  const explicit = (selectedMap.image || "").trim();
+  if (explicit) return explicit;
+
+  const normalizedId = normalizeId(selectedMap.id);
+  return getFallbackImage(normalizedId, selectedMap.name);
+}, [selectedMap]);
+
 
   return (
     <main
@@ -115,8 +120,12 @@ const MapArea: React.FC<MapAreaProps> = ({
             aria-hidden="true"
           >
             <span className="text-slate-400 text-lg font-semibold">
-              {selectedMap?.name || "No map selected"}
+              {selectedMap &&
+              String(selectedMap.id || "").toLowerCase() !== "cfl_gf"
+                ? selectedMap.name
+                : "Shobot Arena"}
             </span>
+
           </div>
         )}
       </div>
