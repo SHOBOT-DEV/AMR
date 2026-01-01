@@ -3,7 +3,7 @@ from __future__ import annotations
 from flask_socketio import emit
 
 from backend.API.V1 import frontend_store
-from backend.socketio import socketio
+from backend.socketio_app import socketio
 
 
 @socketio.on("connect", namespace="/stream/robot_pose")

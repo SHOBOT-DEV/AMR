@@ -119,29 +119,17 @@ start_ros2_stack
 
 echo "Starting Flask backend on ${FLASK_HOST}:${FLASK_PORT}..."
 cd "$BACKEND_DIR"
-USING_BACKEND_VENV=0
-if [[ -f "venv/bin/activate" ]]; then
+if [[ -f "/home/shahbaz/Project/Ongoing_project/Environment/AMR/bin/activate" ]]; then
   # shellcheck disable=SC1091
-  source venv/bin/activate
-  if python - <<'PY'
-import importlib
-required = ("flask", "flask_sqlalchemy", "flask_cors")
-for pkg in required:
-    importlib.import_module(pkg)
-PY
-  then
-    USING_BACKEND_VENV=1
-  else
-    echo "Warning: backend venv missing dependencies; running with system Python instead."
-    if [[ -n "${VIRTUAL_ENV:-}" && "$(type -t deactivate)" == "function" ]]; then
-      deactivate
-    fi
-  fi
+  source /home/shahbaz/Project/Ongoing_project/Environment/AMR/bin/activate
+else
+  echo "Error: Expected venv not found at /home/shahbaz/Project/Ongoing_project/Environment/AMR" >&2
+  exit 1
 fi
 export FLASK_PORT FLASK_HOST FLASK_DEBUG
 python run.py &
 BACKEND_PID=$!
-if (( USING_BACKEND_VENV )) && [[ -n "${VIRTUAL_ENV:-}" && "$(type -t deactivate)" == "function" ]]; then
+if [[ -n "${VIRTUAL_ENV:-}" && "$(type -t deactivate)" == "function" ]]; then
   deactivate
 fi
 cd "$ROOT_DIR"
@@ -163,4 +151,3 @@ export REACT_APP_API_URL="${REACT_APP_API_URL:-http://127.0.0.1:$FLASK_PORT}"
 echo "REACT_APP_API_URL=${REACT_APP_API_URL}"
 echo "Starting React app (Ctrl+C to stop)..."
 npm start
-

@@ -2,7 +2,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from backend.config import config
-from backend.socketio import init_socketio
+from backend.socketio_app import init_socketio
 
 # Initialize extensions
 db = SQLAlchemy()
