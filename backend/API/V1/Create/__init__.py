@@ -13,14 +13,10 @@ def register_create_routes(bp: "Blueprint", store: "FrontendDataStore") -> None:
     from .Maps import register_maps_routes
     from .Zones import register_zone_routes
     from .WayPoints import register_waypoint_routes
-    from .Missions import register_mission_routes
-    from .users import register_user_routes
 
     register_maps_routes(bp, store)
     register_zone_routes(bp, store)
     register_waypoint_routes(bp, store)
-    register_mission_routes(bp, store)
-    register_user_routes(bp, store)
 
 
 __all__ = ["register_create_routes"]

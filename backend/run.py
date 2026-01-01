@@ -9,6 +9,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from backend import create_app
+from backend.socketio import socketio
 
 app = create_app()
 
@@ -23,4 +24,4 @@ if __name__ == "__main__":
     debug_env = os.environ.get("FLASK_DEBUG", os.environ.get("DEBUG", "1"))
     debug = _str_to_bool(str(debug_env)) if isinstance(debug_env, str) else bool(debug_env)
 
-    app.run(debug=debug, host=host, port=port)
+    socketio.run(app, debug=debug, host=host, port=port)

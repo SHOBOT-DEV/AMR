@@ -1,0 +1,424 @@
+{
+  "info": {
+    "name": "AMR Flask API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api/v1"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer <token>" }
+            ],
+            "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth", "logout"] }
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer <token>" }
+            ],
+            "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth", "me"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer <token>" }
+            ],
+            "url": { "raw": "{{baseUrl}}/users", "host": ["{{baseUrl}}"], "path": ["users"] }
+          }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer <token>" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"operator1\",\n  \"email\": \"operator1@example.com\",\n  \"password\": \"changeme\",\n  \"role\": \"user\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/users", "host": ["{{baseUrl}}"], "path": ["users"] }
+          }
+        },
+        {
+          "name": "Get User",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer <token>" }
+            ],
+            "url": { "raw": "{{baseUrl}}/users/1", "host": ["{{baseUrl}}"], "path": ["users", "1"] }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer <token>" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approval\": \"Approved\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/users/1", "host": ["{{baseUrl}}"], "path": ["users", "1"] }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer <token>" }
+            ],
+            "url": { "raw": "{{baseUrl}}/users/1", "host": ["{{baseUrl}}"], "path": ["users", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Integrations",
+      "item": [
+        {
+          "name": "List Integrations",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/integrations", "host": ["{{baseUrl}}"], "path": ["integrations"] }
+          }
+        },
+        {
+          "name": "Create Integration",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Slack Bot\",\n  \"status\": \"Connected\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/integrations", "host": ["{{baseUrl}}"], "path": ["integrations"] }
+          }
+        },
+        {
+          "name": "Delete Integration",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/integrations/integration_123", "host": ["{{baseUrl}}"], "path": ["integrations", "integration_123"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ROS Graph",
+      "item": [
+        { "name": "Nodes", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/ros/nodes", "host": ["{{baseUrl}}"], "path": ["ros", "nodes"] } } },
+        { "name": "Topics", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/ros/topics", "host": ["{{baseUrl}}"], "path": ["ros", "topics"] } } },
+        { "name": "Services", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/ros/services", "host": ["{{baseUrl}}"], "path": ["ros", "services"] } } },
+        { "name": "Actions", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/ros/actions", "host": ["{{baseUrl}}"], "path": ["ros", "actions"] } } },
+        { "name": "Parameters", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/ros/parameters", "host": ["{{baseUrl}}"], "path": ["ros", "parameters"] } } }
+      ]
+    },
+    {
+      "name": "Parameters",
+      "item": [
+        { "name": "List", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/parameters", "host": ["{{baseUrl}}"], "path": ["parameters"] } } },
+        { "name": "Get By Name", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/parameters/use_sim_time", "host": ["{{baseUrl}}"], "path": ["parameters", "use_sim_time"] } } },
+        {
+          "name": "Set",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"use_sim_time\": true\n}" },
+            "url": { "raw": "{{baseUrl}}/parameters", "host": ["{{baseUrl}}"], "path": ["parameters"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Video",
+      "item": [
+        { "name": "Streams", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/video/streams", "host": ["{{baseUrl}}"], "path": ["video", "streams"] } } },
+        { "name": "Stream Detail", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/video/stream/front_cam", "host": ["{{baseUrl}}"], "path": ["video", "stream", "front_cam"] } } }
+      ]
+    },
+    {
+      "name": "Logs & Bags",
+      "item": [
+        { "name": "Logs", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/logs", "host": ["{{baseUrl}}"], "path": ["logs"] } } },
+        { "name": "Logs by Mission", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/logs/mh1", "host": ["{{baseUrl}}"], "path": ["logs", "mh1"] } } },
+        { "name": "Start Log Record", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/logs/record/start", "host": ["{{baseUrl}}"], "path": ["logs", "record", "start"] } } },
+        { "name": "Stop Log Record", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/logs/record/stop", "host": ["{{baseUrl}}"], "path": ["logs", "record", "stop"] } } },
+        { "name": "Bags", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/bags", "host": ["{{baseUrl}}"], "path": ["bags"] } } },
+        { "name": "Start Bag", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/bags/start", "host": ["{{baseUrl}}"], "path": ["bags", "start"] } } },
+        { "name": "Stop Bag", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/bags/stop", "host": ["{{baseUrl}}"], "path": ["bags", "stop"] } } }
+      ]
+    },
+    {
+      "name": "Diagnostics & System",
+      "item": [
+        { "name": "Diagnostics", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/diagnostics", "host": ["{{baseUrl}}"], "path": ["diagnostics"] } } },
+        { "name": "Health", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/system/health", "host": ["{{baseUrl}}"], "path": ["system", "health"] } } },
+        { "name": "Resources", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/system/resources", "host": ["{{baseUrl}}"], "path": ["system", "resources"] } } },
+        { "name": "Uptime", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/system/uptime", "host": ["{{baseUrl}}"], "path": ["system", "uptime"] } } }
+      ]
+    },
+    {
+      "name": "Sensors",
+      "item": [
+        { "name": "List", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/sensors", "host": ["{{baseUrl}}"], "path": ["sensors"] } } },
+        { "name": "Status", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/sensors/status", "host": ["{{baseUrl}}"], "path": ["sensors", "status"] } } },
+        { "name": "Reset", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/sensors/reset", "host": ["{{baseUrl}}"], "path": ["sensors", "reset"] } } },
+        { "name": "Sensor Status", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/sensors/lidar/status", "host": ["{{baseUrl}}"], "path": ["sensors", "lidar", "status"] } } }
+      ]
+    },
+    {
+      "name": "Perception",
+      "item": [
+        { "name": "Objects", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/perception/objects", "host": ["{{baseUrl}}"], "path": ["perception", "objects"] } } },
+        { "name": "Humans", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/perception/humans", "host": ["{{baseUrl}}"], "path": ["perception", "humans"] } } },
+        { "name": "Obstacles", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/perception/obstacles", "host": ["{{baseUrl}}"], "path": ["perception", "obstacles"] } } },
+        { "name": "Status", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/perception/status", "host": ["{{baseUrl}}"], "path": ["perception", "status"] } } }
+      ]
+    },
+    {
+      "name": "Recovery",
+      "item": [
+        { "name": "Options", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/recovery/options", "host": ["{{baseUrl}}"], "path": ["recovery", "options"] } } },
+        {
+          "name": "Execute",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"id\": \"clear_costmaps\"\n}" },
+            "url": { "raw": "{{baseUrl}}/recovery/execute", "host": ["{{baseUrl}}"], "path": ["recovery", "execute"] }
+          }
+        },
+        { "name": "Status", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/recovery/status", "host": ["{{baseUrl}}"], "path": ["recovery", "status"] } } }
+      ]
+    },
+    {
+      "name": "Safety",
+      "item": [
+        { "name": "Status", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/safety/status", "host": ["{{baseUrl}}"], "path": ["safety", "status"] } } },
+        { "name": "Stop", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/safety/stop", "host": ["{{baseUrl}}"], "path": ["safety", "stop"] } } },
+        { "name": "Reset", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/safety/reset", "host": ["{{baseUrl}}"], "path": ["safety", "reset"] } } },
+        { "name": "Acknowledge", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/safety/acknowledge", "host": ["{{baseUrl}}"], "path": ["safety", "acknowledge"] } } }
+      ]
+    },
+    {
+      "name": "Docking",
+      "item": [
+        { "name": "Detection", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/docking/detection", "host": ["{{baseUrl}}"], "path": ["docking", "detection"] } } },
+        { "name": "Status", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/docking/status", "host": ["{{baseUrl}}"], "path": ["docking", "status"] } } },
+        { "name": "Start", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/docking/start", "host": ["{{baseUrl}}"], "path": ["docking", "start"] } } },
+        { "name": "Cancel", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/docking/cancel", "host": ["{{baseUrl}}"], "path": ["docking", "cancel"] } } },
+        { "name": "Reset", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/docking/reset", "host": ["{{baseUrl}}"], "path": ["docking", "reset"] } } }
+      ]
+    },
+    {
+      "name": "Missions",
+      "item": [
+        { "name": "List", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/missions", "host": ["{{baseUrl}}"], "path": ["missions"] } } },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Delivery Route 3\"\n}" },
+            "url": { "raw": "{{baseUrl}}/missions", "host": ["{{baseUrl}}"], "path": ["missions"] }
+          }
+        },
+        { "name": "Get", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/missions/mission_123", "host": ["{{baseUrl}}"], "path": ["missions", "mission_123"] } } },
+        {
+          "name": "Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"Active\"\n}" },
+            "url": { "raw": "{{baseUrl}}/missions/mission_123", "host": ["{{baseUrl}}"], "path": ["missions", "mission_123"] }
+          }
+        },
+        { "name": "Delete", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/missions/mission_123", "host": ["{{baseUrl}}"], "path": ["missions", "mission_123"] } } },
+        { "name": "Start", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/missions/mission_123/start", "host": ["{{baseUrl}}"], "path": ["missions", "mission_123", "start"] } } },
+        { "name": "Pause", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/missions/mission_123/pause", "host": ["{{baseUrl}}"], "path": ["missions", "mission_123", "pause"] } } },
+        { "name": "Resume", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/missions/mission_123/resume", "host": ["{{baseUrl}}"], "path": ["missions", "mission_123", "resume"] } } },
+        { "name": "Cancel", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/missions/mission_123/cancel", "host": ["{{baseUrl}}"], "path": ["missions", "mission_123", "cancel"] } } },
+        { "name": "Status", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/missions/status", "host": ["{{baseUrl}}"], "path": ["missions", "status"] } } },
+        { "name": "History", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/missions/history", "host": ["{{baseUrl}}"], "path": ["missions", "history"] } } }
+      ]
+    },
+    {
+      "name": "Maps",
+      "item": [
+        { "name": "List", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/maps", "host": ["{{baseUrl}}"], "path": ["maps"] } } },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"warehouse_map\"\n}" },
+            "url": { "raw": "{{baseUrl}}/maps", "host": ["{{baseUrl}}"], "path": ["maps"] }
+          }
+        },
+        { "name": "Get", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/maps/map_123", "host": ["{{baseUrl}}"], "path": ["maps", "map_123"] } } },
+        {
+          "name": "Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"Active\"\n}" },
+            "url": { "raw": "{{baseUrl}}/maps/map_123", "host": ["{{baseUrl}}"], "path": ["maps", "map_123"] }
+          }
+        },
+        { "name": "Delete", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/maps/map_123", "host": ["{{baseUrl}}"], "path": ["maps", "map_123"] } } },
+        { "name": "Load", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/maps/load", "host": ["{{baseUrl}}"], "path": ["maps", "load"] } } },
+        { "name": "Save", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/maps/save", "host": ["{{baseUrl}}"], "path": ["maps", "save"] } } },
+        { "name": "Current", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/maps/current", "host": ["{{baseUrl}}"], "path": ["maps", "current"] } } }
+      ]
+    },
+    {
+      "name": "Zones",
+      "item": [
+        { "name": "List", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/zones", "host": ["{{baseUrl}}"], "path": ["zones"] } } },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Restricted Zone\"\n}" },
+            "url": { "raw": "{{baseUrl}}/zones", "host": ["{{baseUrl}}"], "path": ["zones"] }
+          }
+        },
+        { "name": "Get", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/zones/zone_123", "host": ["{{baseUrl}}"], "path": ["zones", "zone_123"] } } },
+        {
+          "name": "Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"isActive\": true\n}" },
+            "url": { "raw": "{{baseUrl}}/zones/zone_123", "host": ["{{baseUrl}}"], "path": ["zones", "zone_123"] }
+          }
+        },
+        { "name": "Delete", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/zones/zone_123", "host": ["{{baseUrl}}"], "path": ["zones", "zone_123"] } } },
+        { "name": "Enable", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/zones/zone_123/enable", "host": ["{{baseUrl}}"], "path": ["zones", "zone_123", "enable"] } } },
+        { "name": "Disable", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/zones/zone_123/disable", "host": ["{{baseUrl}}"], "path": ["zones", "zone_123", "disable"] } } }
+      ]
+    },
+    {
+      "name": "Waypoints",
+      "item": [
+        { "name": "List", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/waypoints", "host": ["{{baseUrl}}"], "path": ["waypoints"] } } },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Docking Point\"\n}" },
+            "url": { "raw": "{{baseUrl}}/waypoints", "host": ["{{baseUrl}}"], "path": ["waypoints"] }
+          }
+        },
+        { "name": "Get", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/waypoints/wp_123", "host": ["{{baseUrl}}"], "path": ["waypoints", "wp_123"] } } },
+        {
+          "name": "Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"notes\": \"Updated\"\n}" },
+            "url": { "raw": "{{baseUrl}}/waypoints/wp_123", "host": ["{{baseUrl}}"], "path": ["waypoints", "wp_123"] }
+          }
+        },
+        { "name": "Delete", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/waypoints/wp_123", "host": ["{{baseUrl}}"], "path": ["waypoints", "wp_123"] } } }
+      ]
+    },
+    {
+      "name": "Navigation",
+      "item": [
+        { "name": "Goal", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/navigation/goal", "host": ["{{baseUrl}}"], "path": ["navigation", "goal"] } } },
+        { "name": "Cancel", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/navigation/cancel", "host": ["{{baseUrl}}"], "path": ["navigation", "cancel"] } } },
+        { "name": "Status", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/navigation/status", "host": ["{{baseUrl}}"], "path": ["navigation", "status"] } } },
+        { "name": "Feedback", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/navigation/feedback", "host": ["{{baseUrl}}"], "path": ["navigation", "feedback"] } } },
+        { "name": "Pause", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/navigation/pause", "host": ["{{baseUrl}}"], "path": ["navigation", "pause"] } } },
+        { "name": "Resume", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/navigation/resume", "host": ["{{baseUrl}}"], "path": ["navigation", "resume"] } } },
+        { "name": "Replan", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/navigation/replan", "host": ["{{baseUrl}}"], "path": ["navigation", "replan"] } } },
+        { "name": "Path", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/navigation/path", "host": ["{{baseUrl}}"], "path": ["navigation", "path"] } } }
+      ]
+    },
+    {
+      "name": "Costmap",
+      "item": [
+        { "name": "Costmap", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/costmap", "host": ["{{baseUrl}}"], "path": ["costmap"] } } },
+        { "name": "Local", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/costmap/local", "host": ["{{baseUrl}}"], "path": ["costmap", "local"] } } },
+        { "name": "Global", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/costmap/global", "host": ["{{baseUrl}}"], "path": ["costmap", "global"] } } },
+        { "name": "Reset", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/costmap/reset", "host": ["{{baseUrl}}"], "path": ["costmap", "reset"] } } }
+      ]
+    },
+    {
+      "name": "Stats",
+      "item": [
+        { "name": "Stats", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/stats", "host": ["{{baseUrl}}"], "path": ["stats"] } } },
+        { "name": "Usage", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/stats/usage", "host": ["{{baseUrl}}"], "path": ["stats", "usage"] } } },
+        { "name": "Navigation", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/stats/navigation", "host": ["{{baseUrl}}"], "path": ["stats", "navigation"] } } },
+        { "name": "Missions", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/stats/missions", "host": ["{{baseUrl}}"], "path": ["stats", "missions"] } } }
+      ]
+    }
+  ]
+}

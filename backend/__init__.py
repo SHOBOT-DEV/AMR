@@ -2,6 +2,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from backend.config import config
+from backend.socketio import init_socketio
 
 # Initialize extensions
 db = SQLAlchemy()
@@ -18,6 +19,7 @@ def create_app(config_name="default"):
     # Initialize extensions
     db.init_app(app)
     cors.init_app(app)
+    init_socketio(app)
 
     # Register blueprints
     from backend.routes.auth import auth_bp
@@ -31,6 +33,7 @@ def create_app(config_name="default"):
     app.register_blueprint(user_bp, url_prefix="/api/user")
     app.register_blueprint(stats_bp, url_prefix="/api")
     app.register_blueprint(api_v1_bp, url_prefix="/api/v1")
+    app.register_blueprint(api_v1_bp, url_prefix="", name="api_root")
 
     # Register root route
     @app.route("/")

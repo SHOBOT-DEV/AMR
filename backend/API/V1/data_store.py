@@ -29,6 +29,7 @@ class FrontendDataStore:
 
     def __init__(self) -> None:
         self._lock = Lock()
+        self._started_at = datetime.utcnow()
         self._state: Dict[str, Any] = self._default_state()
 
     # ------------------------------------------------------------------
@@ -572,6 +573,51 @@ class FrontendDataStore:
                     "detail": "Last calibration 12h ago",
                 },
             ],
+            "sensors": [
+                {"name": "lidar", "status": "ok", "detail": "Online"},
+                {"name": "camera_front", "status": "ok", "detail": "Streaming"},
+                {"name": "imu", "status": "ok", "detail": "Calibrated"},
+                {"name": "wheel_odometry", "status": "ok", "detail": "Stable"},
+            ],
+            "perception": {
+                "status": {"state": "online", "last_update": _utc_ts()},
+                "objects": [
+                    {"id": "obj1", "label": "pallet", "confidence": 0.82},
+                    {"id": "obj2", "label": "forklift", "confidence": 0.76},
+                ],
+                "humans": [
+                    {"id": "hum1", "label": "person", "confidence": 0.91},
+                ],
+                "obstacles": [
+                    {"id": "obs1", "label": "box", "confidence": 0.68},
+                    {"id": "obs2", "label": "cone", "confidence": 0.74},
+                ],
+            },
+            "recovery": {
+                "status": {"state": "idle", "last_update": _utc_ts()},
+                "options": [
+                    {"id": "clear_costmaps", "label": "Clear Costmaps", "severity": "low"},
+                    {"id": "restart_localization", "label": "Restart Localization", "severity": "medium"},
+                    {"id": "cancel_goal", "label": "Cancel Navigation Goal", "severity": "medium"},
+                    {"id": "restart_navigation", "label": "Restart Navigation", "severity": "high"},
+                ],
+                "last_action": None,
+            },
+            "system": {
+                "health": {
+                    "status": "healthy",
+                    "checks": [
+                        {"name": "database", "status": "ok"},
+                        {"name": "ros2_bridge", "status": "ok"},
+                        {"name": "storage", "status": "ok"},
+                    ],
+                },
+                "resources": {
+                    "cpu": {"usage": 18.2, "cores": 4},
+                    "memory": {"usage": 62.5, "total_gb": 8},
+                    "disk": {"usage": 41.1, "total_gb": 128},
+                },
+            },
             "logs": [
                 {
                     "id": "log1",
@@ -616,6 +662,32 @@ class FrontendDataStore:
                     "window": "09:15–09:32",
                     "outcome": "Completed",
                     "notes": "Pack swap verified",
+                },
+            ],
+            "log_recording": {
+                "active": False,
+                "source": "system",
+                "started_at": None,
+            },
+            "bag_recording": {
+                "active": False,
+                "name": None,
+                "started_at": None,
+            },
+            "video_streams": [
+                {
+                    "id": "front_cam",
+                    "name": "Front Camera",
+                    "status": "online",
+                    "stream_url": "/video/stream/front_cam",
+                    "protocol": "mjpeg",
+                },
+                {
+                    "id": "rear_cam",
+                    "name": "Rear Camera",
+                    "status": "online",
+                    "stream_url": "/video/stream/rear_cam",
+                    "protocol": "mjpeg",
                 },
             ],
             "robot_bags": [
@@ -708,6 +780,27 @@ class FrontendDataStore:
                 "velocity": {"linear_x": 0.0, "angular_z": 0.0},
                 "robot_state": "IDLE",
                 "robot_mode": "AUTO",
+                "nodes": [
+                    "/shobot_navigation",
+                    "/shobot_sensors",
+                    "/shobot_local_planner",
+                    "/shobot_system_monitor",
+                ],
+                "topics": [
+                    "/scan",
+                    "/tf",
+                    "/tf_static",
+                    "/cmd_vel",
+                    "/odom",
+                ],
+                "services": [
+                    "/navigation_server/go_to_pose",
+                    "/navigation_server/update_pose",
+                    "/reload",
+                ],
+                "actions": [
+                    "/dock",
+                ],
                 "navigation": {
                     "status": "IDLE",
                     "goal": None,
@@ -720,6 +813,7 @@ class FrontendDataStore:
                 "last_cmd_vel": None,
                 "costmap": None,
                 "safety_stop": False,
+                "safety_acknowledged": False,
                 "dock_detected": False,
                 "dock_pose": None,
                 "dock_status": {},
@@ -993,6 +1087,11 @@ class FrontendDataStore:
             self._state["missions"][idx] = updated
             return _clone(updated)
 
+    def get_mission(self, mission_id: str) -> Dict[str, Any]:
+        with self._lock:
+            _, item = self._collection_index("missions", mission_id)
+            return _clone(item)
+
     def delete_mission(self, mission_id: str) -> None:
         with self._lock:
             idx, _ = self._collection_index("missions", mission_id)
@@ -1006,6 +1105,34 @@ class FrontendDataStore:
             )
             self._state["missions"][idx] = updated
             return _clone(updated)
+
+    def pause_mission(self, mission_id: str) -> Dict[str, Any]:
+        with self._lock:
+            idx, item = self._collection_index("missions", mission_id)
+            updated = self._normalize_mission({**item, "status": "Paused"})
+            self._state["missions"][idx] = updated
+            return _clone(updated)
+
+    def resume_mission(self, mission_id: str) -> Dict[str, Any]:
+        with self._lock:
+            idx, item = self._collection_index("missions", mission_id)
+            updated = self._normalize_mission({**item, "status": "Running"})
+            self._state["missions"][idx] = updated
+            return _clone(updated)
+
+    def cancel_mission(self, mission_id: str) -> Dict[str, Any]:
+        with self._lock:
+            idx, item = self._collection_index("missions", mission_id)
+            updated = self._normalize_mission({**item, "status": "Canceled"})
+            self._state["missions"][idx] = updated
+            return _clone(updated)
+
+    def get_mission_statuses(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            return [
+                {"id": mission.get("id"), "status": mission.get("status")}
+                for mission in self._state["missions"]
+            ]
 
     # ------------------------------------------------------------------
     # Users
@@ -1123,6 +1250,60 @@ class FrontendDataStore:
             self._state["mission_logs"].insert(0, entry)
             return _clone(entry)
 
+    def get_mission_logs_by_id(self, mission_id: str) -> List[Dict[str, Any]]:
+        with self._lock:
+            return [
+                _clone(item)
+                for item in self._state["mission_logs"]
+                if str(item.get("id")) == str(mission_id)
+            ]
+
+    def start_log_recording(self, source: Optional[str] = None) -> Dict[str, Any]:
+        with self._lock:
+            self._state["log_recording"]["active"] = True
+            self._state["log_recording"]["source"] = source or "system"
+            self._state["log_recording"]["started_at"] = _utc_ts()
+            return _clone(self._state["log_recording"])
+
+    def stop_log_recording(self) -> Dict[str, Any]:
+        with self._lock:
+            self._state["log_recording"]["active"] = False
+            self._state["log_recording"]["started_at"] = None
+            return _clone(self._state["log_recording"])
+
+    def start_bag_recording(self, name: Optional[str] = None) -> Dict[str, Any]:
+        with self._lock:
+            self._state["bag_recording"]["active"] = True
+            self._state["bag_recording"]["name"] = name or f"recording-{_utc_ts()}.bag"
+            self._state["bag_recording"]["started_at"] = _utc_ts()
+            return _clone(self._state["bag_recording"])
+
+    def stop_bag_recording(self) -> Dict[str, Any]:
+        with self._lock:
+            name = self._state["bag_recording"]["name"] or "recording.bag"
+            self._state["bag_recording"]["active"] = False
+            self._state["bag_recording"]["started_at"] = None
+            bag = {
+                "id": self._new_id("bag"),
+                "name": name,
+                "duration": "0m",
+                "size": "0 MB",
+                "status": "Uploaded",
+            }
+            self._state["robot_bags"].insert(0, bag)
+            return _clone(bag)
+
+    def list_video_streams(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            return _clone(self._state["video_streams"])
+
+    def get_video_stream(self, stream_id: str) -> Optional[Dict[str, Any]]:
+        with self._lock:
+            for stream in self._state["video_streams"]:
+                if stream.get("id") == stream_id:
+                    return _clone(stream)
+            return None
+
     def get_robot_bags(self) -> List[Dict[str, Any]]:
         with self._lock:
             return _clone(self._state["robot_bags"])
@@ -1215,6 +1396,12 @@ class FrontendDataStore:
             updated = {**item, **payload, "id": integration_id}
             self._state["integrations"][idx] = updated
             return _clone(updated)
+
+    def delete_integration(self, integration_id: str) -> Dict[str, Any]:
+        with self._lock:
+            idx, item = self._collection_index("integrations", integration_id)
+            removed = self._state["integrations"].pop(idx)
+            return _clone(removed)
 
     # ------------------------------------------------------------------
     # Chat
@@ -1353,6 +1540,24 @@ class FrontendDataStore:
             self._state["ros2"]["safety_stop"] = bool(stop)
             return bool(self._state["ros2"]["safety_stop"])
 
+    def get_safety_acknowledged(self) -> bool:
+        with self._lock:
+            return bool(self._state["ros2"].get("safety_acknowledged", False))
+
+    def acknowledge_safety(self) -> bool:
+        with self._lock:
+            self._state["ros2"]["safety_acknowledged"] = True
+            return True
+
+    def reset_safety(self) -> Dict[str, Any]:
+        with self._lock:
+            self._state["ros2"]["safety_stop"] = False
+            self._state["ros2"]["safety_acknowledged"] = False
+            return {
+                "stop": self._state["ros2"]["safety_stop"],
+                "acknowledged": self._state["ros2"]["safety_acknowledged"],
+            }
+
     def get_ros2_dock_detection(self) -> Dict[str, Any]:
         with self._lock:
             return {
@@ -1375,6 +1580,13 @@ class FrontendDataStore:
                 self._state["ros2"]["dock_status"] = status
             return _clone(self._state["ros2"])
 
+    def reset_docking(self) -> Dict[str, Any]:
+        with self._lock:
+            self._state["ros2"]["dock_detected"] = False
+            self._state["ros2"]["dock_pose"] = None
+            self._state["ros2"]["dock_status"] = {}
+            return _clone(self._state["ros2"])
+
     def get_ros2_dock_action_name(self) -> str:
         with self._lock:
             return str(self._state["ros2"].get("dock_action_name", ""))
@@ -1393,10 +1605,104 @@ class FrontendDataStore:
             self._state["ros2"]["parameters"].update(params)
             return _clone(self._state["ros2"]["parameters"])
 
+    def list_ros_nodes(self) -> List[str]:
+        with self._lock:
+            return list(self._state["ros2"].get("nodes", []))
+
+    def list_ros_topics(self) -> List[str]:
+        with self._lock:
+            return list(self._state["ros2"].get("topics", []))
+
+    def list_ros_services(self) -> List[str]:
+        with self._lock:
+            return list(self._state["ros2"].get("services", []))
+
+    def list_ros_actions(self) -> List[str]:
+        with self._lock:
+            return list(self._state["ros2"].get("actions", []))
+
     # ------------------------------------------------------------------
     def get_stats(self) -> Dict[str, Any]:
         with self._lock:
             return _clone(self._state["stats"])
+
+    def get_stats_usage(self) -> Dict[str, Any]:
+        with self._lock:
+            return _clone(self._state["stats"].get("overview", {}))
+
+    def get_stats_navigation(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            return _clone(self._state["stats"].get("monthlyMovement", []))
+
+    def get_stats_missions(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            return _clone(self._state["stats"].get("missionTrend", []))
+
+    def list_sensors(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            return _clone(self._state["sensors"])
+
+    def get_sensor_status(self, name: str) -> Optional[Dict[str, Any]]:
+        with self._lock:
+            for sensor in self._state["sensors"]:
+                if sensor.get("name") == name:
+                    return _clone(sensor)
+            return None
+
+    def reset_sensors(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            for sensor in self._state["sensors"]:
+                sensor["status"] = "ok"
+                sensor["detail"] = sensor.get("detail") or "Online"
+            return _clone(self._state["sensors"])
+
+    def get_perception_status(self) -> Dict[str, Any]:
+        with self._lock:
+            return _clone(self._state["perception"].get("status", {}))
+
+    def list_perception_objects(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            return _clone(self._state["perception"].get("objects", []))
+
+    def list_perception_humans(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            return _clone(self._state["perception"].get("humans", []))
+
+    def list_perception_obstacles(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            return _clone(self._state["perception"].get("obstacles", []))
+
+    def list_recovery_options(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            return _clone(self._state["recovery"].get("options", []))
+
+    def get_recovery_status(self) -> Dict[str, Any]:
+        with self._lock:
+            return _clone(self._state["recovery"].get("status", {}))
+
+    def execute_recovery(self, option_id: str) -> Dict[str, Any]:
+        with self._lock:
+            self._state["recovery"]["last_action"] = {
+                "id": option_id,
+                "executed_at": _utc_ts(),
+            }
+            self._state["recovery"]["status"] = {"state": "executing", "last_update": _utc_ts()}
+            return _clone(self._state["recovery"]["last_action"])
+
+    def get_system_health(self) -> Dict[str, Any]:
+        with self._lock:
+            return _clone(self._state["system"].get("health", {}))
+
+    def get_system_resources(self) -> Dict[str, Any]:
+        with self._lock:
+            return _clone(self._state["system"].get("resources", {}))
+
+    def get_system_uptime(self) -> Dict[str, Any]:
+        uptime_seconds = int((datetime.utcnow() - self._started_at).total_seconds())
+        return {
+            "uptime_seconds": uptime_seconds,
+            "started_at": self._started_at.isoformat(timespec="seconds") + "Z",
+        }
 
 
 __all__ = ["FrontendDataStore"]

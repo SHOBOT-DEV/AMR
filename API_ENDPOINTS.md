@@ -15,6 +15,158 @@ The system has **4 main API interfaces**:
 
 ---
 
+## Flask Backend REST API (This Repo)
+
+**Base URL**: `http://<server-ip>:5000/api/v1`  
+**Root Aliases**: All endpoints are also available without `/api/v1` (e.g., `/api/v1/maps` == `/maps`).
+**Auth**: JWT (Bearer token via `Authorization` header) for protected endpoints
+
+### Auth
+- `POST /auth/login`
+- `POST /auth/logout`
+- `GET /auth/me`
+
+### Users (Admin)
+- `GET /users`
+- `POST /users`
+- `GET /users/{id}`
+- `PUT /users/{id}`
+- `DELETE /users/{id}`
+
+### Integrations
+- `GET /integrations`
+- `POST /integrations`
+- `DELETE /integrations/{id}`
+
+### ROS Graph
+- `GET /ros/nodes`
+- `GET /ros/topics`
+- `GET /ros/services`
+- `GET /ros/actions`
+- `GET /ros/parameters`
+
+### ROS2 Parameters
+- `GET /parameters`
+- `GET /parameters/{name}`
+- `POST /parameters`
+
+### Video
+- `GET /video/streams`
+- `GET /video/stream/{camera_id}`
+
+### WebSocket Streams (Socket.IO namespaces)
+- `/stream/robot_pose`
+- `/stream/costmap`
+- `/stream/logs`
+
+### Logs & Bags
+- `GET /logs`
+- `GET /logs/{mission_id}`
+- `POST /logs/record/start`
+- `POST /logs/record/stop`
+- `GET /bags`
+- `POST /bags/start`
+- `POST /bags/stop`
+
+### Diagnostics & System
+- `GET /diagnostics`
+- `GET /system/health`
+- `GET /system/resources`
+- `GET /system/uptime`
+
+### Sensors
+- `GET /sensors`
+- `GET /sensors/status`
+- `POST /sensors/reset`
+- `GET /sensors/{name}/status`
+
+### Perception
+- `GET /perception/objects`
+- `GET /perception/humans`
+- `GET /perception/obstacles`
+- `GET /perception/status`
+
+### Recovery
+- `GET /recovery/options`
+- `POST /recovery/execute`
+- `GET /recovery/status`
+
+### Safety
+- `GET /safety/status`
+- `POST /safety/stop`
+- `POST /safety/reset`
+- `POST /safety/acknowledge`
+
+### Docking
+- `GET /docking/detection`
+- `GET /docking/status`
+- `POST /docking/start`
+- `POST /docking/cancel`
+- `POST /docking/reset`
+
+### Missions
+- `GET /missions`
+- `POST /missions`
+- `GET /missions/{id}`
+- `PUT /missions/{id}`
+- `DELETE /missions/{id}`
+- `POST /missions/{id}/start`
+- `POST /missions/{id}/pause`
+- `POST /missions/{id}/resume`
+- `POST /missions/{id}/cancel`
+- `GET /missions/status`
+- `GET /missions/history`
+
+### Maps
+- `GET /maps`
+- `POST /maps`
+- `GET /maps/{map_id}`
+- `PUT /maps/{map_id}`
+- `DELETE /maps/{map_id}`
+- `POST /maps/load`
+- `POST /maps/save`
+- `GET /maps/current`
+
+### Zones
+- `GET /zones`
+- `POST /zones`
+- `GET /zones/{id}`
+- `PUT /zones/{id}`
+- `DELETE /zones/{id}`
+- `POST /zones/{id}/enable`
+- `POST /zones/{id}/disable`
+
+### Waypoints
+- `GET /waypoints`
+- `POST /waypoints`
+- `GET /waypoints/{id}`
+- `PUT /waypoints/{id}`
+- `DELETE /waypoints/{id}`
+
+### Navigation
+- `POST /navigation/goal`
+- `POST /navigation/cancel`
+- `GET /navigation/status`
+- `GET /navigation/feedback`
+- `POST /navigation/pause`
+- `POST /navigation/resume`
+- `POST /navigation/replan`
+- `GET /navigation/path`
+
+### Costmap
+- `GET /costmap`
+- `GET /costmap/local`
+- `GET /costmap/global`
+- `POST /costmap/reset`
+
+### Stats
+- `GET /stats`
+- `GET /stats/usage`
+- `GET /stats/navigation`
+- `GET /stats/missions`
+
+---
+
 ## 1. Node.js Backend REST API
 
 **Base URL**: `http://<server-ip>:5000`  
