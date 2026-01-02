@@ -119,14 +119,13 @@ start_ros2_stack
 
 echo "Starting Flask backend on ${FLASK_HOST}:${FLASK_PORT}..."
 cd "$BACKEND_DIR"
-if [[ -f "$BACKEND_DIR/.venv/bin/activate" ]]; then
-  source "$BACKEND_DIR/.venv/bin/activate"
+if [[ -f "/home/shahbaz/Project/Ongoing_project/Environment/AMR/bin/activate" ]]; then
+  # shellcheck disable=SC1091
+  source /home/shahbaz/Project/Ongoing_project/Environment/AMR/bin/activate
 else
-  echo "Error: Python venv not found."
-  echo "Run: ./setup_venv.sh"
+  echo "Error: Expected venv not found at /home/shahbaz/Project/Ongoing_project/Environment/AMR" >&2
   exit 1
 fi
-
 export FLASK_PORT FLASK_HOST FLASK_DEBUG
 python run.py &
 BACKEND_PID=$!
