@@ -65,7 +65,10 @@ backend/instance/users.db
 
 SHOBOT_AMR_ws/install
 SHOBOT_AMR_ws/build.env
-/backend/instance/users.db
+./backend/instance/users.db
+
+.gitignore
+run.sh
 
 backend/instance/users.db
 SHOBOT_AMR_ws/src/web_video_server
