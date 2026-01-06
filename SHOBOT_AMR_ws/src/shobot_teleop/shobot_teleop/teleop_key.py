@@ -86,6 +86,8 @@ class TeleopNode(Node):
         self.control_linear = 0.0
         self.control_angular = 0.0
 
+        if not sys.stdin.isatty():
+            raise RuntimeError("teleop_key requires a TTY stdin (run in a terminal).")
         self.old_settings = termios.tcgetattr(sys.stdin)
         self.get_logger().info(f"Publishing Twist on {topic} (model={self.model})")
         print(MSG)
@@ -144,7 +146,12 @@ class TeleopNode(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = TeleopNode()
+    try:
+        node = TeleopNode()
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
+        rclpy.shutdown()
+        return
     node.spin_keyboard()
     node.destroy_node()
     rclpy.shutdown()

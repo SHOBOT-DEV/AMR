@@ -2,6 +2,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
@@ -51,7 +52,7 @@ def generate_launch_description():
                 output="screen",
                 parameters=[
                     {
-                        "sources": sources,
+                        "sources": ParameterValue(sources, value_type=str),
                         "dock_pose_topic": dock_pose_topic,
                         "dock_detected_topic": dock_detected_topic,
                         "pose_frame_override": pose_frame_override,

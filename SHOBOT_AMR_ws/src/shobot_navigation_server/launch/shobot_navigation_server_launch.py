@@ -10,7 +10,7 @@ def generate_launch_description():
             name="shobot_navigation_server",
             output="screen",
             parameters=[
-                {"nav2_action_name": "navigate_to_pose"},
+                {"nav2_action_name": "/navigate_to_pose"},
                 {"status_topic": "/navigation_server/status"},
             ],
         )

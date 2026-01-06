@@ -7,7 +7,7 @@ Includes QoS, safety checks, and field consistency verification.
 from typing import List, Dict
 
 import rclpy
-import sensor_msgs.point_cloud2 as pc2
+from sensor_msgs_py import point_cloud2 as pc2
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from sensor_msgs.msg import PointCloud2, PointField

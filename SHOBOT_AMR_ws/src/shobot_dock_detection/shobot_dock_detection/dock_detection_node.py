@@ -37,11 +37,7 @@ class DockDetectionNode(Node):
         # Parameters
         self.declare_parameter(
             "sources",
-            [
-                # Example entries:
-                # "apriltag:/dock/apriltag_pose:1.0",
-                # "aruco:/dock/aruco_pose:1.0",
-            ],
+            "",
         )
         self.declare_parameter("dock_pose_topic", "/dock_pose")
         self.declare_parameter("dock_detected_topic", "/dock_detected")

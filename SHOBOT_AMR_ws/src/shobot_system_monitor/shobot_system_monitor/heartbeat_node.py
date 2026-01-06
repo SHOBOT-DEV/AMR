@@ -46,11 +46,11 @@ class HeartbeatNode(Node):
         self.declare_parameter("rate_hz", 1.0)
         self.declare_parameter(
             "sensor_topics",
-            [],  # list of "name:topic:timeout_sec[:type]" (type optional)
+            "",  # list of "name:topic:timeout_sec[:type]" (type optional)
         )
         self.declare_parameter(
             "node_topics",
-            [],  # list of "name:topic:timeout_sec[:type]" (type optional)
+            "",  # list of "name:topic:timeout_sec[:type]" (type optional)
         )
 
         self.heartbeat_topic = self.get_parameter("heartbeat_topic").value

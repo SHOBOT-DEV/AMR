@@ -22,7 +22,7 @@ def generate_launch_description():
         # Teleop keyboard publisher (optional; runs in terminal)
         Node(
             package="shobot_teleop",
-            executable="shobot_teleop_node",
+            executable="teleop_key",
             name="shobot_teleop",
             output="screen",
             parameters=[{"teleop_topic": "/cmd_vel/teleop"}],
@@ -99,7 +99,7 @@ def generate_launch_description():
                 {"goal_topic": "/goal_pose"},
                 {"status_topic": "/navigation_status"},
                 {"feedback_topic": "/navigation_feedback"},
-                {"nav2_action_name": "navigate_to_pose"},
+                {"nav2_action_name": "/navigate_to_pose"},
                 {"planner_mode": planner_mode},
                 {"path_goal_topic": path_goal_topic},
             ],

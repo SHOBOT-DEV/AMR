@@ -24,12 +24,12 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "sensor_topics",
-                default_value="[]",
+                default_value="",
                 description="List of 'name:topic:timeout_sec' strings for sensors.",
             ),
             DeclareLaunchArgument(
                 "node_topics",
-                default_value="[]",
+                default_value="",
                 description="List of 'name:topic:timeout_sec' strings for nodes.",
             ),
             Node(
