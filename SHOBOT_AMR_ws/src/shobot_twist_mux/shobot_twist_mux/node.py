@@ -28,7 +28,7 @@ class TwistMux(Node):
         super().__init__("shobot_twist_mux")
 
         # ---------------- Parameters ----------------
-        self.declare_parameter("sources", "")
+        self.declare_parameter("sources", ["safety", "teleop", "nav"])
         self.declare_parameter("priorities", "")
         self.declare_parameter("timeouts", "")
         self.declare_parameter("topics", "")

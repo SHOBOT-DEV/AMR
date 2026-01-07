@@ -86,9 +86,16 @@ class TeleopNode(Node):
         self.control_linear = 0.0
         self.control_angular = 0.0
 
-        if not sys.stdin.isatty():
-            raise RuntimeError("teleop_key requires a TTY stdin (run in a terminal).")
-        self.old_settings = termios.tcgetattr(sys.stdin)
+        self.has_tty = sys.stdin.isatty()
+        self.old_settings = None
+        if not self.has_tty:
+            self.get_logger().warn("teleop_key requires a TTY stdin; keyboard control disabled.")
+        else:
+            try:
+                self.old_settings = termios.tcgetattr(sys.stdin)
+            except termios.error:
+                self.has_tty = False
+                self.get_logger().warn("teleop_key requires a functional TTY stdin; keyboard control disabled.")
         self.get_logger().info(f"Publishing Twist on {topic} (model={self.model})")
         print(MSG)
         try:
@@ -99,6 +106,9 @@ class TeleopNode(Node):
         self.rate_timer = self.create_timer(self.rate_period, lambda: None)
 
     def spin_keyboard(self):
+        if not self.has_tty:
+            rclpy.spin(self)
+            return
         status = 0
         try:
             while rclpy.ok():
@@ -141,17 +151,13 @@ class TeleopNode(Node):
         finally:
             twist = Twist()
             self.publisher_.publish(twist)
-            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.old_settings)
+            if self.has_tty and self.old_settings is not None:
+                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.old_settings)
 
 
 def main(args=None):
     rclpy.init(args=args)
-    try:
-        node = TeleopNode()
-    except RuntimeError as exc:
-        print(str(exc), file=sys.stderr)
-        rclpy.shutdown()
-        return
+    node = TeleopNode()
     node.spin_keyboard()
     node.destroy_node()
     rclpy.shutdown()

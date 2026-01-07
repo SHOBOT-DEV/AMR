@@ -22,7 +22,8 @@ class ZoneManagementNode(Node):
         # -------------------- Parameters --------------------
         self.declare_parameter("pose_topic", "/robot_pose")
         self.declare_parameter("zone_topic", "/zone_status")
-        self.declare_parameter("zones", "")
+        # ROS 2 parameters do not support list-of-dict types; accept JSON string.
+        self.declare_parameter("zones", "[]")
 
         pose_topic = self.get_parameter("pose_topic").value
         zone_topic = self.get_parameter("zone_topic").value

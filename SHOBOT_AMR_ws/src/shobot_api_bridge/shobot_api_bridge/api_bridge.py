@@ -103,11 +103,11 @@ APP_HOST = "0.0.0.0"
 APP_PORT = 8000
 
 
-def start_ros():
+def start_ros(args=None):
     """Start ROS2 node + executor in background thread."""
     global node, executor, spin_thread, APP_HOST, APP_PORT
 
-    rclpy.init()
+    rclpy.init(args=args)
     node = ApiBridge()
     APP_HOST = str(node.get_parameter("api_host").value)
     APP_PORT = int(node.get_parameter("api_port").value)
@@ -208,10 +208,10 @@ def api_camera_stream():
 # ENTRY POINT
 # ======================================================================
 
-def main():
-    start_ros()
+def main(args=None):
+    start_ros(args=args)
     try:
-        app.run(host=APP_HOST, port=APP_PORT, threaded=True)
+        app.run(host=APP_HOST, port=APP_PORT, threaded=True, use_reloader=False)
     finally:
         shutdown_ros()
 

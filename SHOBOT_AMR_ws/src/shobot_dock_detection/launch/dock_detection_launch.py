@@ -17,7 +17,7 @@ def generate_launch_description():
         [
             DeclareLaunchArgument(
                 "sources",
-                default_value="[]",
+                default_value="",
                 description="List of 'name:topic:timeout_sec' PoseStamped detection sources.",
             ),
             DeclareLaunchArgument(
