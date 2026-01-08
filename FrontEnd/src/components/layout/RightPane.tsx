@@ -23,7 +23,7 @@ import Account from "../rightPane/settings/Account.tsx";
 import Robot from "../rightPane/settings/Robot.tsx";
 import Appearance from "../rightPane/settings/Appearance.tsx";
 import Security from "../rightPane/settings/Security.tsx";
-import Integrations  from "../rightPane/settings/Integrations.tsx";
+import Integrations from "../rightPane/settings/Integrations.tsx";
 
 
 import {
@@ -38,9 +38,9 @@ import {
 
 const RightPane = (props) => {
   // --- Local State ---
-  
+
   const [editingUserId, setEditingUserId] = useState(null);
-  
+
   const [editUserForm, setEditUserForm] = useState({
     username: "",
     email: "",
@@ -61,10 +61,10 @@ const RightPane = (props) => {
     category: "",
     createdAt: "",
   });
-  
+
   const [isRecording, setIsRecording] = useState(false);
   const mapImageInputRef = useRef(null);
-  
+
   // --- Destructure Props ---
   const {
     rightPage,
@@ -196,14 +196,14 @@ const RightPane = (props) => {
   };
 
   const safeNumber = (value?: number): number => {
-  return typeof value === "number" && !isNaN(value) ? value : 0;
-};
+    return typeof value === "number" && !isNaN(value) ? value : 0;
+  };
   // --- Render ---
 
   return (
     <aside
       className={`
-        fixed right-0 top-14 w-full lg:w-1/2 h-[calc(100vh-3.5rem)]
+        fixed right-0 top-14 w-full lg:w-[calc(50%-1.5rem)] h-[calc(100vh-3.5rem)]
         bg-white shadow-2xl z-40 flex flex-col border-l border-slate-200
         text-slate-900 transition-all duration-300 ease-in-out
         ${rightPage ? "translate-x-0 opacity-100" : "translate-x-full opacity-0 pointer-events-none"}
@@ -272,7 +272,7 @@ const RightPane = (props) => {
 
         {/* Stats Component Injection */}
         {rightPage === "stats" && (<Stats {...props} />)}
-        
+
         {/* ACCOUNT SETTINGS */}
         {rightPage === "account" && (<Account {...props} />)}
 
@@ -284,13 +284,13 @@ const RightPane = (props) => {
 
         {/* SECURITY SETTINGS */}
         {rightPage === "security" && (<Security {...props} />)}
-        
+
         {/* INTEGRATIONS */}
-        {rightPage === "integrations" && (<Integrations {...props} />)}        
+        {rightPage === "integrations" && (<Integrations {...props} />)}
 
       </div>
     </aside>
   );
 };
 
-export default RightPane;
+export default React.memo(RightPane);

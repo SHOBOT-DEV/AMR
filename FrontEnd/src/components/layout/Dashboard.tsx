@@ -4,7 +4,6 @@ import React, {
   useState,
   useCallback,
   type KeyboardEvent,
-  useMemo,
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast, Toaster } from "react-hot-toast";
@@ -12,49 +11,244 @@ import { toast, Toaster } from "react-hot-toast";
 import Sidebar from "./SideBar.tsx";
 import Header from "./Header.tsx";
 import MapArea from "../map/MapArea.tsx";
-import RightPane from "./RightPane.tsx";
+import RightPane from "../test/RightPane.tsx";
 import JoyStick from "../map/JoyStick.tsx";
-import { AMR_BRIDGE_BASE, fetchBridgeStatus } from "../../utils/amrBridge";
-import { CreateProvider, useCreate } from "../../context/CreateContext.tsx";
-import { StatsProvider, useStats } from "../../context/StatsContext.tsx";
-import { MonitorProvider, useMonitor } from "../../context/MonitorContext.tsx";
-import { ChatProvider, useChat } from "../../context/ChatContext.tsx";
-import { SettingsProvider, useSettings } from "../../context/SettingsContext.tsx";
-
 import { fetchWithAuth, clearAuthTokens, API_BASE } from "../../utils/auth";
+import { AMR_BRIDGE_BASE, fetchBridgeStatus } from "../../utils/amrBridge";
+
+
+type MissionTrendEntry = {
+  label: string;
+  completed: number;
+  incidents: number;
+};
+
+type MonthlyMovementEntry = {
+  month: string;
+  km: number;
+};
+
+type BatteryPoint = {
+  time: string;
+  voltage: number;
+  power: number;
+};
+
+type BatteryStatus = {
+  packVoltage: number;
+  packCurrent: number;
+  stateOfCharge: number;
+  temperature: string;
+  cycles: number;
+  health: string;
+  cells?: Array<{ id: string; voltage: number }>;
+};
+
+
+type JoystickState = {
+  x: number;
+  y: number;
+  force: number;
+  angle: number;
+  type: string | null;
+};
+
+type BridgeStatus = {
+  connected: boolean;
+  endpoint: string;
+  error?: string;
+};
+
 const API_V1_BASE = `${API_BASE}/api/v1`;
 
 
-type JoystickState = { x: number; y: number; force: number; angle: number; type: string | null };
+const SAMPLE_MAPS = [
+  {
+    id: "cfl_gf",
+    name: "CFL_GF",
+    createdBy: "CNDE IITM",
+    image: "",
+    status: "Active",
+    category: "Production",
+    createdAt: "2025-11-17",
+  },
+  {
+    id: "arena",
+    name: "Shobot Arena",
+    createdBy: "ANSCER ADMIN",
+    image: "/images/maps/shobot_arena.png",
+    status: "Draft",
+    category: "Testing",
+    createdAt: "2025-11-16",
+  },
+];
 
-type BridgeStatus = { connected: boolean; endpoint: string; error?: string };
+const SAMPLE_WAYPOINTS = [
+  {
+    id: "wp1",
+    mapId: "cfl_gf",
+    name: "WP_A",
+    category: "Nav",
+    active: true,
+    geom: "Point(40 12)",
+    createdAt: "2025-11-17",
+    notes: "Primary pickup",
+  },
+  {
+    id: "wp2",
+    mapId: "cfl_gf",
+    name: "WP_B",
+    category: "Inspect",
+    active: false,
+    geom: "Point(98 76)",
+    createdAt: "2025-11-17",
+    notes: "Inspection point",
+  },
+];
+
+const SAMPLE_ZONES = [
+  {
+    id: "z1",
+    mapId: "arena",
+    name: "Dock Corridor",
+    category: "Safe",
+    active: true,
+    geometry: "Polygon(88,44…)",
+    createdAt: "2025-11-16",
+  },
+  {
+    id: "z2",
+    mapId: "arena",
+    name: "Battery Corner",
+    category: "No-Go",
+    active: true,
+    geometry: "Polygon(27,11…)",
+    createdAt: "2025-11-15",
+  },
+];
+
+const SAMPLE_MISSIONS = [
+  {
+    id: "m1",
+    mapId: "cfl_gf",
+    name: "Inspect Zone A",
+    owner: "CNDE",
+    status: "Draft",
+    createdAt: "2025-11-17",
+    notes: "Routine inspection",
+  },
+  {
+    id: "m2",
+    mapId: "cfl_gf",
+    name: "Delivery Route 3",
+    owner: "ANSCER ADMIN",
+    status: "Scheduled",
+    createdAt: "2025-11-16",
+    notes: "Delivery to docks",
+  },
+];
+
+const SAMPLE_USERS = [
+  {
+    id: 1,
+    username: "john_doe",
+    email: "john.doe@example.com",
+    company: "ANSCER Robotics",
+    amr_type: "Type A",
+    role: "user",
+    approval: "Approved",
+  },
+  {
+    id: 2,
+    username: "jane_smith",
+    email: "jane.smith@example.com",
+    company: "CNDE IITM",
+    amr_type: "Type B",
+    role: "user",
+    approval: "Pending",
+  },
+  {
+    id: 3,
+    username: "alice_johnson",
+    email: "alice.johnson@example.com",
+    company: "Innovation Labs",
+    amr_type: "Type C",
+    role: "user",
+    approval: "Rejected",
+  },
+];
+
+const SAMPLE_ANALYTICS_SUMMARY = [
+  { label: "Incidents", value: 2, trend: "+1 vs last week" },
+  { label: "Stops Issued", value: 14, trend: "-3 vs last week" },
+  { label: "Battery Swaps", value: 5, trend: "Stable" },
+];
+
+const SAMPLE_ANALYTICS_SERIES = [12, 18, 22, 16, 24, 26, 20];
+
+const SAMPLE_ANALYTICS_ALERTS = [
+  {
+    id: "alert1",
+    title: "Obstacle spikes",
+    detail: "Lidar reported 5 high-density events on Dock Tunnel.",
+  },
+  {
+    id: "alert2",
+    title: "Slow return",
+    detail: "Mission Delivery Route 3 exceeded SLA by 4 min.",
+  },
+];
+
+const SAMPLE_DIAGNOSTICS = [
+  { id: "battery", title: "Battery Health", value: "93%", status: "Nominal", detail: "Cells balanced" },
+  { id: "motors", title: "Drive Motors", value: "Temp 48°C", status: "Monitoring", detail: "Torque variance +3%" },
+];
+
+const SAMPLE_LOG_EVENTS = [
+  { id: "log1", ts: "10:42:01", system: "Navigation", message: "Replanned path around blocked aisle", level: "info" },
+  { id: "log2", ts: "10:15:22", system: "Safety", message: "Emergency stop acknowledged", level: "warn" },
+];
+
+const SAMPLE_MISSION_HISTORY = [
+  { id: "mh1", mission: "Inspect Zone A", window: "08:00–08:18", outcome: "Completed", notes: "No issues" },
+  { id: "mh2", mission: "Delivery Route 3", window: "08:30–09:10", outcome: "Delayed", notes: "Obstacle at Dock Tunnel" },
+];
+
+const SAMPLE_BAG_FILES = [
+  { id: "bag1", name: "mission-0915.bag", duration: "15m", size: "1.4 GB", status: "Uploaded" },
+  { id: "bag2", name: "mission-1030.bag", duration: "26m", size: "2.7 GB", status: "Processing" },
+];
+
+const SAMPLE_SECURITY_EVENTS = [
+  { id: "sec1", ts: "09:44", actor: "ops-admin", action: "API token created", context: "Main console" },
+  { id: "sec2", ts: "08:12", actor: "robot-01", action: "Cert renewed", context: "Device" },
+];
+
+const SAMPLE_INTEGRATIONS = [
+  { id: "rest", name: "REST API", status: "Connected", description: "Push missions from MES" },
+  { id: "slack", name: "Slack Bot", status: "Disconnected", description: "Alerts to #robot-ops" },
+  { id: "grafana", name: "Grafana", status: "Connected", description: "Telemetry dashboards" },
+];
+
+const SAMPLE_CHAT_MESSAGES = [
+  {
+    id: 1,
+    text: "Hello! I'm your robot assistant. How can I help you today?",
+    sender: "robot",
+    timestamp: new Date().toISOString(),
+    status: "Delivered",
+  },
+];
+
+const CHAT_QUICK_PROMPTS = [
+  "Provide current mission status",
+  "Return to docking station",
+  "Begin perimeter scan",
+  "Share latest sensor alerts",
+];
 
 const LINE_CHART_SIZE = { width: 420, height: 180 };
 const ANALYTICS_CHART_SIZE = { width: 280, height: 80 };
-
-// Static variable ends here
-
-const PANEL_IDS = new Set([
-  "maps",
-  "zones",
-  "waypoints",
-  "missions",
-  "users",
-  "analytics",
-  "diagnostics",
-  "logs",
-  "camera",
-  "bridge",
-  "mission-logs",
-  "robot-bags",
-  "chat",
-  "stats",
-  "robot-settings",
-  "account",
-  "appearance",
-  "security",
-  "integrations",
-]);
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -65,7 +259,7 @@ const Dashboard: React.FC = () => {
   const [batteryLevel, setBatteryLevel] = useState(100);
   const [rightPage, setRightPage] = useState<string | null>(null);
   const [minimizedMain, setMinimizedMain] = useState(false);
-
+  
   // Auto-minimize map when right pane opens
   useEffect(() => {
     setMinimizedMain(Boolean(rightPage));
@@ -73,20 +267,14 @@ const Dashboard: React.FC = () => {
 
   const [zoomLevel, setZoomLevel] = useState<number>(1);
 
-  const handleZoom = useCallback((delta: number): void => {
+  const handleZoom = (delta: number): void => {
     setZoomLevel(prev => Math.min(Math.max(prev + delta, 0.1), 3));
-  }, []);
-
-  const handleZoomIn = useCallback(() => handleZoom(0.1), [handleZoom]);
-  const handleZoomOut = useCallback(() => handleZoom(-0.1), [handleZoom]);
-
-  const handleLockedToast = useCallback(() => {
-    toast.error("Screen is locked");
-  }, []);
+  };
 
   const toggleMapZoom = (): void => {
     setZoomLevel(prev => prev === 1 ? 1.8 : 1);
   };
+
   const [joystickState, setJoystickState] = useState<JoystickState>({
     x: 0,
     y: 0,
@@ -95,37 +283,23 @@ const Dashboard: React.FC = () => {
     type: null,
   });
 
-  // Guarded joystick state update: only set when values meaningfully change
   const handleJoystickMove = useCallback((data: Partial<JoystickState>) => {
-    setJoystickState((prev) => {
-      const newState: JoystickState = {
-        x: data.x ?? 0,
-        y: data.y ?? 0,
-        force: data.force ?? 0,
-        angle: data.angle ?? 0,
-        type: data.type || "joystick",
-      };
-
-      // quick shallow equality check with small epsilon for floats
-      const almostEqual = (a: number, b: number) => Math.abs(a - b) < 1e-3;
-      if (
-        prev.type === newState.type &&
-        almostEqual(prev.x, newState.x) &&
-        almostEqual(prev.y, newState.y) &&
-        almostEqual(prev.force, newState.force) &&
-        almostEqual(prev.angle, newState.angle)
-      ) {
-        return prev; // no meaningful change -> do not trigger re-render
-      }
-      return newState;
-    });
+    const newState: JoystickState = {
+      x: data.x ?? 0,
+      y: data.y ?? 0,
+      force: data.force ?? 0,
+      angle: data.angle ?? 0,
+      type: data.type || "joystick",
+    };
+    setJoystickState(newState);
   }, []);
 
-  const { mapsList, setMapsList, selectedMap, setSelectedMap, waypoints, setWaypoints, zones, setZones, missions, setMissions, users, setUsers } = useCreate();
+  const [mapsList, setMapsList] = useState<any[]>(SAMPLE_MAPS);
+  const [selectedMap, setSelectedMap] = useState<any>(SAMPLE_MAPS[1]);
   const [mapSearchField, setMapSearchField] = useState<string>("any");
   const [mapSearchTerm, setMapSearchTerm] = useState<string>("");
 
-  // zones provided by CreateContext (see useCreate)
+  const [zones, setZones] = useState<any[]>(SAMPLE_ZONES);
   const [zoneFormOpen, setZoneFormOpen] = useState(false);
   const [zoneForm, setZoneForm] = useState({
     name: "",
@@ -136,7 +310,7 @@ const Dashboard: React.FC = () => {
   const [zoneSearchField, setZoneSearchField] = useState("any");
   const [zoneSearchTerm, setZoneSearchTerm] = useState("");
 
-  // waypoints provided by CreateContext
+  const [waypoints, setWaypoints] = useState<any[]>(SAMPLE_WAYPOINTS);
   const [waypointFormOpen, setWaypointFormOpen] = useState(false);
   const [waypointForm, setWaypointForm] = useState({
     name: "",
@@ -150,7 +324,7 @@ const Dashboard: React.FC = () => {
     setSelectedWaypointId(waypointId);
   }, []);
 
-  // missions provided by CreateContext
+  const [missions, setMissions] = useState<any[]>(SAMPLE_MISSIONS);
   const [selectedMissionId, setSelectedMissionId] = useState<string | null>(null);
   const handleSelectMission = useCallback((missionId: string) => {
     setSelectedMissionId(missionId);
@@ -163,7 +337,7 @@ const Dashboard: React.FC = () => {
     notes: "",
   });
 
-  // users provided by CreateContext
+  const [users, setUsers] = useState<any[]>(SAMPLE_USERS);
   const [usersLoading, setUsersLoading] = useState(false);
   const [usersError, setUsersError] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
@@ -182,7 +356,13 @@ const Dashboard: React.FC = () => {
     }, 700);
   }, []);
 
-  const { analyticsSummary, analyticsSeries, analyticsAlerts, diagnosticsPanels, logEvents, missionHistory, bagFiles, bridgeStatus, setBridgeStatus } = useMonitor();
+  const [analyticsSummary] = useState(SAMPLE_ANALYTICS_SUMMARY);
+  const [analyticsSeries] = useState<number[]>(SAMPLE_ANALYTICS_SERIES);
+  const [analyticsAlerts] = useState(SAMPLE_ANALYTICS_ALERTS);
+  const [diagnosticsPanels] = useState(SAMPLE_DIAGNOSTICS);
+  const [logEvents] = useState(SAMPLE_LOG_EVENTS);
+  const [missionHistory] = useState(SAMPLE_MISSION_HISTORY);
+  const [bagFiles] = useState(SAMPLE_BAG_FILES);
 
   const [robotSettingsState, setRobotSettingsState] = useState<Record<string, boolean>>({
     autopilot: true,
@@ -225,22 +405,21 @@ const Dashboard: React.FC = () => {
     autoLock: true,
     anomalyAlerts: true,
   });
-  const { integrationItems, setIntegrationItems, securityEvents } = useSettings();
-  const toggleSecurityPref = useCallback((key: keyof typeof securityPreferences) => {
+  const [securityEvents] = useState(SAMPLE_SECURITY_EVENTS);
+  const toggleSecurityPref = useCallback((key: string) => {
     setSecurityPreferences((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
+  const [integrationItems, setIntegrationItems] = useState(SAMPLE_INTEGRATIONS);
   const toggleIntegrationStatus = useCallback((id: string) => {
-    setIntegrationItems((items: any[]) =>
-      items.map((item: any) =>
-        item.id === id ? { ...item, status: item.status === "Connected" ? "Disconnected" : "Connected" } : item,
+    setIntegrationItems((items) =>
+      items.map((item) =>
+        item.id === id
+          ? { ...item, status: item.status === "Connected" ? "Disconnected" : "Connected" }
+          : item,
       ),
     );
-  }, [setIntegrationItems]);
-
-  const { statsData, setStatsData } = useStats();
-  const [statsError, setStatsError] = useState("");
-  const [statsLoading, setStatsLoading] = useState(false);
+  }, []);
 
   const lineChartSize = LINE_CHART_SIZE;
   const analyticsChartSize = ANALYTICS_CHART_SIZE;
@@ -287,46 +466,46 @@ const Dashboard: React.FC = () => {
     [analyticsChartSize],
   );
 
-  // Memoize analyticsPath to avoid recomputing every render
-  const analyticsPath = useMemo(
-    () => buildSimplePath(analyticsSeries, analyticsChartSize),
-    [buildSimplePath, analyticsSeries, analyticsChartSize],
-  );
+  const analyticsPath = buildSimplePath(analyticsSeries, analyticsChartSize);
+  const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>({
+    connected: false,
+    endpoint: AMR_BRIDGE_BASE,
+    error: "",
+  });
 
   useEffect(() => {
-      let mounted = true;
-      let timer: ReturnType<typeof setInterval> | null = null;
-  
-      const pollBridge = async () => {
-        try {
-          const data = await fetchBridgeStatus(AMR_BRIDGE_BASE);
-          if (!mounted) return;
-          setBridgeStatus({
-            connected: data?.status === "online",
-            endpoint: AMR_BRIDGE_BASE,
-            error: "",
-          });
-        } catch (err) {
-          if (!mounted) return;
-          const message =
-            err instanceof Error ? err.message : "Bridge offline";
-          setBridgeStatus({
-            connected: false,
-            endpoint: AMR_BRIDGE_BASE,
-            error: message,
-          });
-        }
-      };
-  
-      pollBridge();
-      timer = setInterval(pollBridge, 5000);
-  
-      return () => {
-        mounted = false;
-        if (timer) clearInterval(timer);
-      };
-    }, []);
-  // bridgeStatus is provided by MonitorContext (useMonitor)
+    let mounted = true;
+    let timer: ReturnType<typeof setInterval> | null = null;
+
+    const pollBridge = async () => {
+      try {
+        const data = await fetchBridgeStatus(AMR_BRIDGE_BASE);
+        if (!mounted) return;
+        setBridgeStatus({
+          connected: data?.status === "online",
+          endpoint: AMR_BRIDGE_BASE,
+          error: "",
+        });
+      } catch (err) {
+        if (!mounted) return;
+        const message =
+          err instanceof Error ? err.message : "Bridge offline";
+        setBridgeStatus({
+          connected: false,
+          endpoint: AMR_BRIDGE_BASE,
+          error: message,
+        });
+      }
+    };
+
+    pollBridge();
+    timer = setInterval(pollBridge, 5000);
+
+    return () => {
+      mounted = false;
+      if (timer) clearInterval(timer);
+    };
+  }, []);
 
   const requestV1 = useCallback(
     async (path: string, options: RequestInit = {}) => {
@@ -398,7 +577,7 @@ const Dashboard: React.FC = () => {
     (action: string, map: any) => {
       if (action === "delete") {
         setMapsList((prev) => prev.filter((entry) => entry.id !== map.id));
-        setSelectedMap((prev: any) => (prev?.id === map.id ? null : prev));
+        setSelectedMap((prev) => (prev?.id === map.id ? null : prev));
         toast.success("Map deleted");
         return;
       }
@@ -407,9 +586,10 @@ const Dashboard: React.FC = () => {
     [],
   );
 
-  const { chatMessages, setChatMessages, chatQuickPrompts } = useChat();
+  const [chatMessages, setChatMessages] = useState(SAMPLE_CHAT_MESSAGES);
   const [chatInput, setChatInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const chatQuickPrompts = CHAT_QUICK_PROMPTS;
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const latestMessage = chatMessages[chatMessages.length - 1] ?? null;
 
@@ -434,11 +614,11 @@ const Dashboard: React.FC = () => {
       timestamp: new Date().toISOString(),
       status: "Sent",
     };
-    setChatMessages((prev: any[]) => [...prev, outbound]);
+    setChatMessages((prev) => [...prev, outbound]);
     setChatInput("");
     setIsTyping(true);
     setTimeout(() => {
-      setChatMessages((prev: any[]) => [
+      setChatMessages((prev) => [
         ...prev,
         {
           id: Date.now(),
@@ -474,24 +654,12 @@ const Dashboard: React.FC = () => {
     return () => window.removeEventListener("keydown", onKey as any);
   }, [isLocked, handleToggleLock]);
 
-  // Memoized sidebar handlers to avoid recreating on every render
-  const handleSidebarSelect = useCallback((id: string) => {
-    setRightPage(PANEL_IDS.has(id) ? id : null);
-  }, []);
-
-  const handleSidebarBack = useCallback(() => setRightPage(null), []);
-
-  // stable unlock handler
-  const handleUnlock = useCallback((event?: React.SyntheticEvent) => {
-    if (event) event.stopPropagation();
-    setIsLocked(false);
-  }, []);
-
   return (
     <div
       ref={layoutRef}
-      className={`flex h-screen w-screen flex-col overflow-hidden bg-slate-50 ${isLocked ? "pointer-events-none select-none filter blur-sm" : ""
-        }`}
+      className={`flex h-screen w-screen flex-col overflow-hidden bg-slate-50 ${
+        isLocked ? "pointer-events-none select-none filter blur-sm" : ""
+      }`}
     >
       <Toaster position="top-center" />
 
@@ -548,17 +716,41 @@ const Dashboard: React.FC = () => {
       <div className="relative flex h-full flex-1 pt-14">
 
         <Sidebar
-          onSelect={handleSidebarSelect}
-          onBack={handleSidebarBack}
+          onSelect={(id) => {
+            const panelIds = new Set([
+              "maps",
+              "zones",
+              "waypoints",
+              "missions",
+              "users",
+              "analytics",
+              "diagnostics",
+              "logs",
+              "camera",
+              "bridge",
+              "mission-logs",
+              "robot-bags",
+              "chat",
+              "stats",
+              "robot-settings",
+              "account",
+              "appearance",
+              "security",
+              "integrations",
+            ]);
+            setRightPage(panelIds.has(id) ? id : null);
+          }}
+          onBack={() => setRightPage(null)}
         />
 
         <div className="relative ml-16 flex flex-1 overflow-hidden">
           {/* Left content wrapper that shrinks when right pane opens */}
           <div
-            className={`relative h-full ${minimizedMain
-              ? "shrink-0 basis-1/2 flex-none"
-              : "flex-auto basis-full"
-              }`}
+            className={`relative h-full ${
+              minimizedMain
+                ? "shrink-0 basis-1/2 flex-none"
+                : "flex-auto basis-full"
+            }`}
           >
             {/* Map Area */}
             <MapArea
@@ -569,9 +761,9 @@ const Dashboard: React.FC = () => {
             />
 
             {/* Zoom Controls - Top Right within left content */}
-            <div className="absolute right-12 top-6 z-20 flex flex-col gap-2 bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+            <div className="absolute right-6 top-20 z-20 flex flex-col gap-2 bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
               <button
-                onClick={handleZoomIn}
+                onClick={() => handleZoom(0.1)}
                 className="p-3 hover:bg-gray-50 active:bg-gray-100 text-slate-600 font-bold transition-colors"
                 title="Zoom In"
                 aria-label="Zoom in"
@@ -580,7 +772,7 @@ const Dashboard: React.FC = () => {
               </button>
               <div className="border-b border-gray-200"></div>
               <button
-                onClick={handleZoomOut}
+                onClick={() => handleZoom(-0.1)}
                 className="p-3 hover:bg-gray-50 active:bg-gray-100 text-slate-600 font-bold transition-colors"
                 title="Zoom Out"
                 aria-label="Zoom out"
@@ -593,22 +785,23 @@ const Dashboard: React.FC = () => {
             <div
               className={`
                 absolute pointer-events-auto z-[25]
-                ${minimizedMain
-                  ? "right-2 bottom-2 z-[30]"
-                  : "right-8 bottom-8 max-[1000px]:right-4 max-[1000px]:bottom-4 max-[800px]:right-3 max-[800px]:bottom-3"
+                ${
+                  minimizedMain
+                    ? "right-2 bottom-2 z-[30]"
+                    : "right-8 bottom-8 max-[1000px]:right-4 max-[1000px]:bottom-4 max-[800px]:right-3 max-[800px]:bottom-3"
                 }
               `}
             >
               <JoyStick width={140} height={140} onMove={handleJoystickMove} />
             </div>
           </div>
-          {/*static variables starts here */}
+
           {rightPage && (
             <RightPane
               // UI Control
               rightPage={rightPage}
               setRightPage={setRightPage}
-
+              
               // Maps
               mapsList={mapsList}
               setMapsList={setMapsList}
@@ -623,7 +816,7 @@ const Dashboard: React.FC = () => {
               setMapSearchTerm={setMapSearchTerm}
               requestV1={requestV1}
               toast={toast}
-
+              
               // Zones
               zones={zones}
               setZones={setZones}
@@ -635,7 +828,7 @@ const Dashboard: React.FC = () => {
               setZoneSearchField={setZoneSearchField}
               zoneSearchTerm={zoneSearchTerm}
               setZoneSearchTerm={setZoneSearchTerm}
-
+              
               // Waypoints
               waypoints={waypoints}
               setWaypoints={setWaypoints}
@@ -645,7 +838,7 @@ const Dashboard: React.FC = () => {
               setWaypointForm={setWaypointForm}
               handleSelectWaypoint={handleSelectWaypoint}
               setSelectedWaypointId={setSelectedWaypointId}
-
+              
               // Users
               users={users}
               usersLoading={usersLoading}
@@ -655,7 +848,7 @@ const Dashboard: React.FC = () => {
               setSelectedUserId={setSelectedUserId}
               userActionLoading={userActionLoading}
               handleResetUserPassword={handleResetUserPassword}
-
+              
               // Missions
               missions={missions}
               setMissions={setMissions}
@@ -666,7 +859,7 @@ const Dashboard: React.FC = () => {
               selectedMissionId={selectedMissionId}
               setSelectedMissionId={setSelectedMissionId}
               handleSelectMission={handleSelectMission}
-
+              
               // Data & Analytics
               analyticsSummary={analyticsSummary}
               analyticsSeries={analyticsSeries}
@@ -677,7 +870,7 @@ const Dashboard: React.FC = () => {
               bagFiles={bagFiles}
               analyticsChartSize={analyticsChartSize}
               analyticsPath={analyticsPath}
-
+              
               // Settings & Account
               robotSettingsState={robotSettingsState}
               toggleRobotSetting={toggleRobotSetting}
@@ -694,7 +887,7 @@ const Dashboard: React.FC = () => {
               securityEvents={securityEvents}
               integrationItems={integrationItems}
               toggleIntegrationStatus={toggleIntegrationStatus}
-
+              
               // Stats (spread specific stats fields if they are inside an object like statsData)
               overview={statsData.overview}
               missionTrend={statsData.missionTrend}
@@ -707,7 +900,7 @@ const Dashboard: React.FC = () => {
               lineChartSize={lineChartSize}
               buildLinePath={buildLinePath}
               buildSimplePath={buildSimplePath}
-
+              
               // Chat
               chatMessages={chatMessages}
               chatInput={chatInput}
@@ -722,10 +915,9 @@ const Dashboard: React.FC = () => {
               latestMessage={latestMessage}
             />
           )}
-
         </div>
       </div>
-      {/* static variables ends here */}
+
       {isLocked ? (
         <div
           className="fixed inset-0 z-[9999] flex cursor-not-allowed items-center justify-center bg-black/50 backdrop-blur-md"
@@ -739,7 +931,10 @@ const Dashboard: React.FC = () => {
 
           <button
             className="pointer-events-auto absolute right-6 top-6 rounded-full bg-white/10 p-3 text-white transition-all hover:bg-white/20"
-            onClick={handleUnlock}
+            onClick={(event) => {
+              event.stopPropagation();
+              setIsLocked(false);
+            }}
             aria-label="Unlock"
           />
         </div>
@@ -748,18 +943,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-const DashboardWithProviders: React.FC = () => (
-  <CreateProvider>
-    <StatsProvider>
-      <MonitorProvider>
-        <ChatProvider>
-          <SettingsProvider>
-            <Dashboard />
-          </SettingsProvider>
-        </ChatProvider>
-      </MonitorProvider>
-    </StatsProvider>
-  </CreateProvider>
-);
-
-export default DashboardWithProviders;
+export default Dashboard;

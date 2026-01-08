@@ -5,7 +5,6 @@ import test1 from "../../assets/test_1.png";
 import shobotLogo from "../../assets/shobot_arena.png";
 import shobotLogo1 from "../../assets/shobot_arena2.png";
 import simulationMap from "../../assets/simulation_map.png";
-import trasccon4th from "../../assets/trasccon4th.png";
 
 interface MapAreaProps {
   minimized?: boolean;
@@ -28,7 +27,6 @@ const MapArea: React.FC<MapAreaProps> = ({
   const mapIdAliases: Record<string, string> = {
     shobot_area: "shobot_arena",
     arena: "shobot_arena",
-    trasccon: "trasccon4th",
   };
   const normalizeId = (id?: string) => mapIdAliases[String(id || "").toLowerCase()] || (id || "");
 
@@ -38,7 +36,7 @@ const MapArea: React.FC<MapAreaProps> = ({
       { id: "shobot_arena", name: "Shobot Arena", image: shobotLogo },
       { id: "shobot_arena2", name: "Shobot Arena 2", image: shobotLogo1 },
       { id: "simulation", name: "Simulation Map", image: simulationMap },
-      { id: "trasccon4th", name: "Trasccon 4th Floor", image: trasccon4th },
+      // Trascon map entry removed intentionally
       { id: "map1", name: "Map 1", image: map1 },
       { id: "test_1", name: "Test 1", image: test1 },
     ],
@@ -59,23 +57,22 @@ const MapArea: React.FC<MapAreaProps> = ({
     return defaultImageById[String(normId || "").toLowerCase()] || defaultImageByName[String(name || "").toLowerCase()] || "";
   };
 
-const resolvedImage = useMemo(() => {
-  if (!selectedMap) return "";
+  const resolvedImage = useMemo(() => {
+    if (!selectedMap) return "";
 
-  const explicit = (selectedMap.image || "").trim();
-  if (explicit) return explicit;
+    const explicit = (selectedMap.image || "").trim();
+    if (explicit) return explicit;
 
-  const normalizedId = normalizeId(selectedMap.id);
-  return getFallbackImage(normalizedId, selectedMap.name);
-}, [selectedMap]);
+    const normalizedId = normalizeId(selectedMap.id);
+    return getFallbackImage(normalizedId, selectedMap.name);
+  }, [selectedMap]);
 
 
   return (
     <main
       ref={mapRef}
-      className={`relative h-full w-full overflow-hidden bg-white transition-all duration-300 ${
-        minimized ? "minimized opacity-75" : ""
-      }`}
+      className={`relative h-full w-full overflow-hidden bg-white transition-all duration-300 ${minimized ? "minimized opacity-75" : ""
+        }`}
       style={{
         transform: minimized ? "scale(0.95)" : "scale(1)",
       }}
@@ -97,7 +94,7 @@ const resolvedImage = useMemo(() => {
         {resolvedImage ? (
           <img
             src={resolvedImage}
-            alt={selectedMap.name || "Map preview"}
+            alt={selectedMap?.name || "Map preview"}
             style={{
               width: "100%",
               height: "100%",
@@ -121,7 +118,7 @@ const resolvedImage = useMemo(() => {
           >
             <span className="text-slate-400 text-lg font-semibold">
               {selectedMap &&
-              String(selectedMap.id || "").toLowerCase() !== "cfl_gf"
+                String(selectedMap.id || "").toLowerCase() !== "cfl_gf"
                 ? selectedMap.name
                 : "Shobot Arena"}
             </span>
@@ -133,4 +130,4 @@ const resolvedImage = useMemo(() => {
   );
 };
 
-export default MapArea;
+export default React.memo(MapArea);

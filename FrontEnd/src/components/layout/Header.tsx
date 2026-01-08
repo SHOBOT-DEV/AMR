@@ -31,6 +31,12 @@ type Props = {
     batteryStatus?: BatteryStatus;
     layoutRef?: React.RefObject<HTMLElement | null>;
     onLockChange?: (locked: boolean) => void;
+    // optional external controls passed by parent (Dashboard)
+    emergencyClicked?: boolean;
+    setEmergencyClicked?: React.Dispatch<React.SetStateAction<boolean>>;
+    isLocked?: boolean;
+    setIsLocked?: React.Dispatch<React.SetStateAction<boolean>>;
+    batteryLevel?: number;
 };
 
 const Header: React.FC<Props> = ({
@@ -467,4 +473,4 @@ const Header: React.FC<Props> = ({
     );
 };
 
-export default Header;
+export default React.memo(Header);
