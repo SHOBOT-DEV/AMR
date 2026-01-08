@@ -28,7 +28,7 @@ def generate_launch_description():
                 {"goal_topic": "/goal_pose"},
                 {"status_topic": "/navigation_status"},
                 {"feedback_topic": "/navigation_feedback"},
-                {"nav2_action_name": "navigate_to_pose"},
+                {"nav2_action_name": "/navigate_to_pose"},
                 {"planner_mode": planner_mode},
                 {"path_goal_topic": path_goal_topic},
             ],

@@ -2,6 +2,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
@@ -32,7 +33,7 @@ def generate_launch_description():
                         "output_dir": output_dir,
                         "max_file_size_mb": max_file_size_mb,
                         "playback_rate": playback_rate,
-                        "sensor_topics": sensor_topics,
+                        "sensor_topics": ParameterValue(sensor_topics, value_type=str),
                         "mission_topic": mission_topic,
                         "task_failure_topic": task_failure_topic,
                         "error_topic": error_topic,

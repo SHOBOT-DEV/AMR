@@ -11,7 +11,7 @@ from typing import List
 
 import rclpy
 from rclpy.node import Node
-import sensor_msgs.point_cloud2 as pc2
+from sensor_msgs_py import point_cloud2 as pc2
 from sensor_msgs.msg import LaserScan, PointCloud2
 
 

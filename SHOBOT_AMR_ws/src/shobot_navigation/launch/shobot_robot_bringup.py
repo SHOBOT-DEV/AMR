@@ -1,5 +1,6 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
@@ -7,6 +8,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     planner_mode = LaunchConfiguration("planner_mode")
     path_goal_topic = LaunchConfiguration("path_goal_topic")
+    enable_teleop = LaunchConfiguration("enable_teleop")
 
     return LaunchDescription([
         DeclareLaunchArgument(
@@ -19,12 +21,19 @@ def generate_launch_description():
             default_value="/plan_goal",
             description="Path topic used when planner_mode=='path'; last pose becomes Nav2 goal.",
         ),
+        DeclareLaunchArgument(
+            "enable_teleop",
+            default_value="true",
+            description="Enable the keyboard teleop node (requires a TTY).",
+        ),
         # Teleop keyboard publisher (optional; runs in terminal)
         Node(
             package="shobot_teleop",
-            executable="shobot_teleop_node",
+            executable="teleop_key",
             name="shobot_teleop",
             output="screen",
+            emulate_tty=True,
+            condition=IfCondition(enable_teleop),
             parameters=[{"teleop_topic": "/cmd_vel/teleop"}],
         ),
         # Twist multiplexer: chooses between safety, teleop, nav
@@ -99,7 +108,7 @@ def generate_launch_description():
                 {"goal_topic": "/goal_pose"},
                 {"status_topic": "/navigation_status"},
                 {"feedback_topic": "/navigation_feedback"},
-                {"nav2_action_name": "navigate_to_pose"},
+                {"nav2_action_name": "/navigate_to_pose"},
                 {"planner_mode": planner_mode},
                 {"path_goal_topic": path_goal_topic},
             ],

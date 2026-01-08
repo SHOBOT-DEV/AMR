@@ -1,0 +1,140 @@
+<?xml version ="1.0"?>
+<robot name ="pillar">
+  <link name="PILLAR"/>
+  <joint name="fwf" type="fixed">
+    <parent link="PILLAR"/>
+    <child link="pillar1"/>
+
+  </joint >
+  <link name="pillar1">
+
+
+    	<collision>
+    		<geometry>
+    				<box size="0.1 .1 .60"/>
+    		</geometry>
+    		<origin rpy="0 0 0" xyz="0 0 0"/>
+    	</collision>
+    <visual>
+    	<geometry>
+    	<box size="0.1 0.1 .60"/>
+    	</geometry>
+    	<origin rpy="0 0 0" xyz="0 0 0"/>
+    <material name="red">
+    	<color rgba="1 0 0 1"/>
+    </material>
+  </visual>
+
+
+  <inertial>
+  	<origin rpy="0 0 0" xyz="0 0 0"/>
+  	<mass value="10"/>
+  	<inertia ixx="1" ixy="0" ixz="0"
+  		 iyy="1" iyz="0.0"
+  		 izz="1"/>
+  	 </inertial>
+</link>
+<joint name="l1tol2" type="fixed">
+  <parent link="pillar1"/>
+  <child link="pillar2"/>
+  <origin xyz="0 0.6 0"/>
+</joint>
+
+<link name="pillar2">
+
+    <collision>
+      <geometry>
+    	<box size="0.1 .1 .60"/>
+      </geometry>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </collision>
+  <visual>
+    <geometry>
+    <box size="0.1 .1 .60"/>
+    </geometry>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+  <material name="red">
+    <color rgba="1 0 0 1"/>
+  </material>
+</visual>
+
+
+<inertial>
+  <origin rpy="0 0 0" xyz="0 0 0"/>
+  <mass value="10"/>
+  <inertia ixx="1" ixy="0" ixz="0"
+     iyy="1" iyz="0.0"
+     izz="1"/>
+   </inertial>
+</link>
+
+<link name="base_link_pillar"> </link>
+<joint name="pillar_to_base" type="fixed">
+<parent link="pillar2"/>
+<child link="base_link_pillar"/>
+ <origin rpy="-1 0 0" xyz="0 0 0"/>
+</joint>
+
+<joint name="l2tol3" type="fixed">
+  <parent link="pillar1"/>
+  <child link="pillar3"/>
+  <origin xyz="0 -0.6 0"/>
+</joint>
+
+<link name="pillar3">
+
+    <collision>
+      <geometry>
+    	<box size="0.1 .1 .60"/>
+      </geometry>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </collision>
+  <visual>
+    <geometry>
+    <box size="0.1 .1 .60"/>
+    </geometry>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+  <material name="red">
+    <color rgba="1 0 0 1"/>
+  </material>
+</visual>
+
+
+<inertial>
+  <origin rpy="0 0 0" xyz="0 0 0"/>
+  <mass value="10"/>
+  <inertia ixx="1" ixy="0" ixz="0"
+     iyy="1" iyz="0.0"
+     izz="1"/>
+   </inertial>
+</link>
+
+
+
+<!--
+<gazebo reference="base_link">
+   <material>Gazebo/Grey</material>
+ </gazebo> -->
+
+<gazebo reference="pillar1">
+
+<material>Gazebo/Red</material>
+</gazebo>
+<material name="Red">
+  <color rgba="1.0 0.0 0.0 1"/>
+</material>
+<gazebo reference="pillar2">
+
+<material>Gazebo/Red</material>
+</gazebo>
+<material name="Red2">
+  <color rgba="1.0 0.0 0.0 1"/>
+</material>
+<gazebo reference="pillar3">
+
+<material>Gazebo/Red</material>
+</gazebo>
+<material name="Red1">
+  <color rgba="1.0 0.0 0.0 1"/>
+</material>
+</robot>

@@ -12,7 +12,7 @@ from rclpy.qos import (
     HistoryPolicy,
 )
 from sensor_msgs.msg import PointCloud2
-import sensor_msgs.point_cloud2 as pc2
+from sensor_msgs_py import point_cloud2 as pc2
 
 
 class PointCloudFilterNode(Node):

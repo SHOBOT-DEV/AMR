@@ -1,0 +1,83 @@
+<?xml version ="1.0"?>
+<robot name ="Sheet">
+    <material name="grey">
+    	<color rgba="0.22 0.22 0.22 1"/>
+    </material>
+
+  <link name="Sheet"/>
+    <static>true</static>
+  <joint name="sheet" type="fixed">
+    <parent link="Sheet"/>
+    <child link="sheet_joint"/>
+
+  </joint >
+  <link name="sheet_joint">
+    	<collision>
+    		<geometry>
+    				<box size="1.5 1.0 .0001"/>
+    		</geometry>
+    		<origin rpy="0 0 0" xyz="0 0 0"/>
+    	</collision>
+    <visual>
+    	<geometry>
+    	<box size="1.5 1.0 .0001"/>
+    	</geometry>
+    	<origin rpy="0 0 0" xyz="0 0 0"/>
+    <material name="Blue">
+    	<color rgba="1 0 0 1"/>
+    </material>
+  </visual>
+
+
+  <inertial>
+  	<origin rpy="0 0 0" xyz="0 0 0"/>
+  	<mass value="10"/>
+  	<inertia ixx="1" ixy="0" ixz="0"
+  		 iyy="1" iyz="0.0"
+  		 izz="1"/>
+  	 </inertial>
+</link>
+
+
+
+  <joint name="sheet2" type="fixed">
+    <parent link="Sheet"/>
+    <child link="sheet_joint2"/>
+
+  </joint >
+  <link name="sheet_joint2">
+    	<collision>
+    		<geometry>
+    				<box size="1.4 0.9 .001"/>
+    		</geometry>
+    		<origin rpy="0 0 0" xyz="0 0 0"/>
+    	</collision>
+    <visual>
+    	<geometry>
+    	<box size="1.4 0.9 .001"/>
+    	</geometry>
+    	<origin rpy="0 0 0" xyz="0 0 0"/>
+    <material name="grey"/>
+  </visual>
+
+
+  <inertial>
+  	<origin rpy="0 0 0" xyz="0 0 0"/>
+  	<mass value="10"/>
+  	<inertia ixx="1" ixy="0" ixz="0"
+  		 iyy="1" iyz="0.0"
+  		 izz="1"/>
+  	 </inertial>
+</link>
+<!--
+<gazebo reference="base_link">
+   <material>Gazebo/Grey</material>
+ </gazebo> -->
+
+<gazebo reference="sheet_joint">
+<material>Gazebo/Blue</material>
+</gazebo>
+
+
+
+</robot>

@@ -2,6 +2,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from ament_index_python.packages import get_package_share_directory
 
 
 def generate_launch_description():
@@ -11,6 +12,9 @@ def generate_launch_description():
     lidar_odom = LaunchConfiguration("lidar_odom_topic")
     camera_vo = LaunchConfiguration("camera_vo_topic")
     imu_topic = LaunchConfiguration("imu_topic")
+    ekf_config = (
+        get_package_share_directory("shobot_robot_localization") + "/config/ekf.yaml"
+    )
 
     return LaunchDescription(
         [
@@ -50,7 +54,7 @@ def generate_launch_description():
                 name="shobot_ekf",
                 output="screen",
                 parameters=[
-                    "config/ekf.yaml",
+                    ekf_config,
                     {
                         "odom0": base_odom,
                         "odom1": wheel_odom,

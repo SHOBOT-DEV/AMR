@@ -22,15 +22,12 @@ class ZoneManagementNode(Node):
         # -------------------- Parameters --------------------
         self.declare_parameter("pose_topic", "/robot_pose")
         self.declare_parameter("zone_topic", "/zone_status")
-        self.declare_parameter("zones", [
-            {"name": "zone_a", "x": 0.0, "y": 0.0, "r": 1.0}
-        ])
+        # ROS 2 parameters do not support list-of-dict types; accept JSON string.
+        self.declare_parameter("zones", "[]")
 
         pose_topic = self.get_parameter("pose_topic").value
         zone_topic = self.get_parameter("zone_topic").value
-        self.zones = self._validate_zones(
-            self.get_parameter("zones").value
-        )
+        self.zones = self._validate_zones(self.get_parameter("zones").value)
 
         # -------------------- QoS Setup --------------------
         pose_qos = QoSProfile(
@@ -59,6 +56,7 @@ class ZoneManagementNode(Node):
     # Validate and sanitize zone definitions
     # ----------------------------------------------------------
     def _validate_zones(self, zones):
+        zones = self._normalize_zones(zones)
         valid = []
         for z in zones:
             try:
@@ -70,6 +68,24 @@ class ZoneManagementNode(Node):
             except Exception as e:
                 self.get_logger().error(f"Invalid zone entry {z}: {e}")
         return valid
+
+    def _normalize_zones(self, zones):
+        if zones is None:
+            return []
+        if isinstance(zones, list):
+            return zones
+        if isinstance(zones, str):
+            text = zones.strip()
+            if not text:
+                return []
+            try:
+                import json
+                parsed = json.loads(text)
+                return parsed if isinstance(parsed, list) else []
+            except Exception:
+                self.get_logger().warn("zones must be JSON list; ignoring invalid value.")
+                return []
+        return []
 
     # ----------------------------------------------------------
     # Main Pose Callback

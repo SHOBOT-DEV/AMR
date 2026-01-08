@@ -6,6 +6,13 @@ find_package(ament_cmake_python REQUIRED)
 
 ament_python_install_package(${PROJECT_NAME})
 
+install(
+  PROGRAMS
+    ${PROJECT_SOURCE_DIR}/shobot_dynamic_param_server/dynamic_param_server_node.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME dynamic_param_server_node
+)
+
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
 
 ament_package()

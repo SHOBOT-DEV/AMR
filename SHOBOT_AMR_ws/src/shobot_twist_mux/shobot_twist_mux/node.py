@@ -29,23 +29,22 @@ class TwistMux(Node):
 
         # ---------------- Parameters ----------------
         self.declare_parameter("sources", ["safety", "teleop", "nav"])
-        self.declare_parameter("priorities",
-                               {"safety": 100, "teleop": 50, "nav": 10})
-        self.declare_parameter("timeouts",
-                               {"safety": 0.5, "teleop": 0.5, "nav": 1.0})
-        self.declare_parameter("topics",
-                               {"safety": "/cmd_vel/safety",
-                                "teleop": "/cmd_vel/teleop",
-                                "nav": "/cmd_vel/nav"})
+        self.declare_parameter("priorities", "")
+        self.declare_parameter("timeouts", "")
+        self.declare_parameter("topics", "")
 
         self.declare_parameter("output_topic", "/cmd_vel")
         self.declare_parameter("rate_hz", 20.0)
         self.declare_parameter("safety_stop_topic", "/safety_stop")
 
-        names = self.get_parameter("sources").value
-        priorities = self.get_parameter("priorities").value
-        timeouts = self.get_parameter("timeouts").value
-        topics = self.get_parameter("topics").value
+        names = self._parse_list(self.get_parameter("sources").value, ["safety", "teleop", "nav"])
+        priorities = self._parse_dict(self.get_parameter("priorities").value, {"safety": 100, "teleop": 50, "nav": 10})
+        timeouts = self._parse_dict(self.get_parameter("timeouts").value, {"safety": 0.5, "teleop": 0.5, "nav": 1.0})
+        topics = self._parse_dict(self.get_parameter("topics").value, {
+            "safety": "/cmd_vel/safety",
+            "teleop": "/cmd_vel/teleop",
+            "nav": "/cmd_vel/nav",
+        })
 
         self.output_topic = self.get_parameter("output_topic").value
         rate_hz = float(self.get_parameter("rate_hz").value)
@@ -130,6 +129,37 @@ class TwistMux(Node):
             self.output_pub.publish(Twist())  # No valid command
 
     # -------------------------------------------------
+    def _parse_list(self, value, default):
+        if isinstance(value, list):
+            return [str(v).strip() for v in value if str(v).strip()]
+        if isinstance(value, str):
+            text = value.strip()
+            if not text:
+                return default
+            try:
+                import json
+                parsed = json.loads(text)
+                if isinstance(parsed, list):
+                    return [str(v).strip() for v in parsed if str(v).strip()]
+            except Exception:
+                pass
+        return default
+
+    def _parse_dict(self, value, default):
+        if isinstance(value, dict):
+            return value
+        if isinstance(value, str):
+            text = value.strip()
+            if not text:
+                return default
+            try:
+                import json
+                parsed = json.loads(text)
+                if isinstance(parsed, dict):
+                    return parsed
+            except Exception:
+                pass
+        return default
 
 
 def main(args=None):

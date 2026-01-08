@@ -2,6 +2,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
@@ -19,7 +20,9 @@ def generate_launch_description():
                 executable="dynamic_param_server_node",
                 name="shobot_dynamic_param_server",
                 output="screen",
-                parameters=[{"propagate_targets": propagate_targets}],
+                parameters=[
+                    {"propagate_targets": ParameterValue(propagate_targets, value_type=str)}
+                ],
             ),
         ]
     )

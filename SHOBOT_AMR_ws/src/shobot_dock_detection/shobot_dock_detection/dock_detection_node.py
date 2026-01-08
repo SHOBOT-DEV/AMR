@@ -17,6 +17,7 @@ from geometry_msgs.msg import PoseStamped
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from rclpy.time import Time
+from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 from std_msgs.msg import Bool, String
 
 
@@ -37,11 +38,10 @@ class DockDetectionNode(Node):
         # Parameters
         self.declare_parameter(
             "sources",
-            [
-                # Example entries:
-                # "apriltag:/dock/apriltag_pose:1.0",
-                # "aruco:/dock/aruco_pose:1.0",
-            ],
+            "",
+            descriptor=ParameterDescriptor(
+                description="Comma-separated list: name:topic:timeout_sec",
+            ),
         )
         self.declare_parameter("dock_pose_topic", "/dock_pose")
         self.declare_parameter("dock_detected_topic", "/dock_detected")

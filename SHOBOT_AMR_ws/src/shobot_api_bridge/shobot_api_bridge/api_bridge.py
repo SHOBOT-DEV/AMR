@@ -39,6 +39,8 @@ class ApiBridge(Node):
         self.declare_parameter("cmd_vel_topic", "/cmd_vel")
         self.declare_parameter("status_topic", "/status_text")   # expects std_msgs/String
         self.declare_parameter("camera_topic", "/camera/image/compressed")
+        self.declare_parameter("api_host", "0.0.0.0")
+        self.declare_parameter("api_port", 8000)
 
         cmd_vel_topic = self.get_parameter("cmd_vel_topic").value
         status_topic = self.get_parameter("status_topic").value
@@ -97,14 +99,18 @@ class ApiBridge(Node):
 node: Optional[ApiBridge] = None
 executor: Optional[MultiThreadedExecutor] = None
 spin_thread: Optional[Thread] = None
+APP_HOST = "0.0.0.0"
+APP_PORT = 8000
 
 
-def start_ros():
+def start_ros(args=None):
     """Start ROS2 node + executor in background thread."""
-    global node, executor, spin_thread
+    global node, executor, spin_thread, APP_HOST, APP_PORT
 
-    rclpy.init()
+    rclpy.init(args=args)
     node = ApiBridge()
+    APP_HOST = str(node.get_parameter("api_host").value)
+    APP_PORT = int(node.get_parameter("api_port").value)
 
     executor = MultiThreadedExecutor()
     executor.add_node(node)
@@ -202,10 +208,10 @@ def api_camera_stream():
 # ENTRY POINT
 # ======================================================================
 
-def main():
-    start_ros()
+def main(args=None):
+    start_ros(args=args)
     try:
-        app.run(host="0.0.0.0", port=8000, threaded=True)
+        app.run(host=APP_HOST, port=APP_PORT, threaded=True, use_reloader=False)
     finally:
         shutdown_ros()
 

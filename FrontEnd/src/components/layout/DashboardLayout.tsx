@@ -14,6 +14,7 @@ import MapArea from "../map/MapArea.tsx";
 import RightPane from "../test/RightPane.tsx";
 import JoyStick from "../map/JoyStick.tsx";
 import { fetchWithAuth, clearAuthTokens, API_BASE } from "../../utils/auth";
+import { AMR_BRIDGE_BASE, fetchBridgeStatus } from "../../utils/amrBridge";
 
 
 type MissionTrendEntry = {
@@ -468,9 +469,43 @@ const Dashboard: React.FC = () => {
   const analyticsPath = buildSimplePath(analyticsSeries, analyticsChartSize);
   const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>({
     connected: false,
-    endpoint: "http://localhost:8000",
+    endpoint: AMR_BRIDGE_BASE,
     error: "",
   });
+
+  useEffect(() => {
+    let mounted = true;
+    let timer: ReturnType<typeof setInterval> | null = null;
+
+    const pollBridge = async () => {
+      try {
+        const data = await fetchBridgeStatus(AMR_BRIDGE_BASE);
+        if (!mounted) return;
+        setBridgeStatus({
+          connected: data?.status === "online",
+          endpoint: AMR_BRIDGE_BASE,
+          error: "",
+        });
+      } catch (err) {
+        if (!mounted) return;
+        const message =
+          err instanceof Error ? err.message : "Bridge offline";
+        setBridgeStatus({
+          connected: false,
+          endpoint: AMR_BRIDGE_BASE,
+          error: message,
+        });
+      }
+    };
+
+    pollBridge();
+    timer = setInterval(pollBridge, 5000);
+
+    return () => {
+      mounted = false;
+      if (timer) clearInterval(timer);
+    };
+  }, []);
 
   const requestV1 = useCallback(
     async (path: string, options: RequestInit = {}) => {

@@ -11,7 +11,7 @@ from typing import List, Tuple
 
 import numpy as np
 import rclpy
-import sensor_msgs.point_cloud2 as pc2
+from sensor_msgs_py import point_cloud2 as pc2
 from nav_msgs.msg import OccupancyGrid
 from rclpy.node import Node
 from sensor_msgs.msg import PointCloud2
