@@ -6,7 +6,8 @@ import test1 from "../../../assets/test_1.png";
 import shobotLogo from "../../../assets/shobot_arena.png";
 import shobotLogo1 from "../../../assets/shobot_arena2.png";
 import simulationMap from "../../../assets/simulation_map.png";
-import trasccon4th from "../../../assets/trasccon4th.png";
+import { useCreate } from "../../../context/CreateContext.tsx";
+// removed: trasccon4th map asset (no longer used)
 import MapContext from "../../rightPane/create/MapContext.tsx";
 import { createPortal } from "react-dom";
 import MapManager from "./MapContext.tsx";
@@ -59,6 +60,13 @@ const Maps: React.FC<MapsProps> = (props) => {
     setMapsList,
     setSelectedMap,
   } = props;
+
+  // sync with CreateContext so MapContext will provide waypoints/zones/missions for active map
+  const create = useCreate();
+  const ctxSelectedMap = create?.selectedMap ?? null;
+  const ctxSetSelectedMap = create?.setSelectedMap;
+  const ctxSetMapsList = create?.setMapsList;
+  const activeSelectedMap = ctxSelectedMap ?? selectedMap;
 
   // Modal state
   const [mapModalOpen, setMapModalOpen] = useState(false);
@@ -191,26 +199,15 @@ const Maps: React.FC<MapsProps> = (props) => {
       toast?.error(err.message || "Failed to save map");
     }
   };
-
   // Aliases to normalize IDs coming from server/data
   const mapIdAliases: Record<string, string> = {
     shobot_area: "shobot_arena",
-    trasccon: "trasccon4th",
   };
   const normalizeId = (id?: string) => mapIdAliases[String(id || "").toLowerCase()] || (id || "");
 
   // Initialize with imported map images (make stable via useMemo)
   const defaultMapsWithImages = useMemo(
     () => [
-      {
-        id: "shobot_arena",
-        name: "Shobot Arena",
-        createdBy: "Branding",
-        image: shobotLogo,
-        status: "Active",
-        category: "Arena",
-        createdAt: "2025-11-17",
-      },
       {
         id: "shobot_arena2",
         name: "Shobot Arena 2",
@@ -229,16 +226,7 @@ const Maps: React.FC<MapsProps> = (props) => {
         category: "Simulation",
         createdAt: "2025-11-13",
       },
-      // Fix id to match asset/use cases to avoid repeated re-render issues
-      {
-        id: "trasccon4th",
-        name: "Trasccon 4th Floor",
-        createdBy: "CNDE IITM",
-        image: trasccon4th,
-        status: "",
-        category: "Production",
-        createdAt: "2025-11-12",
-      },
+      // Trascon map removed — intentionally omitted to avoid showing deprecated/duplicate map assets
       {
         id: "map1",
         name: "Map 1",
@@ -294,58 +282,61 @@ const Maps: React.FC<MapsProps> = (props) => {
   };
 
   // Merge and backfill images using normalized IDs, memoized
- const combinedMaps = useMemo(() => {
-  const validBackendMaps = (mapsList || [])
-    .filter((m) => {
-      const id = String(m.id || "").toLowerCase();
-      const name = String(m.name || "").toLowerCase();
-      if (!id) return false;
-      if (id === "cfl_gf" || name === "cfl_gf") return false;
-      return true;
-    })
-    .map(buildPatchedMap);
+  const combinedMaps = useMemo(() => {
+    const validBackendMaps = (mapsList || [])
+      .filter((m) => {
+        const id = String(m.id || "").toLowerCase();
+        const name = String(m.name || "").toLowerCase();
+        if (!id) return false;
+        if (id === "cfl_gf" || name === "cfl_gf") return false;
+        return true;
+      })
+      .map(buildPatchedMap);
 
-  const mapById = new Map<string, Map>();
+    const mapById = new Map<string, Map>();
 
-  // 1️⃣ Insert backend maps first
-  for (const m of validBackendMaps) {
-    mapById.set(normalizeId(m.id).toLowerCase(), m);
-  }
-
-  // 2️⃣ Backfill defaults ONLY if missing
-  for (const dm of defaultMapsWithImages) {
-    const id = normalizeId(dm.id).toLowerCase();
-    if (!mapById.has(id)) {
-      mapById.set(id, dm);
+    // 1️⃣ Insert backend maps first
+    for (const m of validBackendMaps) {
+      mapById.set(normalizeId(m.id).toLowerCase(), m);
     }
-  }
 
-  // 3️⃣ Force Shobot Arena to top
-  const shobot = mapById.get("shobot_arena");
-  const rest = Array.from(mapById.values()).filter(
-    (m) => normalizeId(m.id) !== "shobot_arena"
-  );
+    // 2️⃣ Backfill defaults ONLY if missing
+    for (const dm of defaultMapsWithImages) {
+      const id = normalizeId(dm.id).toLowerCase();
+      if (!mapById.has(id)) {
+        mapById.set(id, dm);
+      }
+    }
 
-  return shobot ? [shobot, ...rest] : rest;
-}, [mapsList, defaultMapsWithImages]);
-
-useEffect(() => {
-  if (combinedMaps.length === 0) return;
-
-  const isValid =
-    selectedMap &&
-    combinedMaps.some(
-      (m) => normalizeId(m.id) === normalizeId(selectedMap.id)
+    // 3️⃣ Force Shobot Arena to top
+    const shobot = mapById.get("shobot_arena");
+    const rest = Array.from(mapById.values()).filter(
+      (m) => normalizeId(m.id) !== "shobot_arena"
     );
 
-  if (!isValid) {
-    const shobot =
-      combinedMaps.find((m) => normalizeId(m.id) === "shobot_arena") ||
-      combinedMaps[0];
+    return shobot ? [shobot, ...rest] : rest;
+  }, [mapsList, defaultMapsWithImages]);
 
-    setSelectedMap(shobot);
-  }
-}, [combinedMaps, selectedMap, setSelectedMap]);
+  useEffect(() => {
+    if (combinedMaps.length === 0) return;
+
+    const isValid =
+      activeSelectedMap &&
+      combinedMaps.some((m) => normalizeId(m.id) === normalizeId(activeSelectedMap.id));
+
+    if (!isValid) {
+      const shobot =
+        combinedMaps.find((m) => normalizeId(m.id) === "shobot_arena") ||
+        combinedMaps[0];
+
+      setSelectedMap(shobot);
+      try {
+        ctxSetSelectedMap?.(shobot as any);
+      } catch (e) {
+        /* ignore */
+      }
+    }
+  }, [combinedMaps, selectedMap, setSelectedMap, activeSelectedMap, ctxSetSelectedMap]);
 
 
 
@@ -379,9 +370,21 @@ useEffect(() => {
           ? { ...m, status: "Active", image: (m.image || "").trim() ? m.image : patched.image }
           : { ...m, status: "Inactive" };
       });
-      return found ? updated : [...updated, { ...patched, status: "Active" }];
+      const result = found ? updated : [...updated, { ...patched, status: "Active" }];
+      // keep CreateContext in sync if available
+      try {
+        ctxSetMapsList?.(result as any);
+      } catch (e) {
+        /* ignore */
+      }
+      return result;
     });
     setSelectedMap(patched);
+    try {
+      ctxSetSelectedMap?.(patched as any);
+    } catch (e) {
+      /* ignore */
+    }
 
     try {
       await handleActivateMap(patched);
@@ -474,15 +477,14 @@ useEffect(() => {
               <tr
                 key={normalizeId(m.id)} // Patch: use normalized id for stable keys
                 onClick={() => selectMap(m)}
-                className={`cursor-pointer transition-colors hover:bg-blue-50 ${
-                  selectedMap?.id === normalizeId(m.id) ? "bg-blue-50" : "bg-white"
-                }`}
+                className={`cursor-pointer transition-colors hover:bg-blue-50 ${activeSelectedMap?.id === normalizeId(m.id) ? "bg-blue-50" : "bg-white"
+                  }`}
               >
                 <td className="p-3 border-b border-gray-200 text-center">
                   <input
                     type="radio"
                     name="activeMap"
-                    checked={selectedMap?.id === normalizeId(m.id)} // Patch: compare normalized ids
+                    checked={activeSelectedMap?.id === normalizeId(m.id)} // Patch: compare normalized ids
                     onChange={(e) => {
                       e.stopPropagation();
                       selectMap(m);
@@ -529,13 +531,12 @@ useEffect(() => {
                 </td>
                 <td className="p-3 border-b border-gray-200 text-right">
                   <span
-                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
-                      selectedMap?.id === normalizeId(m.id) || String(m.status || "").toLowerCase() === "active"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
-                    }`}
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${selectedMap?.id === normalizeId(m.id) || String(m.status || "").toLowerCase() === "active"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-red-100 text-red-700"
+                      }`}
                   >
-                    {selectedMap?.id === normalizeId(m.id) || String(m.status || "").toLowerCase() === "active"
+                    {activeSelectedMap?.id === normalizeId(m.id) || String(m.status || "").toLowerCase() === "active"
                       ? "Active"
                       : "Inactive"}
                   </span>
@@ -770,18 +771,18 @@ useEffect(() => {
                     </button>
                   </div>
 
-                        <MapContext>
-                            {(selectedMap, filteredWaypoints, filteredZones, filteredMissions) => (
-                              <>
-                                
-                                  selectedMap={selectedMap}
-                                  waypoints={filteredWaypoints}
-                                  zones={filteredZones}
-                                  missions={filteredMissions}
-                                
-                              </>
-                            )}
-                        </MapContext>
+                  <MapContext>
+                    {(selectedMap, filteredWaypoints, filteredZones, filteredMissions) => (
+                      <>
+
+                        selectedMap={selectedMap}
+                        waypoints={filteredWaypoints}
+                        zones={filteredZones}
+                        missions={filteredMissions}
+
+                      </>
+                    )}
+                  </MapContext>
 
                 </div>
               </div>

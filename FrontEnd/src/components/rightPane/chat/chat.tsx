@@ -30,6 +30,7 @@ const Chat: React.FC<ChatProps> = ({
   chatContainerRef,
   formatTimestamp,
   latestMessage,
+
 }) => {
   const [isRecording, setIsRecording] = useState(false);
 

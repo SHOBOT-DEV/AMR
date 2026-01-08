@@ -1,4 +1,7 @@
+
 import React, { useRef, useEffect } from "react";
+
+
 
 interface JoystickData {
   x: number;
@@ -36,6 +39,12 @@ const Joystick: React.FC<JoystickProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const joystickRef = useRef<JoyStickInstance | null>(null);
+
+  // keep onMove in a ref to avoid re-creating listeners/raf when the prop identity changes
+  const onMoveRef = useRef<((data: JoystickData) => void) | undefined>(onMove);
+  useEffect(() => {
+    onMoveRef.current = onMove;
+  }, [onMove]);
 
   const keyStateRef = useRef({
     w: false,
@@ -82,7 +91,8 @@ const Joystick: React.FC<JoystickProps> = ({
           fullyStopKeyboard();
           return;
         }
-        onMove && onMove({ ...stickData, type: "joystick" });
+        // call via ref to avoid using stale/captured onMove
+        onMoveRef.current && onMoveRef.current({ ...stickData, type: "joystick" });
       }
     );
 
@@ -109,12 +119,12 @@ const Joystick: React.FC<JoystickProps> = ({
 
       const stop: JoystickData = { x: 0, y: 0, force: 0, angle: 0, type: "stop" };
       lastSentRef.current = stop;
-      onMove && onMove(stop);
+      onMoveRef.current && onMoveRef.current(stop);
 
       if (joystickRef.current?.Release) {
         try {
           joystickRef.current.Release();
-        } catch {}
+        } catch { }
       }
       pressedRef.current = false;
     };
@@ -178,7 +188,7 @@ const Joystick: React.FC<JoystickProps> = ({
         last.force !== payload.force
       ) {
         lastSentRef.current = payload;
-        onMove && onMove(payload);
+        onMoveRef.current && onMoveRef.current(payload);
       }
 
       const canvas = container.querySelector("canvas");
@@ -266,7 +276,7 @@ const Joystick: React.FC<JoystickProps> = ({
       if (joystickRef.current?.Destroy) joystickRef.current.Destroy();
       joystickRef.current = null;
     };
-  }, [width, height, onMove]);
+  }, [width, height]);
 
   return (
     <div
@@ -282,4 +292,4 @@ const Joystick: React.FC<JoystickProps> = ({
   );
 };
 
-export default Joystick;
+export default React.memo(Joystick);
